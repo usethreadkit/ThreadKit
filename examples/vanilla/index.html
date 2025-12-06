@@ -77,7 +77,7 @@
     <header>
       <h1>ThreadKit - Vanilla JS Example</h1>
       <p class="description">
-        ThreadKit can be used without a build step using the <code>render()</code> function.
+        ThreadKit can be used without any framework using the <code>@threadkit/core</code> package directly.
       </p>
 
       <div class="controls">
@@ -102,21 +102,25 @@
     <main id="threadkit-container"></main>
 
     <div class="code-example">
-      <code><span class="comment">// Import ThreadKit</span>
-<span class="keyword">import</span> { render } <span class="keyword">from</span> <span class="string">'@threadkit/react'</span>;
-<span class="keyword">import</span> <span class="string">'@threadkit/react/styles'</span>;
+      <code><span class="comment">// Import ThreadKit core</span>
+<span class="keyword">import</span> { CommentStore, WebSocketClient } <span class="keyword">from</span> <span class="string">'@threadkit/core'</span>;
+<span class="keyword">import</span> <span class="string">'@threadkit/core/styles'</span>;
 
-<span class="comment">// Render into a DOM element</span>
-<span class="keyword">const</span> threadkit = render(<span class="string">'#threadkit-container'</span>, {
+<span class="comment">// Create a comment store</span>
+<span class="keyword">const</span> store = <span class="keyword">new</span> CommentStore({
   siteId: <span class="string">'demo'</span>,
   url: <span class="string">'/vanilla'</span>,
   apiUrl: <span class="string">'/api'</span>,
-  mode: <span class="string">'comments'</span>,
-  theme: <span class="string">'light'</span>,
+  getToken: () => localStorage.getItem(<span class="string">'threadkit_token'</span>),
 });
 
-<span class="comment">// To unmount later:</span>
-<span class="comment">// threadkit.unmount();</span></code>
+<span class="comment">// Subscribe to state changes</span>
+store.on(<span class="string">'stateChange'</span>, (state) => {
+  <span class="comment">// Re-render UI with state.comments</span>
+});
+
+<span class="comment">// Fetch comments</span>
+store.fetch();</code>
     </div>
   </div>
 

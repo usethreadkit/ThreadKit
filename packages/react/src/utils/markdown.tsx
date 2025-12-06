@@ -1,6 +1,13 @@
 import React from 'react';
+import {
+  type Token,
+  type TokenizerOptions,
+  tokenizeLine as coreTokenizeLine,
+  isSafeUrl,
+} from '@threadkit/core';
 import type { ThreadKitPlugin, UserProfile } from '../types';
 import { UserHoverCard } from '../components/UserHoverCard';
+import { renderPluginInstruction } from '../renderers';
 
 export interface MarkdownOptions {
   allowLinks?: boolean;
@@ -13,97 +20,14 @@ export interface MarkdownOptions {
   resolveUsername?: (username: string) => string | undefined;
 }
 
-interface Token {
-  type: 'text' | 'bold' | 'italic' | 'strike' | 'code' | 'link' | 'mention' | 'quote' | 'list';
-  content: string;
-  url?: string;
-  userId?: string;
-  items?: string[];
-}
-
 function tokenizeLine(text: string, options: MarkdownOptions): Token[] {
-  const tokens: Token[] = [];
-  let remaining = text;
-
-  while (remaining.length > 0) {
-    // Bold: **text**
-    const boldMatch = remaining.match(/^\*\*(.+?)\*\*/);
-    if (boldMatch) {
-      tokens.push({ type: 'bold', content: boldMatch[1] });
-      remaining = remaining.slice(boldMatch[0].length);
-      continue;
-    }
-
-    // Italic: *text*
-    const italicMatch = remaining.match(/^\*([^*]+)\*/);
-    if (italicMatch) {
-      tokens.push({ type: 'italic', content: italicMatch[1] });
-      remaining = remaining.slice(italicMatch[0].length);
-      continue;
-    }
-
-    // Strikethrough: ~~text~~
-    const strikeMatch = remaining.match(/^~~(.+?)~~/);
-    if (strikeMatch) {
-      tokens.push({ type: 'strike', content: strikeMatch[1] });
-      remaining = remaining.slice(strikeMatch[0].length);
-      continue;
-    }
-
-    // Inline code: `text`
-    const codeMatch = remaining.match(/^`([^`]+)`/);
-    if (codeMatch) {
-      tokens.push({ type: 'code', content: codeMatch[1] });
-      remaining = remaining.slice(codeMatch[0].length);
-      continue;
-    }
-
-    // Links: [text](url)
-    if (options.allowLinks) {
-      const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
-      if (linkMatch) {
-        tokens.push({ type: 'link', content: linkMatch[1], url: linkMatch[2] });
-        remaining = remaining.slice(linkMatch[0].length);
-        continue;
-      }
-    }
-
-    // Auto-links: detect bare URLs
-    if (options.enableAutoLinks) {
-      const urlMatch = remaining.match(/^(https?:\/\/[^\s<>"\[\]]+)/);
-      if (urlMatch) {
-        tokens.push({ type: 'link', content: urlMatch[1], url: urlMatch[1] });
-        remaining = remaining.slice(urlMatch[0].length);
-        continue;
-      }
-    }
-
-    // @mentions: detect @username
-    if (options.enableMentions) {
-      const mentionMatch = remaining.match(/^@(\w+)/);
-      if (mentionMatch) {
-        const username = mentionMatch[1];
-        const userId = options.resolveUsername?.(username) || username;
-        tokens.push({ type: 'mention', content: username, userId });
-        remaining = remaining.slice(mentionMatch[0].length);
-        continue;
-      }
-    }
-
-    // Plain text: consume until next special char or end
-    const plainMatch = remaining.match(/^[^*`~[\]]+/);
-    if (plainMatch) {
-      tokens.push({ type: 'text', content: plainMatch[0] });
-      remaining = remaining.slice(plainMatch[0].length);
-      continue;
-    }
-
-    // Fallback: consume single character
-    tokens.push({ type: 'text', content: remaining[0] });
-    remaining = remaining.slice(1);
-  }
-
-  return tokens;
+  const tokenizerOptions: TokenizerOptions = {
+    allowLinks: options.allowLinks,
+    enableAutoLinks: options.enableAutoLinks,
+    enableMentions: options.enableMentions,
+    resolveUsername: options.resolveUsername,
+  };
+  return coreTokenizeLine(text, tokenizerOptions);
 }
 
 function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNode[] {
@@ -118,10 +42,7 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
       case 'code':
         return <code key={i} className="threadkit-inline-code">{token.content}</code>;
       case 'link':
-        // Sanitize dangerous URLs (javascript:, data:, vbscript:, etc.)
-        const isSafeUrl = token.url && !token.url.match(/^\s*(javascript|data|vbscript):/i);
-        if (!isSafeUrl) {
-          // Render as plain text for unsafe URLs
+        if (!token.url || !isSafeUrl(token.url)) {
           return <span key={i} className="threadkit-unsafe-link">{token.content}</span>;
         }
         return (
@@ -155,7 +76,7 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
   });
 }
 
-export function parseMarkdown(text: string, options: MarkdownOptions = {}): React.ReactNode {
+export function renderMarkdown(text: string, options: MarkdownOptions = {}): React.ReactNode {
   // Apply plugin text transformations first
   let processedText = text;
   if (options.plugins) {
@@ -175,17 +96,16 @@ export function parseMarkdown(text: string, options: MarkdownOptions = {}): Reac
       priority: number;
     }> = [];
 
-    // Let each plugin find and render its matches
+    // Let each plugin find and render its matches using the universal findSegments approach
     options.plugins.forEach((plugin, pluginIndex) => {
-      if (plugin.renderTokens) {
-        // Call plugin with a callback to register segments
-        const result = plugin.renderTokens(processedText, (start, end, rendered) => {
-          segments.push({ start, end, render: rendered, priority: pluginIndex });
+      if (plugin.findSegments) {
+        const pluginSegments = plugin.findSegments(processedText);
+        pluginSegments.forEach((seg, segIndex) => {
+          const rendered = renderPluginInstruction(seg.instruction, `${plugin.name}-${segIndex}`);
+          if (rendered) {
+            segments.push({ start: seg.start, end: seg.end, render: rendered, priority: pluginIndex });
+          }
         });
-        // For backwards compat: if plugin returns full render without using callback
-        if (result !== null && segments.length === 0) {
-          return result;
-        }
       }
     });
 
@@ -222,7 +142,7 @@ export function parseMarkdown(text: string, options: MarkdownOptions = {}): Reac
             if (paraContent) {
               elements.push(
                 <React.Fragment key={`para-${i}`}>
-                  {parseMarkdownLines(paraContent, options)}
+                  {renderMarkdownLines(paraContent, options)}
                 </React.Fragment>
               );
             }
@@ -254,7 +174,7 @@ export function parseMarkdown(text: string, options: MarkdownOptions = {}): Reac
         if (textAfter.includes('\n\n')) {
           elements.push(
             <React.Fragment key="text-end">
-              {parseMarkdownLines(textAfter, options)}
+              {renderMarkdownLines(textAfter, options)}
             </React.Fragment>
           );
         } else {
@@ -270,10 +190,10 @@ export function parseMarkdown(text: string, options: MarkdownOptions = {}): Reac
     }
   }
 
-  return parseMarkdownLines(processedText, options);
+  return renderMarkdownLines(processedText, options);
 }
 
-function parseMarkdownLines(text: string, options: MarkdownOptions): React.ReactNode {
+function renderMarkdownLines(text: string, options: MarkdownOptions): React.ReactNode {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let currentList: string[] = [];

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
 import { UserHoverCard } from './UserHoverCard';
-import { parseMarkdown } from '../utils/markdown';
+import { renderMarkdown } from '../utils/markdown';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -139,7 +139,7 @@ function ChatMessage({
           <span className="threadkit-chat-author">{message.userName}</span>
         </UserHoverCard>
         <span className="threadkit-chat-text">
-          {parseMarkdown(message.text, {
+          {renderMarkdown(message.text, {
             allowLinks: true,
             enableAutoLinks: true,
             enableMentions: true,

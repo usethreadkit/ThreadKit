@@ -11,9 +11,11 @@ use uuid::Uuid;
 
 use threadkit_common::types::{
     Comment, CommentStatus, CommentWithAuthor, ModerationAction, ModerationMode, Notification,
-    NotificationType, Report, ReportReason, SortOrder, UserPublic, VoteDirection,
+    NotificationType, Report, ReportReason, SortOrder, TurnstileEnforcement, UserPublic, VoteDirection,
 };
 use threadkit_common::moderation::ModerationCheckResult;
+
+use super::turnstile::verify_with_cloudflare;
 
 use crate::{
     extractors::{ApiKey, AuthUser, AuthUserWithRole, MaybeAuthUser},
@@ -209,7 +211,7 @@ pub async fn get_comments(
     responses(
         (status = 200, description = "Comment created", body = CreateCommentResponse),
         (status = 400, description = "Invalid request"),
-        (status = 403, description = "User is blocked"),
+        (status = 403, description = "User is blocked or Turnstile verification failed"),
         (status = 404, description = "Parent comment not found")
     ),
     security(("api_key" = []), ("bearer" = []))
@@ -218,6 +220,7 @@ pub async fn create_comment(
     State(state): State<AppState>,
     api_key: ApiKey,
     auth: AuthUserWithRole,
+    headers: axum::http::HeaderMap,
     Json(req): Json<CreateCommentRequest>,
 ) -> Result<Json<CreateCommentResponse>, (StatusCode, String)> {
     // Check if user is blocked
@@ -240,6 +243,75 @@ pub async fn create_comment(
 
     if page_locked {
         return Err((StatusCode::FORBIDDEN, "Posting is disabled on this page".into()));
+    }
+
+    // Turnstile verification (bot protection)
+    let turnstile_settings = &api_key.0.settings.turnstile;
+    if turnstile_settings.enabled && turnstile_settings.enforce_on != TurnstileEnforcement::None {
+        // Check if verification is required for this user
+        let requires_verification = match turnstile_settings.enforce_on {
+            TurnstileEnforcement::All => true,
+            TurnstileEnforcement::Anonymous => {
+                // For now, all authenticated users pass this check
+                // In the future, we might check if user has anonymous auth provider
+                false
+            }
+            TurnstileEnforcement::Unverified => {
+                // Check if user has verified email or phone
+                let user = state.redis.get_user(auth.user_id).await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+                    .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
+                !user.email_verified && !user.phone_verified
+            }
+            TurnstileEnforcement::None => false,
+        };
+
+        if requires_verification {
+            // Check for cached verification (if caching is enabled)
+            let cache_key = format!("turnstile:verified:{}:{}", api_key.0.site_id, auth.user_id);
+            let has_cached_verification = if turnstile_settings.cache_duration_seconds > 0 {
+                state.redis.exists(&cache_key).await.unwrap_or(false)
+            } else {
+                false
+            };
+
+            if !has_cached_verification {
+                // Get Turnstile token from header
+                let turnstile_token = headers
+                    .get("X-Turnstile-Token")
+                    .and_then(|v| v.to_str().ok())
+                    .ok_or((StatusCode::FORBIDDEN, "Turnstile verification required".into()))?;
+
+                // Verify with Cloudflare
+                let secret_key = state.config.turnstile.secret_key.as_ref()
+                    .ok_or((StatusCode::SERVICE_UNAVAILABLE, "Turnstile not configured on server".into()))?;
+
+                let client_ip = headers
+                    .get("x-forwarded-for")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|s| s.split(',').next())
+                    .map(|s| s.trim());
+
+                let result = verify_with_cloudflare(secret_key, turnstile_token, client_ip).await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Turnstile verification error: {}", e)))?;
+
+                if !result.success {
+                    return Err((StatusCode::FORBIDDEN, format!(
+                        "Turnstile verification failed: {}",
+                        result.error_codes.join(", ")
+                    )));
+                }
+
+                // Cache successful verification if enabled
+                if turnstile_settings.cache_duration_seconds > 0 {
+                    let _ = state.redis.set_with_expiry(
+                        &cache_key,
+                        "1",
+                        turnstile_settings.cache_duration_seconds as u64
+                    ).await;
+                }
+            }
+        }
     }
 
     // Validate comment length

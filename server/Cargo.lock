@@ -4068,6 +4068,7 @@ dependencies = [
  "axum-extra",
  "axum-test",
  "chrono",
+ "clap",
  "dashmap",
  "fake",
  "fred",
@@ -4103,6 +4104,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "fred",
  "futures-util",
  "rand 0.8.5",
  "reqwest",
@@ -4113,6 +4115,7 @@ dependencies = [
  "tokio-tungstenite 0.26.2",
  "tracing",
  "tracing-subscriber",
+ "urlencoding",
  "uuid",
 ]
 
@@ -4124,6 +4127,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "chrono",
+ "clap",
  "dashmap",
  "fake",
  "fred",

@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { formatTimestamp } from '@threadkit/core';
 import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
 import { UserHoverCard } from './UserHoverCard';
-import { parseMarkdown } from '../utils/markdown';
+import { renderMarkdown } from '../utils/markdown';
 
 const REPORT_REASONS = [
   'Spam',
@@ -11,25 +12,6 @@ const REPORT_REASONS = [
   'Misinformation',
   'Other',
 ] as const;
-
-function formatTimestamp(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-
-  if (years > 0) return `${years} year${years > 1 ? 's' : ''} ago`;
-  if (months > 0) return `${months} month${months > 1 ? 's' : ''} ago`;
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  return 'just now';
-}
 
 export function Comment({
   comment,
@@ -223,7 +205,7 @@ export function Comment({
                 </div>
               </div>
             ) : (
-              parseMarkdown(comment.text, {
+              renderMarkdown(comment.text, {
                 allowLinks: true,
                 enableAutoLinks: true,
                 enableMentions: true,
@@ -236,14 +218,31 @@ export function Comment({
           {/* Action row */}
           {!isEditing && (
             <div className="threadkit-comment-actions">
-              {/* Permalink - always shown */}
-              <a
+              {/* Share button - uses Web Share API when available, falls back to copy link */}
+              <button
                 className="threadkit-action-btn"
-                href={`#threadkit-${comment.id}`}
                 id={`threadkit-${comment.id}`}
+                onClick={async () => {
+                  const url = `${window.location.origin}${window.location.pathname}#threadkit-${comment.id}`;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `Comment by ${comment.userName}`,
+                        text: comment.text.slice(0, 100) + (comment.text.length > 100 ? '...' : ''),
+                        url,
+                      });
+                    } catch (err) {
+                      // User cancelled or share failed, silently ignore
+                    }
+                  } else {
+                    // Fallback: copy to clipboard
+                    await navigator.clipboard.writeText(url);
+                    // Could show a toast here
+                  }
+                }}
               >
-                permalink
-              </a>
+                share
+              </button>
 
               {/* Own comment actions: edit, reply, delete */}
               {isOwnComment ? (

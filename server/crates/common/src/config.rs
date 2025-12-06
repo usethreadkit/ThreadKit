@@ -15,8 +15,16 @@ pub struct Config {
     pub content_moderation: ContentModerationConfig,
     pub email: EmailConfig,
     pub sms: SmsConfig,
+    pub turnstile: TurnstileConfig,
     /// Maximum comment length in characters
     pub max_comment_length: usize,
+}
+
+/// Configuration for Cloudflare Turnstile bot protection
+#[derive(Debug, Clone, Default)]
+pub struct TurnstileConfig {
+    /// Turnstile secret key (from Cloudflare dashboard)
+    pub secret_key: Option<String>,
 }
 
 /// Configuration for email sending
@@ -269,6 +277,10 @@ impl Config {
             provider: Self::load_sms_provider(),
         };
 
+        let turnstile = TurnstileConfig {
+            secret_key: env::var("TURNSTILE_SECRET_KEY").ok().filter(|s| !s.is_empty()),
+        };
+
         Ok(Config {
             mode,
             redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string()),
@@ -293,6 +305,7 @@ impl Config {
             content_moderation,
             email,
             sms,
+            turnstile,
             max_comment_length: env::var("MAX_COMMENT_LENGTH")
                 .ok()
                 .and_then(|s| s.parse().ok())

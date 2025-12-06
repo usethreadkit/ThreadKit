@@ -44,6 +44,26 @@ impl RedisClient {
         Ok(())
     }
 
+    /// Check if a key exists
+    pub async fn exists(&self, key: &str) -> Result<bool> {
+        let count: i64 = self.client.exists(key).await?;
+        Ok(count > 0)
+    }
+
+    /// Set a key with expiry (in seconds)
+    pub async fn set_with_expiry(&self, key: &str, value: &str, seconds: u64) -> Result<()> {
+        self.client
+            .set::<(), _, _>(
+                key,
+                value,
+                Some(Expiration::EX(seconds as i64)),
+                None,
+                false,
+            )
+            .await?;
+        Ok(())
+    }
+
     // ========================================================================
     // User Operations
     // ========================================================================

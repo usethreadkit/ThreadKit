@@ -1,0 +1,49 @@
+{
+  "name": "@threadkit/core",
+  "version": "1.0.0",
+  "description": "Framework-agnostic core for ThreadKit commenting system",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles": "./dist/styles.css",
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && cp src/styles/threadkit.css dist/styles.css",
+    "dev:watch": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.0"
+  },
+  "keywords": [
+    "threadkit",
+    "comments",
+    "chat",
+    "real-time",
+    "websocket"
+  ],
+  "license": "MIT",
+  "author": "fantauma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usethreadkit/threadkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/usethreadkit/threadkit/issues"
+  },
+  "homepage": "https://usethreadkit.com"
+}

@@ -1,6 +1,6 @@
 {
-  "name": "@threadkit/example-basic",
-  "version": "0.0.1",
+  "name": "react-example",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {

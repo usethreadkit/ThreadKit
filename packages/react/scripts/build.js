@@ -42,9 +42,9 @@ console.log('\n📦 Building @threadkit/react...\n');
 console.log('Compiling TypeScript...');
 execSync('npx tsc', { stdio: 'inherit' });
 
-// Copy CSS
-console.log('Copying styles...');
-copyFileSync('src/styles/threadkit.css', 'dist/styles.css');
+// Copy CSS from core package
+console.log('Copying styles from @threadkit/core...');
+copyFileSync('../core/src/styles/threadkit.css', 'dist/styles.css');
 
 // Get file stats
 const files = getFileStats(DIST_DIR);

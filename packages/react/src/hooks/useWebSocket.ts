@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import type { WebSocketMessage, Comment } from '../types';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { WebSocketClient, type Comment, type WebSocketState } from '@threadkit/core';
 
 interface UseWebSocketOptions {
   siteId: string;
@@ -22,6 +22,10 @@ interface UseWebSocketReturn {
   sendTyping: () => void;
 }
 
+/**
+ * React hook for WebSocket real-time updates.
+ * Thin wrapper around @threadkit/core WebSocketClient.
+ */
 export function useWebSocket({
   siteId,
   url,
@@ -35,97 +39,25 @@ export function useWebSocket({
   onTyping,
   onPresenceUpdate,
 }: UseWebSocketOptions): UseWebSocketReturn {
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [connected, setConnected] = useState(false);
-  const [presenceCount, setPresenceCount] = useState(0);
-  const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
+  // Create client once using ref
+  const clientRef = useRef<WebSocketClient | null>(null);
 
-  const wsUrl = apiUrl.replace(/^http/, 'ws');
+  if (!clientRef.current) {
+    clientRef.current = new WebSocketClient({
+      apiUrl,
+      siteId,
+      url,
+      getToken: () => localStorage.getItem('threadkit_token'),
+    });
+  }
 
-  const connect = useCallback(() => {
-    if (!enabled) return;
+  const client = clientRef.current;
 
-    try {
-      const token = localStorage.getItem('threadkit_token');
-      const wsUrlWithParams = `${wsUrl}/ws/${siteId}?url=${encodeURIComponent(url)}${token ? `&token=${token}` : ''}`;
+  // Subscribe to state changes
+  const [state, setState] = useState<WebSocketState>(client.getState());
 
-      wsRef.current = new WebSocket(wsUrlWithParams);
-
-      wsRef.current.onopen = () => {
-        setConnected(true);
-      };
-
-      wsRef.current.onclose = () => {
-        setConnected(false);
-        // Reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(connect, 3000);
-      };
-
-      wsRef.current.onerror = () => {
-        wsRef.current?.close();
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-
-          switch (message.type) {
-            case 'comment_added':
-              onCommentAdded?.(message.payload as Comment);
-              break;
-            case 'comment_deleted':
-              onCommentDeleted?.((message.payload as { commentId: string }).commentId);
-              break;
-            case 'comment_edited': {
-              const edited = message.payload as { commentId: string; text: string };
-              onCommentEdited?.(edited.commentId, edited.text);
-              break;
-            }
-            case 'comment_pinned': {
-              const pinned = message.payload as { commentId: string; pinned: boolean };
-              onCommentPinned?.(pinned.commentId, pinned.pinned);
-              break;
-            }
-            case 'user_banned':
-              onUserBanned?.((message.payload as { userId: string }).userId);
-              break;
-            case 'typing': {
-              const typing = message.payload as { userId: string; userName: string };
-              onTyping?.(typing.userId, typing.userName);
-              setTypingUsers((prev) => {
-                const exists = prev.some((u) => u.userId === typing.userId);
-                if (!exists) {
-                  // Remove after 3 seconds
-                  setTimeout(() => {
-                    setTypingUsers((p) => p.filter((u) => u.userId !== typing.userId));
-                  }, 3000);
-                  return [...prev, typing];
-                }
-                return prev;
-              });
-              break;
-            }
-            case 'presence': {
-              const count = (message.payload as { count: number }).count;
-              setPresenceCount(count);
-              onPresenceUpdate?.(count);
-              break;
-            }
-          }
-        } catch {
-          // Ignore invalid messages
-        }
-      };
-    } catch {
-      // WebSocket connection failed, will retry
-      reconnectTimeoutRef.current = setTimeout(connect, 3000);
-    }
-  }, [
-    enabled,
-    wsUrl,
-    siteId,
-    url,
+  // Store callbacks in refs to avoid reconnection on callback changes
+  const callbacksRef = useRef({
     onCommentAdded,
     onCommentDeleted,
     onCommentEdited,
@@ -133,29 +65,93 @@ export function useWebSocket({
     onUserBanned,
     onTyping,
     onPresenceUpdate,
-  ]);
+  });
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    callbacksRef.current = {
+      onCommentAdded,
+      onCommentDeleted,
+      onCommentEdited,
+      onCommentPinned,
+      onUserBanned,
+      onTyping,
+      onPresenceUpdate,
+    };
+  });
 
   useEffect(() => {
-    connect();
+    if (!enabled) {
+      client.disconnect();
+      return;
+    }
+
+    // Subscribe to state changes
+    const unsubState = client.on('stateChange', setState);
+
+    // Subscribe to events and forward to callbacks
+    const unsubAdded = client.on('commentAdded', (comment) => {
+      callbacksRef.current.onCommentAdded?.(comment);
+    });
+
+    const unsubDeleted = client.on('commentDeleted', ({ commentId }) => {
+      callbacksRef.current.onCommentDeleted?.(commentId);
+    });
+
+    const unsubEdited = client.on('commentEdited', ({ commentId, text }) => {
+      callbacksRef.current.onCommentEdited?.(commentId, text);
+    });
+
+    const unsubPinned = client.on('commentPinned', ({ commentId, pinned }) => {
+      callbacksRef.current.onCommentPinned?.(commentId, pinned);
+    });
+
+    const unsubBanned = client.on('userBanned', ({ userId }) => {
+      callbacksRef.current.onUserBanned?.(userId);
+    });
+
+    // Connect
+    client.connect();
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      wsRef.current?.close();
+      unsubState();
+      unsubAdded();
+      unsubDeleted();
+      unsubEdited();
+      unsubPinned();
+      unsubBanned();
     };
-  }, [connect]);
+  }, [client, enabled]);
 
-  const sendTyping = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'typing' }));
+  // Forward typing events (includes both state update and callback)
+  useEffect(() => {
+    // The state already includes typingUsers, so we just need to call the callback
+    if (onTyping && state.typingUsers.length > 0) {
+      const lastUser = state.typingUsers[state.typingUsers.length - 1];
+      onTyping(lastUser.userId, lastUser.userName);
     }
+  }, [state.typingUsers, onTyping]);
+
+  // Forward presence updates
+  useEffect(() => {
+    onPresenceUpdate?.(state.presenceCount);
+  }, [state.presenceCount, onPresenceUpdate]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clientRef.current?.destroy();
+    };
   }, []);
 
+  const sendTyping = useCallback(() => {
+    client.sendTyping();
+  }, [client]);
+
   return {
-    connected,
-    presenceCount,
-    typingUsers,
+    connected: state.connected,
+    presenceCount: state.presenceCount,
+    typingUsers: state.typingUsers,
     sendTyping,
   };
 }

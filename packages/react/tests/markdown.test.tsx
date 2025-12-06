@@ -143,9 +143,13 @@ describe('parseMarkdown', () => {
       expect(container.querySelectorAll('br').length).toBeGreaterThan(0);
     });
 
-    it('renders empty lines as breaks', () => {
+    it('renders empty lines as paragraph breaks', () => {
       const { container } = render(<>{parseMarkdown('Before\n\nAfter')}</>);
-      expect(container.querySelectorAll('br').length).toBeGreaterThan(0);
+      // Double newline creates separate paragraphs in markdown
+      const paragraphs = container.querySelectorAll('p');
+      expect(paragraphs.length).toBe(2);
+      expect(paragraphs[0]).toHaveTextContent('Before');
+      expect(paragraphs[1]).toHaveTextContent('After');
     });
   });
 

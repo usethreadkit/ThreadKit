@@ -72,7 +72,8 @@ describe('useComments', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.example.com/sites/test-site/comments?url=%2Ftest-page'
+        'https://api.example.com/sites/test-site/comments?url=%2Ftest-page',
+        expect.objectContaining({ headers: expect.any(Object) })
       );
     });
 
@@ -99,7 +100,7 @@ describe('useComments', () => {
 
       await waitFor(() => {
         expect(result.current.error).not.toBeNull();
-        expect(result.current.error?.message).toContain('Failed to fetch comments');
+        expect(result.current.error?.message).toContain('Request failed');
       });
     });
 
@@ -303,7 +304,7 @@ describe('useComments', () => {
         act(async () => {
           await result.current.postComment('Test');
         })
-      ).rejects.toThrow('Failed to post comment');
+      ).rejects.toThrow('Request failed');
     });
   });
 

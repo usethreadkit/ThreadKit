@@ -22,7 +22,7 @@ impl AppState {
 
         // In standalone mode, ensure site config exists in Redis
         if let Some(standalone) = config.standalone() {
-            use threadkit_common::types::{SiteConfig, SiteSettings, AuthSettings, DisplaySettings, ModerationMode, ContentModerationSettings};
+            use threadkit_common::types::{SiteConfig, SiteSettings, AuthSettings, DisplaySettings, ModerationMode, ContentModerationSettings, TurnstileSettings};
             use threadkit_common::config::ModerationMode as ConfigModerationMode;
 
             // Content moderation settings for standalone site
@@ -61,6 +61,7 @@ impl AppState {
                     auto_approve_verified: true,
                     rate_limits: Default::default(),
                     content_moderation: content_moderation_settings,
+                    turnstile: TurnstileSettings::default(),
                     allowed_origins: standalone.allowed_origins.clone(),
                     posting_disabled: false,
                 },

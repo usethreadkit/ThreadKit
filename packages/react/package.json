@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/react",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "description": "Privacy-first commenting and chat system for React",
   "type": "module",
   "main": "./dist/index.js",
@@ -26,14 +26,28 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no linter configured'"
   },
+  "dependencies": {
+    "@threadkit/core": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "optionalDependencies": {
+    "katex": "^0.16.11",
+    "dompurify": "^3.3.0",
+    "shiki": "^1.24.0",
+    "@threadkit/plugin-latex": "workspace:*",
+    "@threadkit/plugin-syntax-highlight": "workspace:*",
+    "@threadkit/plugin-media-preview": "workspace:*",
+    "@threadkit/plugin-turnstile": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/dompurify": "^3.2.0",
+    "@types/katex": "^0.16.7",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.0",

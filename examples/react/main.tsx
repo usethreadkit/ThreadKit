@@ -6,6 +6,25 @@ import '@threadkit/react/styles';
 type Mode = 'comments' | 'chat';
 type Theme = 'light' | 'dark';
 
+const codeExample = `// Install
+npm install @threadkit/react
+
+// Import
+import { ThreadKit } from '@threadkit/react';
+import '@threadkit/react/styles';
+
+// Use in your component
+function Comments() {
+  return (
+    <ThreadKit
+      siteId="your-site-id"
+      url={window.location.pathname}
+      mode="comments"
+      theme="light"
+    />
+  );
+}`;
+
 function App() {
   const [mode, setMode] = useState<Mode>('comments');
   const [theme, setTheme] = useState<Theme>('light');
@@ -13,9 +32,9 @@ function App() {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
       <header style={{ marginBottom: 32 }}>
-        <h1 style={{ marginBottom: 8 }}>ThreadKit - Basic Example</h1>
+        <h1 style={{ marginBottom: 8 }}>ThreadKit - React Example</h1>
         <p style={{ color: '#666', marginBottom: 16 }}>
-          A basic ThreadKit setup without any plugins.
+          A ThreadKit React setup without any plugins.
         </p>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -64,6 +83,28 @@ function App() {
           apiUrl="/api"
         />
       </main>
+
+      <div
+        style={{
+          marginTop: 32,
+          padding: 16,
+          background: '#1a1a1a',
+          borderRadius: 8,
+          overflow: 'auto',
+        }}
+      >
+        <pre
+          style={{
+            margin: 0,
+            color: '#e0e0e0',
+            fontFamily: "'Fira Code', Monaco, Consolas, monospace",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          <code>{codeExample}</code>
+        </pre>
+      </div>
     </div>
   );
 }

@@ -1,66 +1,61 @@
 import React from 'react';
 
-export interface Comment {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  text: string;
-  timestamp: number;
-  upvotes: string[];
-  downvotes: string[];
-  parentId?: string;
-  children: Comment[];
-  edited?: boolean;
-  pinned?: boolean;
+// Re-export core types with explicit names to avoid conflicts with DOM types
+import type {
+  Comment as CoreComment,
+  User as CoreUser,
+  UserProfile as CoreUserProfile,
+  ThreadKitMode as CoreThreadKitMode,
+  SortBy as CoreSortBy,
+  WebSocketMessage as CoreWebSocketMessage,
+  ThreadKitErrorCode as CoreThreadKitErrorCode,
+  PluginRenderInstruction,
+  PluginSegment as CorePluginSegment,
+  ThreadKitPlugin,
+} from '@threadkit/core';
+
+// Re-export with original names for backwards compatibility
+export type Comment = CoreComment;
+export type User = CoreUser;
+export type UserProfile = CoreUserProfile;
+export type ThreadKitMode = CoreThreadKitMode;
+export type SortBy = CoreSortBy;
+export type WebSocketMessage = CoreWebSocketMessage;
+export type ThreadKitErrorCode = CoreThreadKitErrorCode;
+
+// Re-export these as-is
+export type { PluginRenderInstruction };
+export type { CorePluginSegment };
+
+export { ThreadKitError } from '@threadkit/core';
+
+// ============================================================================
+// Plugin Types (Re-export from core)
+// ============================================================================
+
+// Re-export the universal plugin type from core
+export type { ThreadKitPlugin };
+
+// ============================================================================
+// Turnstile Configuration
+// ============================================================================
+
+/** Cloudflare Turnstile bot protection configuration */
+export interface TurnstileConfig {
+  /** Your Turnstile site key from Cloudflare dashboard */
+  siteKey: string;
+  /** Popup window dimensions (optional) */
+  popupOptions?: {
+    width?: number;
+    height?: number;
+  };
+  /** Timeout for waiting for challenge completion in ms (default: 120000) */
+  timeout?: number;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  avatar?: string;
-  isModerator?: boolean;
-  isAdmin?: boolean;
-  karma?: number;
-  totalComments?: number;
-  joinDate?: number;
-}
-
-export interface UserProfile {
-  id: string;
-  name: string;
-  avatar?: string;
-  karma: number;
-  totalComments: number;
-  joinDate: number;
-}
-
-export type ThreadKitMode = 'comments' | 'chat';
-
-export type SortBy = 'votes' | 'newest' | 'oldest' | 'controversial';
-
-/**
- * Callback to register a rendered segment
- */
-export type PluginSegmentCallback = (start: number, end: number, rendered: React.ReactNode) => void;
-
-/**
- * Plugin interface for extending ThreadKit functionality
- */
-export interface ThreadKitPlugin {
-  /** Unique name for the plugin */
-  name: string;
-  /** Transform text content before rendering */
-  transformText?: (text: string) => string;
-  /**
-   * Render custom React nodes from text patterns.
-   * Use the callback to register segments that the plugin handles.
-   * Return null to allow other plugins and default markdown to process remaining text.
-   */
-  renderTokens?: (text: string, registerSegment?: PluginSegmentCallback) => React.ReactNode | null;
-  /** CSS styles to inject */
-  styles?: string;
-}
+// ============================================================================
+// CSS Variables
+// ============================================================================
 
 /** CSS variable overrides for customizing ThreadKit appearance */
 export interface ThreadKitCSSVariables {
@@ -105,6 +100,10 @@ export interface ThreadKitCSSVariables {
   /** Line height */
   lineHeight?: string;
 }
+
+// ============================================================================
+// ThreadKit Props
+// ============================================================================
 
 export interface ThreadKitProps {
   /** Your site ID from ThreadKit dashboard */
@@ -169,6 +168,8 @@ export interface ThreadKitProps {
   plugins?: ThreadKitPlugin[];
   /** Auth plugins for custom authentication methods (e.g., Ethereum, Solana) */
   authPlugins?: import('./auth/types').AuthPlugin[];
+  /** Cloudflare Turnstile configuration for bot protection */
+  turnstile?: TurnstileConfig;
   /** Callback to get users for @mention autocomplete */
   getMentionSuggestions?: (query: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
 
@@ -193,6 +194,10 @@ export interface ThreadKitProps {
   onError?: (error: Error) => void;
 }
 
+// ============================================================================
+// ThreadKit Ref
+// ============================================================================
+
 /**
  * Imperative handle for controlling ThreadKit from parent components
  */
@@ -216,6 +221,10 @@ export interface ThreadKitRef {
   /** Expand all threads */
   expandAll: () => void;
 }
+
+// ============================================================================
+// Component Props
+// ============================================================================
 
 export interface CommentFormProps {
   parentId?: string;
@@ -252,9 +261,4 @@ export interface CommentProps {
   getUserProfile?: (userId: string) => UserProfile | undefined;
   /** Plugins for extending content rendering */
   plugins?: ThreadKitPlugin[];
-}
-
-export interface WebSocketMessage {
-  type: 'comment_added' | 'comment_deleted' | 'comment_edited' | 'comment_pinned' | 'user_banned' | 'typing' | 'presence';
-  payload: unknown;
 }

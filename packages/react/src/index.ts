@@ -57,7 +57,7 @@ export type {
   ThreadKitRef,
   ThreadKitCSSVariables,
   ThreadKitPlugin,
-  PluginSegmentCallback,
+  TurnstileConfig,
   Comment as CommentData, // Type for comment data (Comment component name takes precedence)
   Comment as CommentType, // Alias for backwards compatibility
   User,
@@ -68,6 +68,23 @@ export type {
   CommentFormProps,
   WebSocketMessage,
 } from './types';
+
+// Plugin renderers (for custom plugins)
+export {
+  pluginRenderers,
+  renderPluginInstruction,
+  registerPluginRenderer,
+  LatexRenderer,
+  CodeBlockRenderer,
+  VideoEmbedRenderer,
+  SpotifyEmbedRenderer,
+  SoundCloudEmbedRenderer,
+  GiphyEmbedRenderer,
+  CoubEmbedRenderer,
+  ImagePreviewRenderer,
+  VideoPreviewRenderer,
+  AudioPreviewRenderer,
+} from './renderers';
 
 /**
  * Render ThreadKit into a DOM element (for vanilla JS usage)

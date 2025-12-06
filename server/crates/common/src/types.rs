@@ -132,6 +132,7 @@ pub struct SiteSettings {
     pub auto_approve_verified: bool,
     pub rate_limits: SiteRateLimitSettings,
     pub content_moderation: ContentModerationSettings,
+    pub turnstile: TurnstileSettings,
     /// Allowed origins for API key validation (checked against Referer/Origin headers)
     /// If empty, only the site's primary domain is allowed
     /// Supports wildcards like "*.example.com" for subdomains
@@ -140,6 +141,43 @@ pub struct SiteSettings {
     /// When true, new comments are disabled site-wide
     #[serde(default)]
     pub posting_disabled: bool,
+}
+
+/// Per-site Cloudflare Turnstile bot protection settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnstileSettings {
+    /// Enable Turnstile protection for this site
+    pub enabled: bool,
+    /// When to require Turnstile verification
+    pub enforce_on: TurnstileEnforcement,
+    /// Cache successful verifications per user session (in seconds, 0 = no caching)
+    #[serde(default)]
+    pub cache_duration_seconds: u32,
+}
+
+impl Default for TurnstileSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            enforce_on: TurnstileEnforcement::Anonymous,
+            cache_duration_seconds: 0,
+        }
+    }
+}
+
+/// When to require Turnstile verification
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum TurnstileEnforcement {
+    /// Require for all comment submissions
+    All,
+    /// Only require for anonymous/guest users
+    #[default]
+    Anonymous,
+    /// Only require for users without verified email/phone
+    Unverified,
+    /// Never require (disabled)
+    None,
 }
 
 /// Per-site AI content moderation settings

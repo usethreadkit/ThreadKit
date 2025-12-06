@@ -750,6 +750,26 @@
   color: var(--threadkit-text);
 }
 
+/* Make paragraphs inline within chat messages so text flows after username */
+.threadkit-chat-text p,
+.threadkit-chat-text .threadkit-paragraph {
+  display: inline;
+  margin: 0;
+}
+
+/* Add space between multiple paragraphs in chat */
+.threadkit-chat-text p + p,
+.threadkit-chat-text .threadkit-paragraph + .threadkit-paragraph {
+  margin-left: 0.5em;
+}
+
+/* Keep code blocks as blocks even in chat */
+.threadkit-chat-text pre,
+.threadkit-chat-text .threadkit-code-block {
+  display: block;
+  margin-top: 4px;
+}
+
 .threadkit-chat-actions {
   display: flex;
   gap: 8px;
