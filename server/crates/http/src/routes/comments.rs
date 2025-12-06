@@ -130,7 +130,7 @@ pub async fn get_comments(
     // Get comments
     let sort = query.sort.unwrap_or_default();
     let offset = query.offset.unwrap_or(0);
-    let limit = query.limit.unwrap_or(50).min(100);
+    let limit = query.limit.unwrap_or(500).min(1000);
 
     let comment_ids = if let Some(parent_id) = query.parent_id {
         state.redis.get_comment_replies(parent_id, offset, limit).await

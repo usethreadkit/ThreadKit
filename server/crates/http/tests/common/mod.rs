@@ -8,7 +8,7 @@ use uuid::Uuid;
 use threadkit_common::{
     config::{
         ContentModerationConfig, EmailConfig, ModerationMode, RateLimitConfig, SmsConfig,
-        StandaloneConfig,
+        StandaloneConfig, TurnstileConfig,
     },
     Config,
 };
@@ -81,6 +81,7 @@ impl TestContext {
             content_moderation: ContentModerationConfig::default(),
             email: EmailConfig::default(),
             sms: SmsConfig::default(),
+            turnstile: TurnstileConfig::default(),
             max_comment_length: 10_000,
         };
 
