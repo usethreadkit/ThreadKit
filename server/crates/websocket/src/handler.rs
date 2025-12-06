@@ -256,6 +256,7 @@ async fn validate_api_key(state: &WsState, api_key: &str) -> Result<ApiKeyInfo, 
             site_id: standalone.site_id,
             key_type,
             settings: site_config.settings,
+            domain: site_config.domain,
         };
 
         // Cache for future requests

@@ -61,6 +61,7 @@ impl AppState {
                     auto_approve_verified: true,
                     rate_limits: Default::default(),
                     content_moderation: content_moderation_settings,
+                    allowed_origins: standalone.allowed_origins.clone(),
                 },
             };
 

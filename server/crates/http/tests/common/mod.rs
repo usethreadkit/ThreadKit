@@ -62,6 +62,7 @@ impl TestContext {
                 site_name: "Test Site".to_string(),
                 site_domain: "localhost".to_string(),
                 moderation_mode: ModerationMode::None,
+                allowed_origins: vec![],
             }),
             oauth: Default::default(),
             rate_limit: RateLimitConfig {

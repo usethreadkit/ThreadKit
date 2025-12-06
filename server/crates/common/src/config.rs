@@ -129,6 +129,9 @@ pub struct StandaloneConfig {
     pub site_name: String,
     pub site_domain: String,
     pub moderation_mode: ModerationMode,
+    /// Additional allowed origins beyond the primary domain
+    /// Supports wildcards like "*.example.com" for subdomains
+    pub allowed_origins: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -178,6 +181,9 @@ impl Config {
                     "post" => ModerationMode::Post,
                     _ => ModerationMode::None,
                 },
+                allowed_origins: env::var("ALLOWED_ORIGINS")
+                    .map(|s| s.split(',').map(|o| o.trim().to_string()).filter(|o| !o.is_empty()).collect())
+                    .unwrap_or_default(),
             }),
         };
 

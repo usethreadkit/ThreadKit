@@ -132,6 +132,11 @@ pub struct SiteSettings {
     pub auto_approve_verified: bool,
     pub rate_limits: SiteRateLimitSettings,
     pub content_moderation: ContentModerationSettings,
+    /// Allowed origins for API key validation (checked against Referer/Origin headers)
+    /// If empty, only the site's primary domain is allowed
+    /// Supports wildcards like "*.example.com" for subdomains
+    #[serde(default)]
+    pub allowed_origins: Vec<String>,
 }
 
 /// Per-site AI content moderation settings
@@ -346,6 +351,8 @@ pub struct ApiKeyInfo {
     pub site_id: Uuid,
     pub key_type: ApiKeyType,
     pub settings: SiteSettings,
+    /// Primary domain for this site (used for origin validation)
+    pub domain: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
