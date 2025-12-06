@@ -108,3 +108,70 @@ export {
   formatDate,
   escapeHtml,
 } from './utils/format';
+
+// ============================================================================
+// Generated API Types (from OpenAPI spec)
+// ============================================================================
+
+// Re-export convenience types from the server schema
+export type {
+  // Comment types
+  TreeComment,
+  PageTree,
+  GetCommentsResponse,
+  CreateCommentRequest,
+  CreateCommentResponse,
+  UpdateCommentRequest,
+  DeleteRequest,
+  VoteRequest,
+  VoteResponse,
+  VoteDirection,
+  CommentStatus,
+  SortOrder,
+  ReportReason,
+  ReportRequest,
+  // User types
+  UserPublic,
+  UserResponse,
+  MeResponse,
+  UpdateMeRequest,
+  CheckUsernameRequest,
+  CheckUsernameResponse,
+  // Auth types (server schema)
+  AuthMethodsResponse as ServerAuthMethodsResponse,
+  AuthResponse as ServerAuthResponse,
+  AuthMethod as ServerAuthMethod,
+  RegisterRequest,
+  LoginRequest,
+  SendOtpRequest,
+  VerifyOtpRequest,
+  RefreshRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyRequest,
+  // Notification types
+  Notification as ServerNotification,
+  NotificationWithDetails,
+  NotificationType,
+  NotificationsResponse,
+  // Moderation types
+  QueueItem,
+  QueueResponse,
+  ReportItem,
+  ReportsResponse,
+  ModerateCommentRequest,
+  BanUserRequest,
+  BanUserResponse,
+  // Admin types
+  RoleListResponse,
+  AddUserRequest,
+  PostingStatusResponse,
+  SetPostingRequest,
+  BlockedUsersResponse,
+  DeletedAccountStats,
+  // Full paths/components for advanced usage
+  paths,
+  components,
+} from './api.types';
+
+export { DELETED_USER_ID, ANONYMOUS_USER_ID } from './api.types';

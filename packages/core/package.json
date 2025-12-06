@@ -23,7 +23,8 @@
     "dev:watch": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:types": "cd ../../server && cargo run --bin openapi 2>/dev/null > ../packages/core/openapi.json && cd ../packages/core && npx openapi-typescript ./openapi.json -o ./src/api.generated.ts"
   },
   "devDependencies": {
     "typescript": "^5.3.3",

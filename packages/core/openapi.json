@@ -1,0 +1,3227 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ThreadKit API",
+    "description": "\nThreadKit is an open-source, self-hostable comment system for websites and applications.\n\n## Quick Start\n\n1. Get an API key from your dashboard (or generate one if self-hosting)\n2. Include the API key in all requests via the `X-API-Key` header\n3. Authenticate users via OAuth, email/password, or enable anonymous posting\n4. Load comments: `GET /comments?page_url=your-page-url`\n5. Post comments: `POST /comments` (requires auth or anonymous enabled)\n\n## Authentication\n\n- **OAuth**: Google and GitHub sign-in\n- **Email/Password**: Registration with email verification\n- **Anonymous**: Guest posting\n- **Wallet**: Ethereum and Solana signature verification\n\nAll auth methods can be enabled/disabled in site configuration.\n\nAuthenticated endpoints require `Authorization: Bearer <token>` header.\n\n## Comment Tree\n\nComments are returned as a compact tree with single-letter keys:\n\n```json\n{\"tree\": {\"c\": [...], \"u\": 1234567}, \"total\": 42}\n```\n\n- `c` = comments array, `u` = updated_at timestamp\n- Each comment has `r` (replies) for nested threading\n- See `TreeComment` schema for full structure\n\n## Caching\n\nThe `/comments` endpoint supports ETag caching:\n\n- Response includes `ETag` header\n- Send `If-None-Match: \"<etag>\"` to get `304 Not Modified`\n- Works with Cloudflare and CDNs for instant responses\n\n## Rate Limits\n\n- Read: 100/second per API key\n- Write: 10/second per API key\n\n---\n\n## Redis Schema\n\n### Users\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `user:{user_id}` | Hash | User data (id, name, email, avatar_url, karma, created_at, etc.) |\n| `user:{user_id}:password` | String | Argon2 password hash |\n| `user:{user_id}:comments` | ZSet | User's comments across all sites. Values: `page_id:comment_id` |\n| `user:{user_id}:votes` | ZSet | Comments user has voted on. Values: `page_id:comment_id` |\n| `user:{user_id}:notifications` | ZSet | User notifications (score = timestamp) |\n| `user:{user_id}:unread` | String | Count of unread notifications |\n| `user:{user_id}:blocked` | Set | User IDs this user has blocked |\n| `user:{user_id}:blocked_by` | Set | User IDs who have blocked this user |\n| `email:{email}` | String | Maps email to user_id |\n| `phone:{phone}` | String | Maps phone to user_id |\n| `username:{username}` | String | Maps username to user_id |\n| `provider:{provider}:{id}` | String | Maps OAuth provider ID to user_id |\n| `wallet:{chain}:{address}` | String | Maps wallet address to user_id |\n\n### Sessions & Auth\n\n| Key | Type | TTL | Description |\n|-----|------|-----|-------------|\n| `session:{session_id}` | Hash | - | Session data (user_id, created_at, user_agent, ip) |\n| `verify:{key}` | String | 10m | Email/phone verification code |\n| `web3nonce:{chain}:{address}` | String | 10m | Web3 signature nonce |\n\n### Pages\n\n`page_id` is deterministic: `UUID(hash(site_id + page_url))`\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `page:{page_id}:tree` | JSON | Full page tree (comments, votes, authors) |\n| `page:{page_id}:views` | String | Pageview counter |\n\n### Page Tree Structure\n\nSingle-letter keys for efficiency:\n\n```json\n{\n  \"c\": [{\n    \"i\": \"uuid\",\n    \"a\": \"author_uuid\",\n    \"n\": \"username\",\n    \"p\": \"avatar_url\",\n    \"k\": 100,\n    \"t\": \"comment text\",\n    \"h\": \"<p>html</p>\",\n    \"u\": 5,\n    \"d\": 1,\n    \"x\": 1704067200,\n    \"m\": 1704067200,\n    \"v\": [\"uid1\"],\n    \"w\": [\"uid2\"],\n    \"r\": [...]\n  }],\n  \"u\": 1704067200\n}\n```\n\n**Tree root:**\n| Key | Description |\n|-----|-------------|\n| `c` | comments array |\n| `u` | updated_at (timestamp) |\n\n**Comment object:**\n| Key | Description |\n|-----|-------------|\n| `i` | id (UUID) |\n| `a` | author_id |\n| `n` | author name |\n| `p` | avatar (picture) |\n| `k` | author karma |\n| `t` | text content |\n| `h` | html content |\n| `u` | upvotes |\n| `d` | downvotes |\n| `x` | created_at |\n| `m` | modified_at |\n| `v` | upvoters (array) |\n| `w` | downvoters (array) |\n| `r` | replies (nested comments) |\n\n**Deleted comments**: `a` = `d0000000-0000-0000-0000-000000000000`, `n` = `[deleted]`, content cleared, replies preserved.\n\n**Anonymous comments**: `a` = `a0000000-0000-0000-0000-000000000000`\n\n### Sites\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `site:{site_id}:config` | JSON | Site configuration |\n| `site:{site_id}:admins` | Set | Admin user IDs |\n| `site:{site_id}:moderators` | Set | Moderator user IDs |\n| `site:{site_id}:blocked` | Set | Blocked user IDs |\n| `site:{site_id}:shadowbanned` | Set | Shadowbanned user IDs |\n| `site:{site_id}:modqueue` | ZSet | Pending comments (`page_id:comment_id`) |\n| `site:{site_id}:reports` | ZSet | Reported comments |\n| `site:{site_id}:locked_pages` | Set | Pages where posting is disabled |\n| `site:{site_id}:usage:{YYYY-MM}` | Hash | Monthly usage stats |\n\n### API Keys\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `apikey:{key}:site` | String | Maps API key to site_id |\n\n### Design\n\n**Read path**: Single `GET page:{id}:tree` returns all comments. Server filters, sorts, strips vote arrays.\n\n**Write path**: Update page tree JSON + user/site indexes.\n\n**Performance**: O(1) page load (~1-5ms for 1000 comments) instead of N+1 queries.\n",
+    "contact": {
+      "name": "ThreadKit"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://api.usethreadkit.com/v1",
+      "description": "Production API"
+    }
+  ],
+  "paths": {
+    "/auth/forgot": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request password reset code",
+        "operationId": "forgot_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Reset code sent (if account exists)"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login with email/phone and password",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "403": {
+            "description": "Account banned"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout and invalidate session",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "Logged out successfully"
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/auth/methods": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get available authentication methods for this site",
+        "operationId": "auth_methods",
+        "responses": {
+          "200": {
+            "description": "Available auth methods",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthMethodsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh access token",
+        "operationId": "refresh_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "New tokens issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired refresh token"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register a new user",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "409": {
+            "description": "Email/phone/username already taken"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/reset": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset password with code",
+        "operationId": "reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful"
+          },
+          "400": {
+            "description": "Invalid or expired code"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/send-otp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send OTP code to email or phone (passwordless login)",
+        "operationId": "send_otp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify email or phone with code",
+        "operationId": "verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification successful"
+          },
+          "400": {
+            "description": "Invalid or expired code"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/verify-otp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify OTP code and sign in (creates account if doesn't exist)",
+        "operationId": "verify_otp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired code"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/{provider}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start OAuth flow (redirects to provider)",
+        "operationId": "oauth_start",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "OAuth provider (google, github)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to OAuth provider"
+          },
+          "404": {
+            "description": "Provider not configured"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/{provider}/callback": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth callback (exchanges code for tokens)",
+        "operationId": "oauth_callback",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "OAuth provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "description": "OAuth authorization code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "State parameter (site_id)",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OAuth response"
+          },
+          "404": {
+            "description": "Provider not supported"
+          }
+        }
+      }
+    },
+    "/comments": {
+      "get": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Get comments for a page (single Redis GET - fast!)",
+        "operationId": "get_comments",
+        "parameters": [
+          {
+            "name": "page_url",
+            "in": "query",
+            "description": "URL of the page to get comments for",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort order (new, top, hot)",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCommentsResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified (ETag match)"
+          },
+          "400": {
+            "description": "Invalid request"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Create a new comment",
+        "operationId": "create_comment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Comment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCommentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "User is blocked or Turnstile verification failed"
+          },
+          "404": {
+            "description": "Parent comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/comments/{id}": {
+      "put": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Update a comment",
+        "operationId": "update_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Comment updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreeComment"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your comment"
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Delete a comment (marks as deleted, preserves replies)",
+        "operationId": "delete_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Comment deleted"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/comments/{id}/report": {
+      "post": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Report a comment for moderation",
+        "operationId": "report_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Report submitted"
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/comments/{id}/vote": {
+      "post": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Vote on a comment",
+        "operationId": "vote_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Vote recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/approve/{id}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Approve a pending comment (moderator+)",
+        "operationId": "approve_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Comment approved"
+          },
+          "403": {
+            "description": "Not a moderator"
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/ban/{user_id}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Ban a user from commenting (moderator+)\nOptionally delete all their comments on this site",
+        "operationId": "ban_user",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to ban",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BanUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User banned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BanUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot ban yourself"
+          },
+          "403": {
+            "description": "Cannot ban user with equal or higher role"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/queue": {
+      "get": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Get pending comments for moderation (moderator+)",
+        "operationId": "get_queue",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max items to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moderation queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a moderator"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/reject/{id}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Reject a pending comment (moderator+)",
+        "operationId": "reject_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Comment rejected"
+          },
+          "403": {
+            "description": "Not a moderator"
+          },
+          "404": {
+            "description": "Comment not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/reports": {
+      "get": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Get user reports (moderator+)",
+        "operationId": "get_reports",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max items to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a moderator"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/shadowban/{user_id}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Shadowban a user (comments appear to them but invisible to others)",
+        "operationId": "shadowban_user",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to shadowban",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User shadowbanned"
+          },
+          "400": {
+            "description": "Cannot shadowban yourself"
+          },
+          "403": {
+            "description": "Cannot shadowban user with equal or higher role"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/moderation/unban/{user_id}": {
+      "post": {
+        "tags": [
+          "moderation"
+        ],
+        "summary": "Unban a user (moderator+)",
+        "operationId": "unban_user",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to unban",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User unbanned"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get user notifications",
+        "operationId": "get_notifications",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max items to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/notifications/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark all notifications as read",
+        "operationId": "mark_read",
+        "responses": {
+          "200": {
+            "description": "Notifications marked as read"
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/pages/{page_id}/posting": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get page posting status (admin+)",
+        "operationId": "get_page_posting_status",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "description": "Page ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page posting status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Enable or disable posting on a specific page (admin+)",
+        "operationId": "set_page_posting",
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "description": "Page ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Page posting status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/admins": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get site admins (owner only - requires secret API key)",
+        "operationId": "get_admins",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of admins",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner"
+          }
+        },
+        "security": [
+          {
+            "secret_key": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a site admin (owner only - requires secret API key)",
+        "operationId": "add_admin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Admin added"
+          },
+          "403": {
+            "description": "Not the owner"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "secret_key": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/admins/{user_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove a site admin (owner only - requires secret API key)",
+        "operationId": "remove_admin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to remove",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Admin removed"
+          },
+          "403": {
+            "description": "Not the owner"
+          }
+        },
+        "security": [
+          {
+            "secret_key": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/moderators": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get site moderators (admin+)",
+        "operationId": "get_moderators",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of moderators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a site moderator (admin+)",
+        "operationId": "add_moderator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Moderator added"
+          },
+          "400": {
+            "description": "User is already an admin"
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/moderators/{user_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove a site moderator (admin+)",
+        "operationId": "remove_moderator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID to remove",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moderator removed"
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/posting": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get site-wide posting status (admin+)",
+        "operationId": "get_posting_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posting status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Enable or disable site-wide posting (admin+)",
+        "operationId": "set_site_posting",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Posting status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/check-username": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Check if a username is available",
+        "operationId": "check_username",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckUsernameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Username availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckUsernameResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get current user profile",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update current user profile",
+        "operationId": "update_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "409": {
+            "description": "Username already taken"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete current user account (GDPR)",
+        "operationId": "delete_account",
+        "responses": {
+          "200": {
+            "description": "Account deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedAccountStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/me/blocked": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get list of users blocked by current user",
+        "operationId": "get_blocked_users",
+        "responses": {
+          "200": {
+            "description": "List of blocked users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockedUsersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get a user's public profile",
+        "operationId": "get_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/users/{id}/block": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Block a user (hide their comments from you)",
+        "operationId": "block_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID to block",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User blocked"
+          },
+          "400": {
+            "description": "Cannot block yourself"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Unblock a user",
+        "operationId": "unblock_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID to unblock",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User unblocked"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddUserRequest": {
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID to add to role"
+          }
+        }
+      },
+      "AuthMethod": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Method identifier (email, phone, google, github, ethereum, solana)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Method type: \"oauth\", \"otp\", \"web3\""
+          }
+        }
+      },
+      "AuthMethodsResponse": {
+        "type": "object",
+        "required": [
+          "methods"
+        ],
+        "properties": {
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthMethod"
+            },
+            "description": "Available authentication methods for this site"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "refresh_token",
+          "user"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "description": "JWT refresh token (longer lived)"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT access token"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse",
+            "description": "User details"
+          }
+        }
+      },
+      "BanUserRequest": {
+        "type": "object",
+        "properties": {
+          "delete_comments": {
+            "type": "boolean",
+            "description": "If true, delete all of user's comments on this site"
+          }
+        }
+      },
+      "BanUserResponse": {
+        "type": "object",
+        "required": [
+          "comments_deleted"
+        ],
+        "properties": {
+          "comments_deleted": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of comments deleted (if delete_comments was true)"
+          }
+        }
+      },
+      "BlockedUsersResponse": {
+        "type": "object",
+        "required": [
+          "users"
+        ],
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "description": "List of blocked users"
+          }
+        }
+      },
+      "CheckUsernameRequest": {
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username to check"
+          }
+        }
+      },
+      "CheckUsernameResponse": {
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether the username is available"
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "required": [
+          "id",
+          "site_id",
+          "page_id",
+          "page_url",
+          "author_id",
+          "content",
+          "content_html",
+          "upvotes",
+          "downvotes",
+          "reply_count",
+          "depth",
+          "status",
+          "edited",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "author_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "type": "string"
+          },
+          "content_html": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "downvotes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "page_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "page_url": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "reply_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CommentStatus"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "upvotes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CommentStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "deleted"
+        ]
+      },
+      "CommentWithAuthor": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Comment"
+          },
+          {
+            "type": "object",
+            "required": [
+              "author"
+            ],
+            "properties": {
+              "author": {
+                "$ref": "#/components/schemas/UserPublic"
+              },
+              "user_vote": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/VoteDirection"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "required": [
+          "page_url",
+          "content"
+        ],
+        "properties": {
+          "author_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name for anonymous comments (required if not authenticated)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Comment content (markdown)"
+          },
+          "page_url": {
+            "type": "string",
+            "description": "URL of the page"
+          },
+          "parent_path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to parent comment (array of UUIDs from root to parent)\nEmpty array or omitted for root-level comments"
+          }
+        }
+      },
+      "CreateCommentResponse": {
+        "type": "object",
+        "required": [
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/TreeComment",
+            "description": "The created comment in compact tree format"
+          }
+        }
+      },
+      "DeleteRequest": {
+        "type": "object",
+        "required": [
+          "page_url",
+          "path"
+        ],
+        "properties": {
+          "page_url": {
+            "type": "string",
+            "description": "Page URL where the comment exists"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to the comment (array of UUIDs from root to target)"
+          }
+        }
+      },
+      "DeletedAccountStats": {
+        "type": "object",
+        "required": [
+          "comments_deleted",
+          "votes_deleted"
+        ],
+        "properties": {
+          "comments_deleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "votes_deleted": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number"
+          }
+        }
+      },
+      "GetCommentsResponse": {
+        "type": "object",
+        "description": "Response for GET /comments - uses compact tree format",
+        "required": [
+          "tree",
+          "total"
+        ],
+        "properties": {
+          "pageviews": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pageview count (if enabled)"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total comment count"
+          },
+          "tree": {
+            "$ref": "#/components/schemas/PageTree",
+            "description": "Comments in compact tree format (single-letter keys)"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number"
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email_verified",
+          "phone_verified",
+          "karma",
+          "unread_notifications"
+        ],
+        "properties": {
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Avatar URL"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address (if set)"
+          },
+          "email_verified": {
+            "type": "boolean",
+            "description": "Whether email is verified"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID"
+          },
+          "karma": {
+            "type": "integer",
+            "format": "int64",
+            "description": "User karma from votes"
+          },
+          "name": {
+            "type": "string",
+            "description": "Username"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number (if set)"
+          },
+          "phone_verified": {
+            "type": "boolean",
+            "description": "Whether phone is verified"
+          },
+          "unread_notifications": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of unread notifications"
+          }
+        }
+      },
+      "ModerateCommentRequest": {
+        "type": "object",
+        "required": [
+          "page_id",
+          "path"
+        ],
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID where the comment is located"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to the comment (array of UUIDs from root to target)"
+          }
+        }
+      },
+      "Notification": {
+        "type": "object",
+        "required": [
+          "id",
+          "notification_type",
+          "comment_id",
+          "from_user_id",
+          "read",
+          "created_at"
+        ],
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "from_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notification_type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "read": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "reply",
+          "mention",
+          "upvote",
+          "mod_action"
+        ]
+      },
+      "NotificationWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Notification"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "from_user": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UserPublic",
+                    "description": "User who triggered the notification"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "NotificationsResponse": {
+        "type": "object",
+        "required": [
+          "notifications",
+          "unread_count"
+        ],
+        "properties": {
+          "notifications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationWithDetails"
+            },
+            "description": "List of notifications"
+          },
+          "unread_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of unread notifications"
+          }
+        }
+      },
+      "PageTree": {
+        "type": "object",
+        "description": "Page tree - all comments for a page in one JSON blob",
+        "required": [
+          "u"
+        ],
+        "properties": {
+          "c": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreeComment"
+            },
+            "description": "comments (array of root comments)"
+          },
+          "u": {
+            "type": "integer",
+            "format": "int64",
+            "description": "updated_at (unix timestamp)"
+          }
+        }
+      },
+      "PostingStatusResponse": {
+        "type": "object",
+        "required": [
+          "disabled"
+        ],
+        "properties": {
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether posting is disabled"
+          }
+        }
+      },
+      "QueueItem": {
+        "type": "object",
+        "required": [
+          "page_id",
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/TreeComment",
+            "description": "The pending comment"
+          },
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID where the comment is located"
+          }
+        }
+      },
+      "QueueResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "description": "Pending comments with their page context"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total count",
+            "minimum": 0
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token from login/register"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address (required if no phone)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Username (must be unique)"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number (required if no email)"
+          }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "required": [
+          "comment_id",
+          "reporter_id",
+          "reason",
+          "created_at"
+        ],
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ReportReason"
+          },
+          "reporter_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReportItem": {
+        "type": "object",
+        "required": [
+          "page_id",
+          "comment_id"
+        ],
+        "properties": {
+          "comment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TreeComment",
+                "description": "The reported comment (if found)"
+              }
+            ]
+          },
+          "comment_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Comment ID that was reported"
+          },
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID where the reported comment is located"
+          },
+          "reporter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UserPublic",
+                "description": "The user who made the report"
+              }
+            ]
+          }
+        }
+      },
+      "ReportReason": {
+        "type": "string",
+        "enum": [
+          "spam",
+          "harassment",
+          "hate_speech",
+          "misinformation",
+          "other"
+        ]
+      },
+      "ReportRequest": {
+        "type": "object",
+        "required": [
+          "page_url",
+          "reason",
+          "path"
+        ],
+        "properties": {
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Additional details"
+          },
+          "page_url": {
+            "type": "string",
+            "description": "Page URL where the comment exists"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to the comment being reported"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ReportReason",
+            "description": "Reason for the report"
+          }
+        }
+      },
+      "ReportsResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportItem"
+            },
+            "description": "List of reports with comment info"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total count",
+            "minimum": 0
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "new_password"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Reset code from email/SMS"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address"
+          },
+          "new_password": {
+            "type": "string",
+            "description": "New password"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number"
+          }
+        }
+      },
+      "RoleListResponse": {
+        "type": "object",
+        "required": [
+          "users"
+        ],
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "description": "List of users with this role"
+          }
+        }
+      },
+      "SendOtpRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address (required if no phone)"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number (required if no email)"
+          }
+        }
+      },
+      "SetPostingRequest": {
+        "type": "object",
+        "required": [
+          "disabled"
+        ],
+        "properties": {
+          "disabled": {
+            "type": "boolean",
+            "description": "Set to true to disable posting, false to enable"
+          }
+        }
+      },
+      "SortOrder": {
+        "type": "string",
+        "enum": [
+          "new",
+          "top",
+          "hot"
+        ]
+      },
+      "TreeComment": {
+        "type": "object",
+        "description": "Compact comment stored in page tree (single-letter keys)",
+        "required": [
+          "i",
+          "a",
+          "n",
+          "k",
+          "t",
+          "h",
+          "u",
+          "d",
+          "x",
+          "m"
+        ],
+        "properties": {
+          "a": {
+            "type": "string",
+            "format": "uuid",
+            "description": "author_id"
+          },
+          "d": {
+            "type": "integer",
+            "format": "int64",
+            "description": "downvotes count"
+          },
+          "h": {
+            "type": "string",
+            "description": "html content (rendered)"
+          },
+          "i": {
+            "type": "string",
+            "format": "uuid",
+            "description": "id - comment UUID"
+          },
+          "k": {
+            "type": "integer",
+            "format": "int64",
+            "description": "author karma"
+          },
+          "m": {
+            "type": "integer",
+            "format": "int64",
+            "description": "modified_at (unix timestamp)"
+          },
+          "n": {
+            "type": "string",
+            "description": "author name"
+          },
+          "p": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "author avatar (picture)"
+          },
+          "r": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreeComment"
+            },
+            "description": "replies (nested array of child comments)"
+          },
+          "s": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CommentStatus",
+                "description": "status (only stored if not approved)"
+              }
+            ]
+          },
+          "t": {
+            "type": "string",
+            "description": "text content (markdown)"
+          },
+          "u": {
+            "type": "integer",
+            "format": "int64",
+            "description": "upvotes count"
+          },
+          "v": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "upvoters (array of user IDs)"
+          },
+          "w": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "downvoters (array of user IDs)"
+          },
+          "x": {
+            "type": "integer",
+            "format": "int64",
+            "description": "created_at (unix timestamp)"
+          }
+        }
+      },
+      "UpdateCommentRequest": {
+        "type": "object",
+        "required": [
+          "page_url",
+          "content",
+          "path"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "New comment content (markdown)"
+          },
+          "page_url": {
+            "type": "string",
+            "description": "Page URL where the comment exists"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to the comment (array of UUIDs from root to target)"
+          }
+        }
+      },
+      "UpdateMeRequest": {
+        "type": "object",
+        "properties": {
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New avatar URL"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New username"
+          }
+        }
+      },
+      "UserPublic": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "karma",
+          "created_at"
+        ],
+        "properties": {
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "karma": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email_verified",
+          "phone_verified"
+        ],
+        "properties": {
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone_verified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OTP code"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address (required if no phone)"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Username (required for new accounts)"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone number (required if no email)"
+          }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Verification code"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email to verify"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Phone to verify"
+          }
+        }
+      },
+      "VoteDirection": {
+        "type": "string",
+        "enum": [
+          "up",
+          "down"
+        ]
+      },
+      "VoteRequest": {
+        "type": "object",
+        "required": [
+          "page_url",
+          "direction",
+          "path"
+        ],
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/VoteDirection",
+            "description": "Vote direction (up or down)"
+          },
+          "page_url": {
+            "type": "string",
+            "description": "Page URL where the comment exists"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Path to the comment (array of UUIDs from root to target)"
+          }
+        }
+      },
+      "VoteResponse": {
+        "type": "object",
+        "required": [
+          "upvotes",
+          "downvotes"
+        ],
+        "properties": {
+          "downvotes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "upvotes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user_vote": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VoteDirection"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "api_key": []
+    },
+    {
+      "secret_key": []
+    },
+    {
+      "bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "comments",
+      "description": "Comment CRUD and voting"
+    },
+    {
+      "name": "users",
+      "description": "User profile and settings"
+    },
+    {
+      "name": "notifications",
+      "description": "User notifications"
+    },
+    {
+      "name": "moderation",
+      "description": "Content moderation (moderator+)"
+    },
+    {
+      "name": "admin",
+      "description": "Site administration (admin+)"
+    }
+  ]
+}
