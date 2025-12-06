@@ -6,7 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@threadkit/react?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@threadkit/react)
 [![npm downloads](https://img.shields.io/npm/dm/@threadkit/react?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@threadkit/react)
-[![minzipped size](https://img.shields.io/bundlejs/size/@threadkit/react?style=flat-square&color=cb3837)](https://bundlejs.com/?q=%40threadkit%2Freact)
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/react?style=flat-square&color=cb3837)](https://bundlephobia.com/package/@threadkit/react)
 [![GitHub license](https://img.shields.io/github/license/usethreadkit/threadkit?style=flat-square)](https://github.com/usethreadkit/threadkit/blob/master/LICENSE.md)
 [![Coverage Status](https://img.shields.io/coverallsCoverage/github/usethreadkit/threadkit?style=flat-square)](https://coveralls.io/github/usethreadkit/threadkit)
 [![CodeRabbit Reviews](https://img.shields.io/coderabbit/prs/github/usethreadkit/threadkit?style=flat-square&labelColor=171717&color=FF570A&label=CodeRabbit+Reviews)](https://coderabbit.ai)
