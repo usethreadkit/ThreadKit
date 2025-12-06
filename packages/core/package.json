@@ -27,6 +27,7 @@
     "generate:types": "cd ../../server && cargo run --bin openapi 2>/dev/null > ../packages/core/openapi.json && cd ../packages/core && npx openapi-typescript ./openapi.json -o ./src/api.generated.ts"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.3.3",
     "vitest": "^2.1.0"
   },

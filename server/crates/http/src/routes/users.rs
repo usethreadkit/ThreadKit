@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use threadkit_common::types::{DeletedAccountStats, Notification, UserPublic};
+use threadkit_common::types::{DeletedAccountStats, Notification, TreeComment, UserPublic};
 
 use crate::{
     extractors::{ApiKey, AuthUser},
@@ -19,9 +19,11 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/users/me", get(get_me).put(update_me).delete(delete_account))
         .route("/users/me/blocked", get(get_blocked_users))
+        .route("/users/me/comments", get(get_my_comments))
         .route("/users/check-username", post(check_username))
         .route("/users/{id}", get(get_user))
         .route("/users/{id}/block", post(block_user).delete(unblock_user))
+        .route("/users/{id}/comments", get(get_user_comments))
         .route("/notifications", get(get_notifications))
         .route("/notifications/read", post(mark_read))
 }
@@ -95,6 +97,23 @@ pub struct NotificationWithDetails {
     pub notification: Notification,
     /// User who triggered the notification
     pub from_user: Option<UserPublic>,
+}
+
+/// A comment item with page context
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CommentItem {
+    /// Page ID where the comment exists
+    pub page_id: Uuid,
+    /// The comment
+    pub comment: TreeComment,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UserCommentsResponse {
+    /// List of comments
+    pub comments: Vec<CommentItem>,
+    /// Whether there are more comments available
+    pub has_more: bool,
 }
 
 // ============================================================================
@@ -498,4 +517,153 @@ pub async fn delete_account(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(stats))
+}
+
+// ============================================================================
+// User Comments
+// ============================================================================
+
+/// Get current user's comments on this site
+#[utoipa::path(
+    get,
+    path = "/users/me/comments",
+    tag = "users",
+    params(PaginationQuery),
+    responses(
+        (status = 200, description = "User's comments", body = UserCommentsResponse),
+        (status = 401, description = "Not authenticated")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn get_my_comments(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUser,
+    Query(query): Query<PaginationQuery>,
+) -> Result<Json<UserCommentsResponse>, (StatusCode, String)> {
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(50).min(100);
+
+    // Get user's comments on this site
+    let comment_refs = state
+        .redis
+        .get_user_site_comments(auth.user_id, api_key.0.site_id, offset, limit + 1)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let has_more = comment_refs.len() > limit;
+    let comment_refs: Vec<_> = comment_refs.into_iter().take(limit).collect();
+
+    // Fetch all page trees in parallel
+    let tree_futures: Vec<_> = comment_refs
+        .iter()
+        .map(|(page_id, _)| state.redis.get_page_tree(*page_id))
+        .collect();
+
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    // Find each comment in its tree
+    let comments: Vec<CommentItem> = comment_refs
+        .iter()
+        .zip(tree_results)
+        .filter_map(|((page_id, comment_id), tree_result)| {
+            if let Ok(Some(tree)) = tree_result {
+                if let Some(comment) = find_comment_in_tree(&tree.comments, *comment_id) {
+                    return Some(CommentItem {
+                        page_id: *page_id,
+                        comment: comment.clone(),
+                    });
+                }
+            }
+            None
+        })
+        .collect();
+
+    Ok(Json(UserCommentsResponse { comments, has_more }))
+}
+
+/// Get a user's public comments on this site
+#[utoipa::path(
+    get,
+    path = "/users/{id}/comments",
+    tag = "users",
+    params(
+        ("id" = Uuid, Path, description = "User ID"),
+        PaginationQuery
+    ),
+    responses(
+        (status = 200, description = "User's comments", body = UserCommentsResponse),
+        (status = 404, description = "User not found")
+    ),
+    security(("api_key" = []))
+)]
+pub async fn get_user_comments(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    Path(user_id): Path<Uuid>,
+    Query(query): Query<PaginationQuery>,
+) -> Result<Json<UserCommentsResponse>, (StatusCode, String)> {
+    // Verify user exists
+    let _ = state
+        .redis
+        .get_user(user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "User not found".into()))?;
+
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(50).min(100);
+
+    // Get user's comments on this site
+    let comment_refs = state
+        .redis
+        .get_user_site_comments(user_id, api_key.0.site_id, offset, limit + 1)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let has_more = comment_refs.len() > limit;
+    let comment_refs: Vec<_> = comment_refs.into_iter().take(limit).collect();
+
+    // Fetch all page trees in parallel
+    let tree_futures: Vec<_> = comment_refs
+        .iter()
+        .map(|(page_id, _)| state.redis.get_page_tree(*page_id))
+        .collect();
+
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    // Find each comment in its tree (only show approved comments for other users)
+    let comments: Vec<CommentItem> = comment_refs
+        .iter()
+        .zip(tree_results)
+        .filter_map(|((page_id, comment_id), tree_result)| {
+            if let Ok(Some(tree)) = tree_result {
+                if let Some(comment) = find_comment_in_tree(&tree.comments, *comment_id) {
+                    // Only show approved comments
+                    if comment.effective_status() == threadkit_common::types::CommentStatus::Approved {
+                        return Some(CommentItem {
+                            page_id: *page_id,
+                            comment: comment.clone(),
+                        });
+                    }
+                }
+            }
+            None
+        })
+        .collect();
+
+    Ok(Json(UserCommentsResponse { comments, has_more }))
+}
+
+/// Helper to find a comment by ID in a tree
+fn find_comment_in_tree(comments: &[TreeComment], comment_id: Uuid) -> Option<&TreeComment> {
+    for comment in comments {
+        if comment.id == comment_id {
+            return Some(comment);
+        }
+        if let Some(found) = find_comment_in_tree(&comment.replies, comment_id) {
+            return Some(found);
+        }
+    }
+    None
 }

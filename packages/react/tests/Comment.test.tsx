@@ -81,9 +81,9 @@ describe('Comment', () => {
       expect(screen.getByText('pinned')).toBeInTheDocument();
     });
 
-    it('renders permalink', () => {
+    it('renders share button', () => {
       render(<Comment comment={mockComment} />);
-      expect(screen.getByText('permalink')).toBeInTheDocument();
+      expect(screen.getByText('share')).toBeInTheDocument();
     });
   });
 

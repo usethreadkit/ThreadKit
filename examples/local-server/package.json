@@ -1,5 +1,5 @@
 {
-  "name": "with-local-server",
+  "name": "local-server",
   "version": "0.0.0",
   "private": true,
   "type": "module",

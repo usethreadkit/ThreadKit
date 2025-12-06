@@ -5,7 +5,9 @@
     "dev": "pnpm --filter website dev",
     "build": "pnpm --filter @threadkit/react build && pnpm --filter website build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --filter '@threadkit/*' test:run",
+    "test:coverage": "pnpm -r --filter '@threadkit/*' test:run -- --coverage"
   },
   "devDependencies": {
     "openapi-typescript": "^7.10.1",

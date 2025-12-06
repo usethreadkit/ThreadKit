@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-use crate::routes::{admin, auth, comments, moderation, users};
+use crate::routes::{admin, auth, comments, moderation, turnstile, users};
 
 const API_DESCRIPTION: &str = r#"
 ThreadKit is an open-source, self-hostable comment system for websites and applications.
@@ -188,7 +188,8 @@ Single-letter keys for efficiency:
         (name = "users", description = "User profile and settings"),
         (name = "notifications", description = "User notifications"),
         (name = "moderation", description = "Content moderation (moderator+)"),
-        (name = "admin", description = "Site administration (admin+)")
+        (name = "admin", description = "Site administration (admin+)"),
+        (name = "turnstile", description = "Cloudflare Turnstile CAPTCHA")
     ),
     paths(
         // Auth
@@ -204,6 +205,14 @@ Single-letter keys for efficiency:
         auth::logout,
         auth::oauth_start,
         auth::oauth_callback,
+        auth::ethereum_nonce,
+        auth::ethereum_verify,
+        auth::solana_nonce,
+        auth::solana_verify,
+        // Turnstile
+        turnstile::get_config,
+        turnstile::challenge_page,
+        turnstile::verify_token,
         // Comments
         comments::get_comments,
         comments::create_comment,
@@ -220,6 +229,8 @@ Single-letter keys for efficiency:
         users::get_blocked_users,
         users::block_user,
         users::unblock_user,
+        users::get_my_comments,
+        users::get_user_comments,
         // Notifications
         users::get_notifications,
         users::mark_read,
@@ -272,6 +283,8 @@ Single-letter keys for efficiency:
             auth::ForgotPasswordRequest,
             auth::ResetPasswordRequest,
             auth::RefreshRequest,
+            auth::NonceResponse,
+            auth::Web3VerifyRequest,
             // Comment types
             comments::GetCommentsResponse,
             comments::CreateCommentRequest,
@@ -289,6 +302,8 @@ Single-letter keys for efficiency:
             users::NotificationsResponse,
             users::NotificationWithDetails,
             users::BlockedUsersResponse,
+            users::UserCommentsResponse,
+            users::CommentItem,
             // Moderation types
             moderation::QueueResponse,
             moderation::QueueItem,
@@ -297,6 +312,10 @@ Single-letter keys for efficiency:
             moderation::ModerateCommentRequest,
             moderation::BanUserRequest,
             moderation::BanUserResponse,
+            // Turnstile types
+            turnstile::VerifyRequest,
+            turnstile::VerifyResponse,
+            turnstile::TurnstileConfigResponse,
             // Admin types
             admin::RoleListResponse,
             admin::AddUserRequest,

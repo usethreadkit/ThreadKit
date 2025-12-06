@@ -9,7 +9,8 @@ type Theme = 'light' | 'dark';
 // Configuration for local development
 // Make sure your server is running at localhost:8080
 // Set these values to match your server/.env file
-const LOCAL_API_KEY = 'tk_pub_your_public_key_here';
+const LOCAL_API_KEY = 'tk_pub_47kpw07a487okgcssit93fe05bxs69r7';
+const API_URL = 'http://localhost:8080/v1';
 
 function App() {
   const [mode, setMode] = useState<Mode>('comments');
@@ -102,14 +103,14 @@ function App() {
           sortBy="newest"
           showPresence={mode === 'chat'}
           showTyping={mode === 'chat'}
-          apiUrl="/v1"
+          apiUrl={API_URL}
           onError={(error) => console.error('ThreadKit error:', error)}
         />
       </main>
 
       <footer style={{ marginTop: 32, color: '#666', fontSize: 14 }}>
         <p>
-          API Endpoint: <code>http://localhost:8080/v1</code> (proxied via Vite)
+          API Endpoint: <code>{API_URL}</code>
         </p>
         <p>
           View API docs:{' '}

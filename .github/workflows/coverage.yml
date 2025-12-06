@@ -7,28 +7,45 @@ on:
     branches: [master, main]
 
 jobs:
+  core:
+    name: Core Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/core test:run -- --coverage
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/core/coverage/lcov.info
+          flag-name: core
+          parallel: true
+
   react:
     name: React Coverage
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v6
-
+      - uses: actions/checkout@v4
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'pnpm'
-
       - name: Install dependencies
         run: pnpm install
-
       - name: Run tests with coverage
         run: pnpm --filter @threadkit/react test:run -- --coverage
-
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2.3.6
         with:
@@ -36,10 +53,184 @@ jobs:
           flag-name: react
           parallel: true
 
+  plugin-latex:
+    name: Plugin Latex Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-latex test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-latex/coverage/lcov.info
+          flag-name: plugin-latex
+          parallel: true
+        continue-on-error: true
+
+  plugin-syntax-highlight:
+    name: Plugin Syntax Highlight Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-syntax-highlight test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-syntax-highlight/coverage/lcov.info
+          flag-name: plugin-syntax-highlight
+          parallel: true
+        continue-on-error: true
+
+  plugin-media-preview:
+    name: Plugin Media Preview Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-media-preview test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-media-preview/coverage/lcov.info
+          flag-name: plugin-media-preview
+          parallel: true
+        continue-on-error: true
+
+  plugin-turnstile:
+    name: Plugin Turnstile Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-turnstile test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-turnstile/coverage/lcov.info
+          flag-name: plugin-turnstile
+          parallel: true
+        continue-on-error: true
+
+  plugin-auth-ethereum:
+    name: Plugin Auth Ethereum Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-auth-ethereum test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-auth-ethereum/coverage/lcov.info
+          flag-name: plugin-auth-ethereum
+          parallel: true
+        continue-on-error: true
+
+  plugin-auth-solana:
+    name: Plugin Auth Solana Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/plugin-auth-solana test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/plugin-auth-solana/coverage/lcov.info
+          flag-name: plugin-auth-solana
+          parallel: true
+        continue-on-error: true
+
+  svelte:
+    name: Svelte Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/svelte test:run -- --coverage
+        continue-on-error: true
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/svelte/coverage/lcov.info
+          flag-name: svelte
+          parallel: true
+        continue-on-error: true
+
   rust:
     name: Rust Coverage
     runs-on: ubuntu-latest
-
     services:
       redis:
         image: redis:7
@@ -50,24 +241,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
-      - uses: actions/checkout@v6
-
+      - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
-
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
-
       - name: Run tests with coverage
         working-directory: server
         env:
           REDIS_URL: redis://localhost:6379
         run: cargo llvm-cov --workspace --lcov --output-path lcov.info
-
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2.3.6
         with:
@@ -77,7 +263,7 @@ jobs:
 
   finish:
     name: Finish Coveralls
-    needs: [react, rust]
+    needs: [core, react, plugin-latex, plugin-syntax-highlight, plugin-media-preview, plugin-turnstile, plugin-auth-ethereum, plugin-auth-solana, svelte, rust]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -85,4 +271,4 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           parallel-finished: true
-          carryforward: react,rust
+          carryforward: core,react,plugin-latex,plugin-syntax-highlight,plugin-media-preview,plugin-turnstile,plugin-auth-ethereum,plugin-auth-solana,svelte,rust
