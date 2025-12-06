@@ -31,7 +31,7 @@ function renderComment(comment, depth = 0) {
     : '';
 
   return `
-    <div class="threadkit-comment" data-comment-id="${comment.id}">
+    <div class="threadkit-comment" data-comment-id="${comment.id}" id="threadkit-${comment.id}">
       <div class="threadkit-comment-wrapper">
         <div class="threadkit-vote-column">
           <button class="threadkit-vote-btn threadkit-vote-up" data-id="${comment.id}" data-vote="up">&#9650;</button>
@@ -45,7 +45,7 @@ function renderComment(comment, depth = 0) {
           </div>
           <div class="threadkit-comment-body">${renderMarkdownToHtml(comment.text, markdownOptions)}</div>
           <div class="threadkit-comment-actions">
-            <button class="threadkit-action-btn" data-share="${comment.id}" data-author="${escapeHtml(comment.userName)}" data-text="${escapeHtml(comment.text.slice(0, 100))}">share</button>
+            <button class="threadkit-action-btn" data-share="${comment.id}">share</button>
             ${depth < 5 ? `<button class="threadkit-action-btn" data-reply="${comment.id}">reply</button>` : ''}
           </div>
           ${children}
@@ -156,11 +156,7 @@ function attachListeners() {
       const url = `${window.location.origin}${window.location.pathname}#threadkit-${btn.dataset.share}`;
       if (navigator.share) {
         try {
-          await navigator.share({
-            title: `Comment by ${btn.dataset.author}`,
-            text: btn.dataset.text + (btn.dataset.text.length >= 100 ? '...' : ''),
-            url,
-          });
+          await navigator.share({ url });
         } catch {
           // User cancelled or share failed
         }
@@ -195,7 +191,25 @@ function init() {
     getToken: () => localStorage.getItem('threadkit_token'),
   });
 
-  commentStore.on('stateChange', renderUI);
+  let hasScrolledToHash = false;
+  commentStore.on('stateChange', (state) => {
+    renderUI(state);
+
+    // Scroll to hash after comments load
+    if (!hasScrolledToHash && !state.loading && state.comments.length > 0) {
+      const hash = window.location.hash;
+      if (hash?.startsWith('#threadkit-')) {
+        hasScrolledToHash = true;
+        requestAnimationFrame(() => {
+          const element = document.getElementById(hash.slice(1));
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('threadkit-highlighted');
+          }
+        });
+      }
+    }
+  });
   wsClient.on('commentAdded', c => commentStore.addComment(c));
   wsClient.on('commentDeleted', ({ commentId }) => commentStore.removeComment(commentId));
 

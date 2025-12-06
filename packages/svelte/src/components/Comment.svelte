@@ -167,6 +167,7 @@
     class="threadkit-comment"
     class:threadkit-highlighted={highlighted}
     data-comment-id={comment.id}
+    id="threadkit-{comment.id}"
   >
     <div class="threadkit-comment-wrapper">
       <!-- Vote column -->
@@ -284,21 +285,15 @@
             <!-- Share button - uses Web Share API when available, falls back to copy link -->
             <button
               class="threadkit-action-btn"
-              id="threadkit-{comment.id}"
               onclick={async () => {
                 const url = `${window.location.origin}${window.location.pathname}#threadkit-${comment.id}`;
                 if (navigator.share) {
                   try {
-                    await navigator.share({
-                      title: `Comment by ${comment.userName}`,
-                      text: comment.text.slice(0, 100) + (comment.text.length > 100 ? '...' : ''),
-                      url,
-                    });
+                    await navigator.share({ url });
                   } catch {
                     // User cancelled or share failed, silently ignore
                   }
                 } else {
-                  // Fallback: copy to clipboard
                   await navigator.clipboard.writeText(url);
                 }
               }}

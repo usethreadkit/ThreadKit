@@ -107,12 +107,66 @@ ThreadKit works on any website. Load it from our CDN:
 </script>
 ```
 
+## Svelte
+
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/svelte?style=flat-square&color=ff3e00)](https://bundlephobia.com/package/@threadkit/svelte)
+
+```bash
+npm install @threadkit/svelte
+```
+
+```svelte
+<script>
+  import { ThreadKit } from '@threadkit/svelte';
+  import '@threadkit/svelte/styles.css';
+</script>
+
+<ThreadKit
+  apiKey="your-api-key"
+  pageId="unique-page-id"
+/>
+```
+
+See the [Svelte example](./examples/svelte) for a complete setup.
+
+## Vanilla JS
+
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/core?style=flat-square&color=f7df1e)](https://bundlephobia.com/package/@threadkit/core)
+
+For vanilla JavaScript or any other framework, use `@threadkit/core` directly:
+
+```bash
+npm install @threadkit/core
+```
+
+```js
+import { CommentStore, WebSocketClient } from '@threadkit/core';
+import '@threadkit/core/styles';
+
+const store = new CommentStore({
+  siteId: 'your-site-id',
+  url: window.location.pathname,
+  apiUrl: 'https://api.usethreadkit.com',
+});
+
+store.on('stateChange', (state) => {
+  // Render comments however you like
+  console.log(state.comments);
+});
+
+store.fetch();
+```
+
+See the [Vanilla example](./examples/vanilla) for a complete implementation.
+
 ## Packages
 
 | Package | Description |
 |---------|-------------|
 | [`server`](./server) | Self-hosted Rust backend with HTTP & WebSocket APIs |
+| [`@threadkit/core`](./packages/core) | Framework-agnostic core (stores, utilities) |
 | [`@threadkit/react`](./packages/react) | React components for comments and chat |
+| [`@threadkit/svelte`](./packages/svelte) | Svelte components for comments and chat |
 
 ## Plugins
 

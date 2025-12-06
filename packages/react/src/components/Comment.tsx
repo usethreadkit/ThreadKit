@@ -105,7 +105,7 @@ export function Comment({
   }
 
   return (
-    <div className={commentClassName} data-comment-id={comment.id}>
+    <div className={commentClassName} data-comment-id={comment.id} id={`threadkit-${comment.id}`}>
       <div className="threadkit-comment-wrapper">
         {/* Vote column */}
         {onVote && (
@@ -221,23 +221,16 @@ export function Comment({
               {/* Share button - uses Web Share API when available, falls back to copy link */}
               <button
                 className="threadkit-action-btn"
-                id={`threadkit-${comment.id}`}
                 onClick={async () => {
                   const url = `${window.location.origin}${window.location.pathname}#threadkit-${comment.id}`;
                   if (navigator.share) {
                     try {
-                      await navigator.share({
-                        title: `Comment by ${comment.userName}`,
-                        text: comment.text.slice(0, 100) + (comment.text.length > 100 ? '...' : ''),
-                        url,
-                      });
-                    } catch (err) {
+                      await navigator.share({ url });
+                    } catch {
                       // User cancelled or share failed, silently ignore
                     }
                   } else {
-                    // Fallback: copy to clipboard
                     await navigator.clipboard.writeText(url);
-                    // Could show a toast here
                   }
                 }}
               >

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { createCommentsStore, type CommentsStore } from '../stores/comments';
   import { createWebSocketStore, type WebSocketStore } from '../stores/websocket';
   import { createAuthStore, type AuthStore } from '../stores/auth';
@@ -110,10 +110,24 @@
     });
 
     // Subscribe to comments store
-    unsubComments = commentsStore.subscribe((state) => {
+    unsubComments = commentsStore.subscribe(async (state) => {
+      const wasLoading = loading;
       comments = state.comments;
       loading = state.loading;
       error = state.error;
+
+      // Scroll to hash after comments finish loading
+      if (wasLoading && !state.loading && state.comments.length > 0) {
+        const hash = window.location.hash;
+        if (hash?.startsWith('#threadkit-')) {
+          const commentId = hash.slice('#threadkit-'.length);
+          highlightedCommentId = commentId;
+          // Wait for DOM to update, then scroll
+          await tick();
+          const element = document.getElementById(hash.slice(1));
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
     });
 
     // Subscribe to auth store

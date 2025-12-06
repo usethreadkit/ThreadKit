@@ -236,6 +236,24 @@ function ThreadKitInner({
     expandAll: () => setCollapsedThreads(new Set()),
   }), [comments, refresh]);
 
+  // Scroll to hash comment after comments load
+  const hasScrolledToHash = useRef(false);
+  useEffect(() => {
+    if (!loading && comments.length > 0 && !hasScrolledToHash.current) {
+      const hash = window.location.hash;
+      if (hash?.startsWith('#threadkit-')) {
+        const commentId = hash.slice('#threadkit-'.length);
+        hasScrolledToHash.current = true;
+        setHighlightedCommentId(commentId);
+        // Wait for DOM to render, then scroll
+        requestAnimationFrame(() => {
+          const element = document.getElementById(hash.slice(1));
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+    }
+  }, [loading, comments]);
+
   const handleCommentAdded = useCallback(
     (comment: Comment) => {
       addComment(comment);
