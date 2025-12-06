@@ -35,9 +35,9 @@ async fn test_create_comment() {
 
     response.assert_status(StatusCode::OK);
     let body: serde_json::Value = response.json();
-    assert_eq!(body["comment"]["content"], "This is a test comment");
-    assert_eq!(body["comment"]["page_url"], "https://example.com/page1");
-    assert_eq!(body["comment"]["author"]["name"], "commenter");
+    // TreeComment uses compact keys: t=text, n=author name, i=id
+    assert_eq!(body["comment"]["t"], "This is a test comment");
+    assert_eq!(body["comment"]["n"], "commenter");
 }
 
 #[tokio::test]
@@ -56,7 +56,8 @@ async fn test_create_reply() {
         .await;
     response.assert_status(StatusCode::OK);
     let parent: serde_json::Value = response.json();
-    let parent_id = parent["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let parent_id = parent["comment"]["i"].as_str().unwrap();
 
     // Create reply
     let (key_name, key_value) = api_key_header(&ctx.api_key);
@@ -69,15 +70,14 @@ async fn test_create_reply() {
         .json(&json!({
             "page_url": "https://example.com/page2",
             "content": "This is a reply",
-            "parent_id": parent_id
+            "parent_path": [parent_id]
         }))
         .await;
 
     response.assert_status(StatusCode::OK);
     let body: serde_json::Value = response.json();
-    assert_eq!(body["comment"]["content"], "This is a reply");
-    assert_eq!(body["comment"]["depth"], 1);
-    assert_eq!(body["comment"]["parent_id"], parent_id);
+    // t=text in TreeComment format
+    assert_eq!(body["comment"]["t"], "This is a reply");
 }
 
 #[tokio::test]
@@ -113,7 +113,8 @@ async fn test_get_comments() {
     response.assert_status(StatusCode::OK);
     let body: serde_json::Value = response.json();
     assert_eq!(body["total"], 3);
-    assert_eq!(body["comments"].as_array().unwrap().len(), 3);
+    // Uses tree.c format where c=comments array
+    assert_eq!(body["tree"]["c"].as_array().unwrap().len(), 3);
 }
 
 #[tokio::test]
@@ -131,9 +132,10 @@ async fn test_update_comment() {
         .create_comment(token, "https://example.com/page4", "Original content", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
-    // Update comment
+    // Update comment - requires page_url and path
     let (key_name, key_value) = api_key_header(&ctx.api_key);
     let (auth_name, auth_value) = auth_header(token);
     let response = ctx
@@ -142,15 +144,18 @@ async fn test_update_comment() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
-            "content": "Updated content"
+            "page_url": "https://example.com/page4",
+            "content": "Updated content",
+            "path": [comment_id]
         }))
         .await;
 
     response.assert_status(StatusCode::OK);
     let body: serde_json::Value = response.json();
-    // update_comment returns CommentWithAuthor directly (not wrapped)
-    assert_eq!(body["content"], "Updated content");
-    assert_eq!(body["edited"], true);
+    // update_comment returns TreeComment with compact keys: t=text, m=modified_at
+    assert_eq!(body["t"], "Updated content");
+    // Verify modified_at is set (it's a timestamp)
+    assert!(body["m"].is_number());
 }
 
 #[tokio::test]
@@ -174,7 +179,8 @@ async fn test_update_comment_not_owner() {
         .create_comment(token1, "https://example.com/page5", "My comment", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Try to update as second user
     let (key_name, key_value) = api_key_header(&ctx.api_key);
@@ -185,7 +191,9 @@ async fn test_update_comment_not_owner() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
-            "content": "Hijacked content"
+            "page_url": "https://example.com/page5",
+            "content": "Hijacked content",
+            "path": [comment_id]
         }))
         .await;
 
@@ -207,9 +215,10 @@ async fn test_delete_comment() {
         .create_comment(token, "https://example.com/page6", "To be deleted", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
-    // Delete comment
+    // Delete comment - delete endpoint accepts JSON body with page_url and path
     let (key_name, key_value) = api_key_header(&ctx.api_key);
     let (auth_name, auth_value) = auth_header(token);
     let response = ctx
@@ -217,6 +226,10 @@ async fn test_delete_comment() {
         .delete(&format!("/v1/comments/{}", comment_id))
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_url": "https://example.com/page6",
+            "path": [comment_id]
+        }))
         .await;
 
     response.assert_status(StatusCode::NO_CONTENT);
@@ -254,7 +267,8 @@ async fn test_vote_comment() {
         .create_comment(token1, "https://example.com/page7", "Vote on me", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Upvote as second user
     let (key_name, key_value) = api_key_header(&ctx.api_key);
@@ -265,7 +279,9 @@ async fn test_vote_comment() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
-            "direction": "up"
+            "page_url": "https://example.com/page7",
+            "direction": "up",
+            "path": [comment_id]
         }))
         .await;
 
@@ -296,7 +312,8 @@ async fn test_vote_toggle() {
         .create_comment(token1, "https://example.com/page8", "Toggle vote", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Upvote
     let (key_name, key_value) = api_key_header(&ctx.api_key);
@@ -306,7 +323,7 @@ async fn test_vote_toggle() {
         .post(&format!("/v1/comments/{}/vote", comment_id))
         .add_header(key_name.clone(), key_value.clone())
         .add_header(auth_name.clone(), auth_value.clone())
-        .json(&json!({ "direction": "up" }))
+        .json(&json!({ "page_url": "https://example.com/page8", "direction": "up", "path": [comment_id] }))
         .await;
     let body: serde_json::Value = response.json();
     assert_eq!(body["upvotes"], 1);
@@ -317,7 +334,7 @@ async fn test_vote_toggle() {
         .post(&format!("/v1/comments/{}/vote", comment_id))
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
-        .json(&json!({ "direction": "up" }))
+        .json(&json!({ "page_url": "https://example.com/page8", "direction": "up", "path": [comment_id] }))
         .await;
     let body: serde_json::Value = response.json();
     assert_eq!(body["upvotes"], 0);
@@ -344,7 +361,8 @@ async fn test_report_comment() {
         .create_comment(token1, "https://example.com/page9", "Report me", None)
         .await;
     let comment: serde_json::Value = response.json();
-    let comment_id = comment["comment"]["id"].as_str().unwrap();
+    // TreeComment uses compact keys: i=id
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Report comment
     let (key_name, key_value) = api_key_header(&ctx.api_key);
@@ -355,8 +373,10 @@ async fn test_report_comment() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
+            "page_url": "https://example.com/page9",
             "reason": "spam",
-            "details": "This is spam content"
+            "details": "This is spam content",
+            "path": [comment_id]
         }))
         .await;
 

@@ -730,3 +730,65 @@ impl ModerationCategories {
         None
     }
 }
+
+// ============================================================================
+// API Request/Response Types (shared between server and clients)
+// ============================================================================
+
+/// Request to register a new user with email/password
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct RegisterRequest {
+    pub email: String,
+    pub password: String,
+    pub name: String,
+}
+
+/// Response containing auth token and user info
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AuthResponse {
+    pub token: String,
+    pub user: AuthUserResponse,
+}
+
+/// User info returned in auth responses
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AuthUserResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub email: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+/// Request to create a new comment
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CreateCommentRequest {
+    /// URL of the page
+    pub page_url: String,
+    /// Comment content (markdown)
+    pub content: String,
+    /// Path to parent comment (array of UUIDs from root to parent)
+    /// Empty array or omitted for root-level comments
+    #[serde(default)]
+    pub parent_path: Vec<Uuid>,
+    /// Display name for anonymous comments (required if not authenticated)
+    pub author_name: Option<String>,
+}
+
+/// Response when a comment is created
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CreateCommentResponse {
+    /// The created comment in compact tree format
+    pub comment: TreeComment,
+}
+
+/// Response for GET /comments - uses compact tree format
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct GetCommentsResponse {
+    /// Comments in compact tree format (single-letter keys)
+    pub tree: PageTree,
+    /// Total comment count
+    pub total: i64,
+    /// Pageview count (if enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pageviews: Option<i64>,
+}

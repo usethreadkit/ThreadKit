@@ -4043,11 +4043,13 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "threadkit-common",
  "tokio",
  "tokio-tungstenite 0.26.2",
  "tracing",
  "tracing-subscriber",
  "urlencoding",
+ "uuid",
 ]
 
 [[package]]

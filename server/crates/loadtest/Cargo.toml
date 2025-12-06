@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+threadkit-common = { path = "../common" }
 tokio.workspace = true
 tokio-tungstenite.workspace = true
 futures-util.workspace = true
@@ -18,4 +19,5 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 rand.workspace = true
 fred.workspace = true
+uuid.workspace = true
 urlencoding = "2.1"

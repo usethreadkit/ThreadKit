@@ -9,6 +9,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use uuid::Uuid;
+
+// Re-export shared types from threadkit-common
+use threadkit_common::types::{
+    AuthResponse, CreateCommentRequest, CreateCommentResponse, RegisterRequest,
+};
 
 #[derive(Parser)]
 #[command(name = "threadkit-loadtest")]
@@ -201,48 +207,7 @@ enum Commands {
 // API Types
 // ============================================================================
 
-#[derive(Debug, Serialize)]
-struct RegisterRequest {
-    email: String,
-    password: String,
-    name: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct AuthResponse {
-    token: String,
-    user: UserResponse,
-}
-
-#[derive(Debug, Deserialize)]
-struct UserResponse {
-    id: String,
-    name: String,
-}
-
-#[derive(Debug, Serialize)]
-struct CreateCommentRequest {
-    page_url: String,
-    content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    parent_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct CreateCommentResponse {
-    comment: CommentResponse,
-}
-
-#[derive(Debug, Deserialize)]
-struct CommentResponse {
-    id: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct GetCommentsResponse {
-    comments: Vec<CommentResponse>,
-}
-
+// TestUser and SetupData remain local as they're loadtest-specific
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TestUser {
     email: String,
@@ -408,7 +373,7 @@ async fn run_setup(
                 password,
                 name,
                 token: auth.token,
-                user_id: auth.user.id,
+                user_id: auth.user.id.to_string(),
             });
             if (i + 1) % 10 == 0 {
                 tracing::info!("  Created {} users", i + 1);
@@ -455,7 +420,8 @@ async fn run_setup(
                     "Load test comment {} on page. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
                     j
                 ),
-                parent_id: None,
+                parent_path: vec![],
+                author_name: None,
             };
 
             let resp = client
@@ -469,7 +435,7 @@ async fn run_setup(
             match resp {
                 Ok(r) if r.status().is_success() => {
                     if let Ok(created) = r.json::<CreateCommentResponse>().await {
-                        comment_ids.push(created.comment.id);
+                        comment_ids.push(created.comment.id.to_string());
                     }
                     comment_count += 1;
                 }
@@ -749,7 +715,8 @@ async fn run_write_test(
                         "Load test comment from worker {} - {}",
                         worker_id, counter
                     ),
-                    parent_id: None,
+                    parent_path: vec![],
+                    author_name: None,
                 };
 
                 let req_start = Instant::now();
@@ -875,7 +842,8 @@ async fn run_mixed_test(
                     let req = CreateCommentRequest {
                         page_url: page_url.clone(),
                         content: format!("Mixed test comment {} - {}", worker_id, counter),
-                        parent_id: None,
+                        parent_path: vec![],
+                        author_name: None,
                     };
 
                     client
@@ -901,7 +869,14 @@ async fn run_mixed_test(
                     Ok(resp) if resp.status().is_success() => {
                         stats.successes.fetch_add(1, Ordering::Relaxed);
                     }
-                    _ => {
+                    Ok(resp) => {
+                        let status = resp.status();
+                        let body = resp.text().await.unwrap_or_default();
+                        tracing::warn!("Request failed: {} - {}", status, body);
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Err(e) => {
+                        tracing::warn!("Request error: {}", e);
                         stats.failures.fetch_add(1, Ordering::Relaxed);
                     }
                 }
@@ -1142,7 +1117,7 @@ async fn run_thread_test(
                         password,
                         name,
                         token: auth.token,
-                        user_id: auth.user.id,
+                        user_id: auth.user.id.to_string(),
                     });
                 }
             }
@@ -1188,15 +1163,9 @@ async fn run_thread_test(
             for i in 0..comments_per_worker {
                 let user = &users[rng.gen_range(0..users.len())];
 
-                // Decide whether to reply or create new top-level comment
-                let parent_id = {
-                    let ids = comment_ids.read().await;
-                    if !ids.is_empty() && rng.gen_range(0..100) < reply_percent {
-                        Some(ids[rng.gen_range(0..ids.len())].clone())
-                    } else {
-                        None
-                    }
-                };
+                // For now, just create top-level comments
+                // TODO: Track parent_path for replies when API returns it
+                let _ = reply_percent; // suppress unused warning
 
                 let req = CreateCommentRequest {
                     page_url: page_url.clone(),
@@ -1204,7 +1173,8 @@ async fn run_thread_test(
                         "Thread comment {} from worker {}. This is a test comment with some content.",
                         i, worker_id
                     ),
-                    parent_id,
+                    parent_path: vec![],
+                    author_name: None,
                 };
 
                 stats.requests.fetch_add(1, Ordering::Relaxed);
@@ -1220,7 +1190,7 @@ async fn run_thread_test(
                 match resp {
                     Ok(r) if r.status().is_success() => {
                         if let Ok(created) = r.json::<CreateCommentResponse>().await {
-                            comment_ids.write().await.push(created.comment.id);
+                            comment_ids.write().await.push(created.comment.id.to_string());
                             stats.successes.fetch_add(1, Ordering::Relaxed);
                         }
                     }
@@ -1328,7 +1298,7 @@ async fn run_deep_test(
 
         handles.push(tokio::spawn(async move {
             let page_url = format!("https://loadtest.example.com/deep-chain-{}", chain_id);
-            let mut parent_id: Option<String> = None;
+            let mut parent_path: Vec<Uuid> = vec![];
             let mut created = 0;
 
             for level in 0..depth {
@@ -1338,7 +1308,8 @@ async fn run_deep_test(
                         "Deep comment at level {} in chain {}. Lorem ipsum dolor sit amet.",
                         level, chain_id
                     ),
-                    parent_id: parent_id.clone(),
+                    parent_path: parent_path.clone(),
+                    author_name: None,
                 };
 
                 let resp = client
@@ -1352,7 +1323,8 @@ async fn run_deep_test(
                 match resp {
                     Ok(r) if r.status().is_success() => {
                         if let Ok(comment) = r.json::<CreateCommentResponse>().await {
-                            parent_id = Some(comment.comment.id);
+                            // Add the new comment's ID to the path for the next reply
+                            parent_path.push(comment.comment.id);
                             created += 1;
                         }
                     }

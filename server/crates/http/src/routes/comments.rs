@@ -17,6 +17,11 @@ use threadkit_common::types::{
 };
 use threadkit_common::moderation::ModerationCheckResult;
 
+// Re-export shared types for OpenAPI docs and external use
+pub use threadkit_common::types::{
+    CreateCommentRequest, CreateCommentResponse, GetCommentsResponse,
+};
+
 use super::turnstile::verify_with_cloudflare;
 
 use crate::{
@@ -43,37 +48,6 @@ pub struct GetCommentsQuery {
     pub page_url: String,
     /// Sort order (new, top, hot)
     pub sort: Option<SortOrder>,
-}
-
-/// Response for GET /comments - uses compact tree format
-#[derive(Debug, Serialize, ToSchema)]
-pub struct GetCommentsResponse {
-    /// Comments in compact tree format (single-letter keys)
-    pub tree: PageTree,
-    /// Total comment count
-    pub total: i64,
-    /// Pageview count (if enabled)
-    pub pageviews: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct CreateCommentRequest {
-    /// URL of the page
-    pub page_url: String,
-    /// Comment content (markdown)
-    pub content: String,
-    /// Path to parent comment (array of UUIDs from root to parent)
-    /// Empty array or omitted for root-level comments
-    #[serde(default)]
-    pub parent_path: Vec<Uuid>,
-    /// Display name for anonymous comments (required if not authenticated)
-    pub author_name: Option<String>,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct CreateCommentResponse {
-    /// The created comment in compact tree format
-    pub comment: TreeComment,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -975,29 +949,20 @@ fn filter_comment_recursive(
         return false;
     }
 
-    // Check status
-    let status = comment.effective_status();
-    let visible = match status {
-        CommentStatus::Approved => true,
-        CommentStatus::Pending => current_user_id == Some(comment.author_id),
-        CommentStatus::Deleted => true, // Show [deleted] placeholder
-        CommentStatus::Rejected => false,
-    };
-
-    if !visible {
-        return false;
-    }
-
-    // Strip vote arrays for response (client determines own vote from data sent separately or via presence check)
-    // Actually, keep them but the client will check if their ID is present
-    // For now, we'll keep them as is - the client can strip on their end if needed
-
-    // Recursively filter replies
+    // Recursively filter replies FIRST (so we know if there are any left)
     comment.replies.retain_mut(|reply| {
         filter_comment_recursive(reply, current_user_id, blocked_users)
     });
 
-    true
+    // Check status
+    let status = comment.effective_status();
+    match status {
+        CommentStatus::Approved => true,
+        CommentStatus::Pending => current_user_id == Some(comment.author_id),
+        // Show [deleted] placeholder only if comment has replies, otherwise remove entirely
+        CommentStatus::Deleted => !comment.replies.is_empty(),
+        CommentStatus::Rejected => false,
+    }
 }
 
 /// Sort the tree by the specified order
