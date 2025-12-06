@@ -1,6 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Comment, SortBy } from '../types';
 
+/** Error codes returned by the ThreadKit API */
+export type ThreadKitErrorCode =
+  | 'SITE_NOT_FOUND'
+  | 'INVALID_API_KEY'
+  | 'RATE_LIMITED'
+  | 'UNAUTHORIZED'
+  | 'UNKNOWN';
+
+/** Extended error class with additional context */
+export class ThreadKitError extends Error {
+  code: ThreadKitErrorCode;
+  status?: number;
+
+  constructor(message: string, code: ThreadKitErrorCode, status?: number) {
+    super(message);
+    this.name = 'ThreadKitError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
 interface UseCommentsOptions {
   siteId: string;
   url: string;
@@ -112,14 +133,40 @@ export function useComments({
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch comments: ${response.statusText}`);
+        // Try to parse error response for more details
+        let errorCode: ThreadKitErrorCode = 'UNKNOWN';
+        let errorMessage = `Failed to fetch comments: ${response.statusText}`;
+
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+          // Map HTTP status codes to error codes
+          if (response.status === 404) {
+            errorCode = 'SITE_NOT_FOUND';
+            errorMessage = errorData.error || 'Site not found. Please check your siteId configuration.';
+          } else if (response.status === 401 || response.status === 403) {
+            errorCode = errorData.error?.includes('API key') ? 'INVALID_API_KEY' : 'UNAUTHORIZED';
+          } else if (response.status === 429) {
+            errorCode = 'RATE_LIMITED';
+          }
+        } catch {
+          // Could not parse JSON error response
+        }
+
+        throw new ThreadKitError(errorMessage, errorCode, response.status);
       }
 
       const data = await response.json();
       const tree = buildCommentTree(data.comments || []);
       setComments(sortComments(tree, sortBy));
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch comments'));
+      if (err instanceof ThreadKitError) {
+        setError(err);
+      } else {
+        setError(err instanceof Error ? err : new Error('Failed to fetch comments'));
+      }
     } finally {
       setLoading(false);
     }

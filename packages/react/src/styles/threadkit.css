@@ -780,6 +780,49 @@
   color: var(--threadkit-text-secondary);
 }
 
+/* ===== Error States ===== */
+
+.threadkit-error {
+  padding: 24px;
+  border: 1px solid var(--threadkit-danger);
+  border-radius: var(--threadkit-radius);
+  background: color-mix(in srgb, var(--threadkit-danger) 5%, var(--threadkit-bg));
+  color: var(--threadkit-text);
+}
+
+.threadkit-error strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--threadkit-danger);
+  font-size: 14px;
+}
+
+.threadkit-error p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.threadkit-error a {
+  color: var(--threadkit-link);
+  text-decoration: underline;
+}
+
+.threadkit-error a:hover {
+  color: var(--threadkit-link-hover);
+}
+
+.threadkit-error-code {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--threadkit-bg-secondary);
+  border-radius: var(--threadkit-radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  word-break: break-all;
+}
+
 /* ===== Branding ===== */
 
 .threadkit-branding {

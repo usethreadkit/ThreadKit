@@ -37,8 +37,11 @@ export function Comment({
   depth = 0,
   maxDepth = 5,
   collapsed: initialCollapsed = false,
+  highlighted = false,
   index = 0,
   totalSiblings = 1,
+  highlightedCommentId,
+  collapsedThreads,
   onReply,
   onVote,
   onDelete,
@@ -92,9 +95,11 @@ export function Comment({
     setIsEditing(false);
   };
 
+  const commentClassName = `threadkit-comment${highlighted ? ' threadkit-highlighted' : ''}`;
+
   if (collapsed) {
     return (
-      <div className="threadkit-comment threadkit-comment-collapsed">
+      <div className={`${commentClassName} threadkit-comment-collapsed`} data-comment-id={comment.id}>
         <button
           className="threadkit-expand-btn"
           onClick={handleCollapse}
@@ -118,7 +123,7 @@ export function Comment({
   }
 
   return (
-    <div className="threadkit-comment">
+    <div className={commentClassName} data-comment-id={comment.id}>
       <div className="threadkit-comment-wrapper">
         {/* Vote column */}
         {onVote && (
@@ -469,6 +474,10 @@ export function Comment({
                   maxDepth={maxDepth}
                   index={childIndex}
                   totalSiblings={comment.children.length}
+                  highlighted={highlightedCommentId === child.id}
+                  collapsed={collapsedThreads?.has(child.id)}
+                  highlightedCommentId={highlightedCommentId}
+                  collapsedThreads={collapsedThreads}
                   onReply={onReply}
                   onVote={onVote}
                   onDelete={onDelete}

@@ -22,6 +22,7 @@ interface CommentsViewProps {
   onReport?: (commentId: string) => void;
   onPermalink?: (commentId: string) => void;
   onCollapse?: (commentId: string) => void;
+  onReplyStart?: (parentId: string) => void;
   getUserProfile?: (userId: string) => UserProfile | undefined;
   toolbarEnd?: React.ReactNode;
   plugins?: ThreadKitPlugin[];
@@ -53,15 +54,16 @@ export function CommentsView({
   onReport,
   onPermalink,
   onCollapse,
+  onReplyStart,
   getUserProfile,
   toolbarEnd,
   plugins,
 }: CommentsViewProps) {
   const handleReply = useCallback(
-    (_parentId: string) => {
-      // Reply form is handled inside Comment component
+    (parentId: string) => {
+      onReplyStart?.(parentId);
     },
-    []
+    [onReplyStart]
   );
 
   return (

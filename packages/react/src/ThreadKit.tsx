@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import type { ThreadKitProps, ThreadKitCSSVariables, ThreadKitRef, User, Comment, SortBy } from './types';
-import { useComments } from './hooks/useComments';
+import { useComments, ThreadKitError } from './hooks/useComments';
 import { useWebSocket } from './hooks/useWebSocket';
 import { CommentsView } from './components/CommentsView';
 import { ChatView } from './components/ChatView';
@@ -84,7 +84,7 @@ function ThreadKitInner({
   onCommentEdited,
   onVote,
   onReplyStart,
-  onSignOut,
+  onSignOut: _onSignOut, // Handled at outer component level
   onError,
   onSignIn: _onSignIn,
   innerRef,
@@ -534,10 +534,63 @@ function ThreadKitInner({
   }
 
   if (error) {
+    const isThreadKitError = error instanceof ThreadKitError;
+    const errorCode = isThreadKitError ? error.code : 'UNKNOWN';
+
+    let errorContent: React.ReactNode;
+
+    switch (errorCode) {
+      case 'SITE_NOT_FOUND':
+        errorContent = (
+          <>
+            <strong>Site not configured</strong>
+            <p>
+              This site ID hasn't been set up yet. Visit{' '}
+              <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
+                usethreadkit.com/dashboard
+              </a>{' '}
+              to complete your setup.
+            </p>
+            <code className="threadkit-error-code">siteId: {siteId}</code>
+          </>
+        );
+        break;
+      case 'INVALID_API_KEY':
+        errorContent = (
+          <>
+            <strong>Invalid API key</strong>
+            <p>
+              The API key provided is invalid or has been revoked. Check your{' '}
+              <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
+                dashboard
+              </a>{' '}
+              for the correct key.
+            </p>
+          </>
+        );
+        break;
+      case 'RATE_LIMITED':
+        errorContent = (
+          <>
+            <strong>Rate limited</strong>
+            <p>Too many requests. Please wait a moment and try again.</p>
+          </>
+        );
+        break;
+      default:
+        errorContent = (
+          <>
+            <strong>Failed to load comments</strong>
+            <p>Please try again later.</p>
+            {error.message && <code className="threadkit-error-code">{error.message}</code>}
+          </>
+        );
+    }
+
     return (
       <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
         <div className="threadkit-error">
-          Failed to load comments. Please try again later.
+          {errorContent}
         </div>
       </div>
     );
@@ -594,6 +647,8 @@ function ThreadKitInner({
           maxDepth={maxDepth}
           allowVoting={allowVoting}
           sortBy={currentSort}
+          highlightedCommentId={highlightedCommentId}
+          collapsedThreads={collapsedThreads}
           onSortChange={setCurrentSort}
           onPost={handlePost}
           onVote={handleVote}
@@ -604,6 +659,18 @@ function ThreadKitInner({
           onPermalink={handlePermalink}
           onBlock={handleBlock}
           onReport={handleReport}
+          onCollapse={(id) => {
+            if (collapsedThreads.has(id)) {
+              setCollapsedThreads(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            } else {
+              setCollapsedThreads(prev => new Set(prev).add(id));
+            }
+          }}
+          onReplyStart={onReplyStart}
           toolbarEnd={toolbarIcons}
           plugins={plugins}
         />

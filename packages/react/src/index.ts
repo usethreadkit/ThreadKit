@@ -18,7 +18,8 @@ export { MentionInput } from './components/MentionInput';
 export type { Notification } from './components/NotificationsPanel';
 
 // Hooks
-export { useComments } from './hooks/useComments';
+export { useComments, ThreadKitError } from './hooks/useComments';
+export type { ThreadKitErrorCode } from './hooks/useComments';
 export { useWebSocket } from './hooks/useWebSocket';
 export { useKeyboardShortcuts, getDefaultShortcuts } from './hooks/useKeyboardShortcuts';
 export type { KeyboardShortcut } from './hooks/useKeyboardShortcuts';
