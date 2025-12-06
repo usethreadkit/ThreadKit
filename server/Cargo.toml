@@ -14,8 +14,6 @@ tokio = { version = "1.42", features = ["full"] }
 
 # HTTP framework
 axum = { version = "0.8", features = ["ws"] }
-axum-extra = { version = "0.10", features = ["typed-header"] }
-tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
 
 # WebSocket
@@ -32,7 +30,6 @@ fred = { version = "10.0", features = ["subscriber-client", "enable-native-tls"]
 # Auth
 jsonwebtoken = "9.3"
 argon2 = "0.5"
-oauth2 = "5.0"
 
 # Crypto
 sha2 = "0.10"
@@ -50,6 +47,7 @@ thiserror = "2.0"
 anyhow = "1.0"
 dotenvy = "0.15"
 dashmap = "6.1"
+moka = { version = "0.12", features = ["future"] }
 rand = "0.8"
 
 # Tracing
@@ -57,7 +55,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # Metrics
-metrics = "0.24"
 metrics-exporter-prometheus = "0.16"
 
 # OpenAPI

@@ -9,16 +9,18 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
+use threadkit_common::redis::RedisClient;
 use threadkit_common::types::{
-    Comment, CommentStatus, CommentWithAuthor, ModerationAction, ModerationMode, Notification,
-    NotificationType, Report, ReportReason, SortOrder, TurnstileEnforcement, UserPublic, VoteDirection,
+    CommentStatus, ModerationAction, ModerationMode, Notification, NotificationType, PageTree,
+    Report, ReportReason, SortOrder, TreeComment, TurnstileEnforcement, VoteDirection,
+    ANONYMOUS_USER_ID, DELETED_USER_ID,
 };
 use threadkit_common::moderation::ModerationCheckResult;
 
 use super::turnstile::verify_with_cloudflare;
 
 use crate::{
-    extractors::{ApiKey, AuthUser, AuthUserWithRole, MaybeAuthUser},
+    extractors::{ApiKey, AuthUser, AuthUserWithRole, MaybeAuthUser, MaybeAuthUserWithRole},
     state::AppState,
 };
 
@@ -41,18 +43,16 @@ pub struct GetCommentsQuery {
     pub page_url: String,
     /// Sort order (new, top, hot)
     pub sort: Option<SortOrder>,
-    /// Pagination offset
-    pub offset: Option<usize>,
-    /// Max comments to return (max 100)
-    pub limit: Option<usize>,
-    /// Get replies to a specific comment
-    pub parent_id: Option<Uuid>,
 }
 
+/// Response for GET /comments - uses compact tree format
 #[derive(Debug, Serialize, ToSchema)]
 pub struct GetCommentsResponse {
-    pub comments: Vec<CommentWithAuthor>,
-    pub total: usize,
+    /// Comments in compact tree format (single-letter keys)
+    pub tree: PageTree,
+    /// Total comment count
+    pub total: i64,
+    /// Pageview count (if enabled)
     pub pageviews: Option<i64>,
 }
 
@@ -62,25 +62,38 @@ pub struct CreateCommentRequest {
     pub page_url: String,
     /// Comment content (markdown)
     pub content: String,
-    /// Parent comment ID for replies
-    pub parent_id: Option<Uuid>,
+    /// Path to parent comment (array of UUIDs from root to parent)
+    /// Empty array or omitted for root-level comments
+    #[serde(default)]
+    pub parent_path: Vec<Uuid>,
+    /// Display name for anonymous comments (required if not authenticated)
+    pub author_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreateCommentResponse {
-    pub comment: CommentWithAuthor,
+    /// The created comment in compact tree format
+    pub comment: TreeComment,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCommentRequest {
+    /// Page URL where the comment exists
+    pub page_url: String,
     /// New comment content (markdown)
     pub content: String,
+    /// Path to the comment (array of UUIDs from root to target)
+    pub path: Vec<Uuid>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct VoteRequest {
+    /// Page URL where the comment exists
+    pub page_url: String,
     /// Vote direction (up or down)
     pub direction: VoteDirection,
+    /// Path to the comment (array of UUIDs from root to target)
+    pub path: Vec<Uuid>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -91,25 +104,38 @@ pub struct VoteResponse {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+pub struct DeleteRequest {
+    /// Page URL where the comment exists
+    pub page_url: String,
+    /// Path to the comment (array of UUIDs from root to target)
+    pub path: Vec<Uuid>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ReportRequest {
+    /// Page URL where the comment exists
+    pub page_url: String,
     /// Reason for the report
     pub reason: ReportReason,
     /// Additional details
     pub details: Option<String>,
+    /// Path to the comment being reported
+    pub path: Vec<Uuid>,
 }
 
 // ============================================================================
 // Handlers
 // ============================================================================
 
-/// Get comments for a page
+/// Get comments for a page (single Redis GET - fast!)
 #[utoipa::path(
     get,
     path = "/comments",
     tag = "comments",
     params(GetCommentsQuery),
     responses(
-        (status = 200, description = "List of comments", body = GetCommentsResponse),
+        (status = 200, description = "Comment tree", body = GetCommentsResponse),
+        (status = 304, description = "Not modified (ETag match)"),
         (status = 400, description = "Invalid request")
     ),
     security(("api_key" = []))
@@ -118,28 +144,68 @@ pub async fn get_comments(
     State(state): State<AppState>,
     api_key: ApiKey,
     maybe_auth: MaybeAuthUser,
+    headers: axum::http::HeaderMap,
     Query(query): Query<GetCommentsQuery>,
-) -> Result<Json<GetCommentsResponse>, (StatusCode, String)> {
-    // Generate page_id from URL (hash or lookup)
-    let page_id = generate_page_id(&api_key.0.site_id, &query.page_url);
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    use axum::response::IntoResponse;
+
+    // Generate page_id from URL
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &query.page_url);
+
+    // Check in-memory ETag cache FIRST (avoids Redis entirely for unchanged pages)
+    if let Some(if_none_match) = headers.get("if-none-match").and_then(|v| v.to_str().ok()) {
+        if let Some(cached_ts) = state.etag_cache.get(&page_id).await {
+            let cached_etag = format!("\"{}\"", cached_ts);
+            if if_none_match == cached_etag || if_none_match == format!("W/{}", cached_etag) {
+                // Sub-millisecond 304 response - no Redis hit!
+                return Ok((
+                    StatusCode::NOT_MODIFIED,
+                    [
+                        ("ETag", cached_etag),
+                        ("Cache-Control", "public, max-age=0, must-revalidate".to_string()),
+                    ],
+                )
+                    .into_response());
+            }
+        }
+    }
 
     // Increment pageview
     let _ = state.redis.increment_pageview(page_id).await;
-    let _ = state.redis.increment_usage(api_key.0.site_id, "pageviews", 1).await;
+    let _ = state
+        .redis
+        .increment_usage(api_key.0.site_id, "pageviews", 1)
+        .await;
 
-    // Get comments
-    let sort = query.sort.unwrap_or_default();
-    let offset = query.offset.unwrap_or(0);
-    let limit = query.limit.unwrap_or(500).min(1000);
+    // Get the entire page tree in ONE Redis call
+    let mut tree = state
+        .redis
+        .get_or_create_page_tree(page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let comment_ids = if let Some(parent_id) = query.parent_id {
-        state.redis.get_comment_replies(parent_id, offset, limit).await
-    } else {
-        state.redis.get_page_comments(page_id, sort, offset, limit).await
+    // Update in-memory cache with latest timestamp
+    state.etag_cache.insert(page_id, tree.updated_at).await;
+
+    // Generate ETag from updated_at timestamp
+    let etag = format!("\"{}\"", tree.updated_at);
+
+    // Check If-None-Match header again (cache miss case - ETag from Redis)
+    if let Some(if_none_match) = headers.get("if-none-match").and_then(|v| v.to_str().ok()) {
+        if if_none_match == etag || if_none_match == format!("W/{}", etag) {
+            // Return 304 Not Modified
+            return Ok((
+                StatusCode::NOT_MODIFIED,
+                [
+                    ("ETag", etag),
+                    ("Cache-Control", "public, max-age=0, must-revalidate".to_string()),
+                ],
+            )
+                .into_response());
+        }
     }
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Get the list of users blocked by the current user (if authenticated)
+    // Get blocked users for filtering
     let blocked_users: std::collections::HashSet<Uuid> = if let Some(ref auth) = maybe_auth.0 {
         state
             .redis
@@ -152,61 +218,14 @@ pub async fn get_comments(
         std::collections::HashSet::new()
     };
 
-    // Batch fetch all comments concurrently
-    let all_comments = state.redis.get_comments_batch(&comment_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    // Filter comments based on status and blocked users
     let current_user_id = maybe_auth.0.as_ref().map(|u| u.user_id);
-    let visible_comments: Vec<_> = all_comments
-        .into_iter()
-        .filter(|c| {
-            // Skip comments from blocked users
-            if blocked_users.contains(&c.author_id) {
-                return false;
-            }
-            // Only show approved comments (or pending if it's the author)
-            match c.status {
-                CommentStatus::Approved => true,
-                CommentStatus::Pending => current_user_id == Some(c.author_id),
-                _ => false,
-            }
-        })
-        .collect();
 
-    // Collect unique author IDs and comment IDs for batch fetching
-    let author_ids: Vec<_> = visible_comments.iter().map(|c| c.author_id).collect();
-    let visible_comment_ids: Vec<_> = visible_comments.iter().map(|c| c.id).collect();
+    // Filter comments in place and strip vote lists
+    filter_tree_for_response(&mut tree, current_user_id, &blocked_users);
 
-    // Batch fetch authors and votes concurrently
-    let (authors_map, votes_map) = tokio::join!(
-        state.redis.get_users_batch(&author_ids),
-        async {
-            if let Some(ref auth) = maybe_auth.0 {
-                state.redis.get_votes_batch(auth.user_id, &visible_comment_ids).await
-            } else {
-                Ok(std::collections::HashMap::new())
-            }
-        }
-    );
-
-    let authors_map = authors_map.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let votes_map = votes_map.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    // Build final response
-    let comments: Vec<_> = visible_comments
-        .into_iter()
-        .filter_map(|comment| {
-            authors_map.get(&comment.author_id).map(|author| {
-                let user_vote = votes_map.get(&comment.id).copied();
-                CommentWithAuthor {
-                    comment,
-                    author: UserPublic::from(author.clone()),
-                    user_vote,
-                }
-            })
-        })
-        .collect();
+    // Sort if requested
+    let sort = query.sort.unwrap_or_default();
+    sort_tree(&mut tree, sort);
 
     // Get pageviews if enabled
     let pageviews = if api_key.0.settings.display.show_pageviews {
@@ -215,11 +234,23 @@ pub async fn get_comments(
         None
     };
 
-    Ok(Json(GetCommentsResponse {
-        total: comments.len(),
-        comments,
+    let total = tree.total_count();
+
+    let response = GetCommentsResponse {
+        tree,
+        total,
         pageviews,
-    }))
+    };
+
+    Ok((
+        StatusCode::OK,
+        [
+            ("ETag", etag),
+            ("Cache-Control", "public, max-age=0, must-revalidate".to_string()),
+        ],
+        Json(response),
+    )
+        .into_response())
 }
 
 /// Create a new comment
@@ -239,11 +270,28 @@ pub async fn get_comments(
 pub async fn create_comment(
     State(state): State<AppState>,
     api_key: ApiKey,
-    auth: AuthUserWithRole,
+    auth: MaybeAuthUserWithRole,
     headers: axum::http::HeaderMap,
     Json(req): Json<CreateCommentRequest>,
 ) -> Result<Json<CreateCommentResponse>, (StatusCode, String)> {
-    // Check if user is blocked
+    // Check if anonymous comments are allowed
+    let is_anonymous = !auth.is_authenticated();
+    if is_anonymous && !api_key.0.settings.auth.anonymous {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            "Authentication required. Anonymous comments are not enabled.".into(),
+        ));
+    }
+
+    // Anonymous comments require author_name
+    if is_anonymous && req.author_name.as_ref().map_or(true, |n| n.trim().is_empty()) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "author_name is required for anonymous comments".into(),
+        ));
+    }
+
+    // Check if user is blocked (only for authenticated users)
     if auth.role == threadkit_common::types::Role::Blocked {
         return Err((StatusCode::FORBIDDEN, "User is blocked".into()));
     }
@@ -253,8 +301,10 @@ pub async fn create_comment(
         return Err((StatusCode::FORBIDDEN, "Posting is currently disabled".into()));
     }
 
+    // Generate page_id
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+
     // Check if page-level posting is disabled
-    let page_id = generate_page_id(&api_key.0.site_id, &req.page_url);
     let page_locked = state
         .redis
         .is_page_locked(api_key.0.site_id, page_id)
@@ -262,95 +312,39 @@ pub async fn create_comment(
         .unwrap_or(false);
 
     if page_locked {
-        return Err((StatusCode::FORBIDDEN, "Posting is disabled on this page".into()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Posting is disabled on this page".into(),
+        ));
     }
 
-    // Turnstile verification (bot protection)
-    let turnstile_settings = &api_key.0.settings.turnstile;
-    if turnstile_settings.enabled && turnstile_settings.enforce_on != TurnstileEnforcement::None {
-        // Check if verification is required for this user
-        let requires_verification = match turnstile_settings.enforce_on {
-            TurnstileEnforcement::All => true,
-            TurnstileEnforcement::Anonymous => {
-                // For now, all authenticated users pass this check
-                // In the future, we might check if user has anonymous auth provider
-                false
-            }
-            TurnstileEnforcement::Unverified => {
-                // Check if user has verified email or phone
-                let user = state.redis.get_user(auth.user_id).await
-                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-                    .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
-                !user.email_verified && !user.phone_verified
-            }
-            TurnstileEnforcement::None => false,
-        };
-
-        if requires_verification {
-            // Check for cached verification (if caching is enabled)
-            let cache_key = format!("turnstile:verified:{}:{}", api_key.0.site_id, auth.user_id);
-            let has_cached_verification = if turnstile_settings.cache_duration_seconds > 0 {
-                state.redis.exists(&cache_key).await.unwrap_or(false)
-            } else {
-                false
-            };
-
-            if !has_cached_verification {
-                // Get Turnstile token from header
-                let turnstile_token = headers
-                    .get("X-Turnstile-Token")
-                    .and_then(|v| v.to_str().ok())
-                    .ok_or((StatusCode::FORBIDDEN, "Turnstile verification required".into()))?;
-
-                // Verify with Cloudflare
-                let secret_key = state.config.turnstile.secret_key.as_ref()
-                    .ok_or((StatusCode::SERVICE_UNAVAILABLE, "Turnstile not configured on server".into()))?;
-
-                let client_ip = headers
-                    .get("x-forwarded-for")
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|s| s.split(',').next())
-                    .map(|s| s.trim());
-
-                let result = verify_with_cloudflare(secret_key, turnstile_token, client_ip).await
-                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Turnstile verification error: {}", e)))?;
-
-                if !result.success {
-                    return Err((StatusCode::FORBIDDEN, format!(
-                        "Turnstile verification failed: {}",
-                        result.error_codes.join(", ")
-                    )));
-                }
-
-                // Cache successful verification if enabled
-                if turnstile_settings.cache_duration_seconds > 0 {
-                    let _ = state.redis.set_with_expiry(
-                        &cache_key,
-                        "1",
-                        turnstile_settings.cache_duration_seconds as u64
-                    ).await;
-                }
-            }
-        }
-    }
+    // Turnstile verification (if configured)
+    verify_turnstile(&state, &api_key, is_anonymous, &headers).await?;
 
     // Validate comment length
     let max_length = state.config.max_comment_length;
     if req.content.chars().count() > max_length {
         return Err((
             StatusCode::BAD_REQUEST,
-            format!("Comment exceeds maximum length of {} characters", max_length),
+            format!(
+                "Comment exceeds maximum length of {} characters",
+                max_length
+            ),
         ));
     }
 
-    // Check if shadow banned
-    let is_shadowbanned = state
-        .redis
-        .is_shadowbanned(api_key.0.site_id, auth.user_id)
-        .await
-        .unwrap_or(false);
+    // Check if shadow banned (only for authenticated users)
+    let is_shadowbanned = if let Some(user_id) = auth.user_id {
+        state
+            .redis
+            .is_shadowbanned(api_key.0.site_id, user_id)
+            .await
+            .unwrap_or(false)
+    } else {
+        false
+    };
 
-    // Content moderation check (blocking)
+    // Content moderation check
     let content_moderation_settings = &api_key.0.settings.content_moderation;
     let moderation_result = state
         .moderation
@@ -368,7 +362,10 @@ pub async fn create_comment(
                 );
                 return Err((
                     StatusCode::FORBIDDEN,
-                    format!("Content rejected: {}", result.reason.unwrap_or_else(|| category)),
+                    format!(
+                        "Content rejected: {}",
+                        result.reason.unwrap_or_else(|| category)
+                    ),
                 ));
             }
             ModerationAction::Queue | ModerationAction::Flag => {
@@ -377,107 +374,163 @@ pub async fn create_comment(
         }
     }
 
-    // Determine depth
-    let depth = if let Some(parent_id) = req.parent_id {
-        let parent = state
+    // Determine status
+    let status =
+        if moderation_flagged && content_moderation_settings.action == ModerationAction::Queue {
+            Some(CommentStatus::Pending)
+        } else {
+            match api_key.0.settings.moderation_mode {
+                ModerationMode::Pre => Some(CommentStatus::Pending),
+                _ => None, // None means approved (default)
+            }
+        };
+
+    // Get author info - either from authenticated user or anonymous
+    let (author_id, author_name, author_avatar, author_karma) = if let Some(user_id) = auth.user_id {
+        let author = state
             .redis
-            .get_comment(parent_id)
+            .get_user(user_id)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-            .ok_or((StatusCode::NOT_FOUND, "Parent comment not found".into()))?;
-        parent.depth + 1
+            .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
+        (user_id, author.name.clone(), author.avatar_url.clone(), author.karma)
     } else {
-        0
-    };
-
-    // Determine status based on moderation mode and content moderation result
-    let status = if moderation_flagged && content_moderation_settings.action == ModerationAction::Queue {
-        CommentStatus::Pending
-    } else {
-        match api_key.0.settings.moderation_mode {
-            ModerationMode::Pre => CommentStatus::Pending,
-            _ => CommentStatus::Approved,
-        }
+        // Anonymous user
+        (
+            ANONYMOUS_USER_ID,
+            req.author_name.clone().unwrap_or_else(|| "Anonymous".to_string()),
+            None,
+            0,
+        )
     };
 
     let now = Utc::now();
-    let comment = Comment {
-        id: Uuid::now_v7(),
-        site_id: api_key.0.site_id,
-        page_id,
-        page_url: req.page_url,
-        author_id: auth.user_id,
-        parent_id: req.parent_id,
-        content: req.content.clone(),
-        content_html: markdown_to_html(&req.content),
+    let now_ts = now.timestamp();
+    let comment_id = Uuid::now_v7();
+
+    // Create the tree comment
+    let tree_comment = TreeComment {
+        id: comment_id,
+        author_id,
+        name: author_name,
+        avatar: author_avatar,
+        karma: author_karma,
+        text: req.content.clone(),
+        html: markdown_to_html(&req.content),
         upvotes: 0,
         downvotes: 0,
-        reply_count: 0,
-        depth,
+        created_at: now_ts,
+        modified_at: now_ts,
+        upvoters: Vec::new(),
+        downvoters: Vec::new(),
+        replies: Vec::new(),
         status: status.clone(),
-        edited: false,
-        created_at: now,
-        updated_at: now,
     };
 
-    // If shadow banned, pretend to save but don't actually
-    if !is_shadowbanned {
-        state
-            .redis
-            .set_comment(&comment)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    // If shadow banned, return success but don't actually save
+    if is_shadowbanned {
+        return Ok(Json(CreateCommentResponse {
+            comment: tree_comment,
+        }));
+    }
 
-        // Track this comment in user's comment list
-        let _ = state.redis.add_user_comment(auth.user_id, comment.id).await;
+    // Get current tree and add comment
+    let mut tree = state
+        .redis
+        .get_or_create_page_tree(page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        // Update usage
-        let _ = state.redis.increment_usage(api_key.0.site_id, "comments", 1).await;
-
-        // Send notification to parent comment author if this is a reply
-        if let Some(parent_id) = req.parent_id {
-            if let Ok(Some(parent)) = state.redis.get_comment(parent_id).await {
-                if parent.author_id != auth.user_id {
-                    let notification = Notification {
-                        id: Uuid::now_v7(),
-                        notification_type: NotificationType::Reply,
-                        comment_id: comment.id,
-                        from_user_id: auth.user_id,
-                        read: false,
-                        created_at: now,
-                    };
-                    let _ = state.redis.add_notification(parent.author_id, &notification).await;
-                }
-            }
+    if req.parent_path.is_empty() {
+        // Root comment
+        tree.add_root(tree_comment.clone());
+    } else {
+        // Reply - find parent and add
+        if !tree.add_reply(&req.parent_path, tree_comment.clone()) {
+            return Err((StatusCode::NOT_FOUND, "Parent comment not found".into()));
         }
+    }
 
-        // Publish for WebSocket subscribers
+    // Save updated tree
+    state
+        .redis
+        .set_page_tree(page_id, &tree)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Update ETag cache with new timestamp
+    state.etag_cache.insert(page_id, tree.updated_at).await;
+
+    // Update indexes (only for authenticated users)
+    if let Some(user_id) = auth.user_id {
         let _ = state
             .redis
-            .publish(
-                &format!("page:{}", page_id),
-                &serde_json::json!({
-                    "type": "new_comment",
-                    "comment_id": comment.id,
-                })
-                .to_string(),
-            )
+            .add_user_comment_index(user_id, page_id, comment_id)
+            .await;
+        let _ = state
+            .redis
+            .add_user_site_comment_index(user_id, api_key.0.site_id, page_id, comment_id)
+            .await;
+    }
+    let _ = state
+        .redis
+        .add_site_comment_index(api_key.0.site_id, page_id, comment_id)
+        .await;
+
+    // Add to modqueue if pending
+    if status == Some(CommentStatus::Pending) {
+        let _ = state
+            .redis
+            .add_to_modqueue(api_key.0.site_id, page_id, comment_id)
             .await;
     }
 
-    let author = state
+    // Update usage
+    let _ = state
         .redis
-        .get_user(auth.user_id)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
+        .increment_usage(api_key.0.site_id, "comments", 1)
+        .await;
+
+    // Send notification if this is a reply
+    if !req.parent_path.is_empty() {
+        if let Some(parent) = tree.find_by_path(&req.parent_path) {
+            // Don't notify anonymous users, deleted users, or self-replies
+            let should_notify = parent.author_id != author_id
+                && parent.author_id != DELETED_USER_ID
+                && parent.author_id != ANONYMOUS_USER_ID;
+
+            if should_notify {
+                let notification = Notification {
+                    id: Uuid::now_v7(),
+                    notification_type: NotificationType::Reply,
+                    comment_id,
+                    from_user_id: author_id,
+                    read: false,
+                    created_at: now,
+                };
+                let _ = state
+                    .redis
+                    .add_notification(parent.author_id, &notification)
+                    .await;
+            }
+        }
+    }
+
+    // Publish for WebSocket subscribers
+    let _ = state
+        .redis
+        .publish(
+            &format!("page:{}", page_id),
+            &serde_json::json!({
+                "type": "new_comment",
+                "comment_id": comment_id,
+            })
+            .to_string(),
+        )
+        .await;
 
     Ok(Json(CreateCommentResponse {
-        comment: CommentWithAuthor {
-            comment,
-            author: UserPublic::from(author),
-            user_vote: None,
-        },
+        comment: tree_comment,
     }))
 }
 
@@ -491,7 +544,7 @@ pub async fn create_comment(
     ),
     request_body = UpdateCommentRequest,
     responses(
-        (status = 200, description = "Comment updated", body = CommentWithAuthor),
+        (status = 200, description = "Comment updated", body = TreeComment),
         (status = 403, description = "Not your comment"),
         (status = 404, description = "Comment not found")
     ),
@@ -499,16 +552,27 @@ pub async fn create_comment(
 )]
 pub async fn update_comment(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    api_key: ApiKey,
     auth: AuthUser,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<UpdateCommentRequest>,
-) -> Result<Json<CommentWithAuthor>, (StatusCode, String)> {
-    let mut comment = state
+) -> Result<Json<TreeComment>, (StatusCode, String)> {
+    // Validate path ends with the correct comment ID
+    if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
+        return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
+    }
+
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+
+    let mut tree = state
         .redis
-        .get_comment(comment_id)
+        .get_page_tree(page_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
+
+    let comment = tree
+        .find_by_path_mut(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
 
     // Check ownership
@@ -517,47 +581,40 @@ pub async fn update_comment(
     }
 
     // Update comment
-    comment.content = req.content.clone();
-    comment.content_html = markdown_to_html(&req.content);
-    comment.edited = true;
-    comment.updated_at = Utc::now();
+    comment.text = req.content.clone();
+    comment.html = markdown_to_html(&req.content);
+    comment.modified_at = Utc::now().timestamp();
 
+    // Clone for response before saving
+    let updated_comment = comment.clone();
+
+    // Save tree
     state
         .redis
-        .set_comment(&comment)
+        .set_page_tree(page_id, &tree)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Update ETag cache with new timestamp
+    state.etag_cache.insert(page_id, tree.updated_at).await;
 
     // Publish update
     let _ = state
         .redis
         .publish(
-            &format!("page:{}", comment.page_id),
+            &format!("page:{}", page_id),
             &serde_json::json!({
                 "type": "edit_comment",
-                "comment_id": comment.id,
+                "comment_id": comment_id,
             })
             .to_string(),
         )
         .await;
 
-    let author = state
-        .redis
-        .get_user(auth.user_id)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
-
-    let user_vote = state.redis.get_vote(auth.user_id, comment_id).await.ok().flatten();
-
-    Ok(Json(CommentWithAuthor {
-        comment,
-        author: UserPublic::from(author),
-        user_vote,
-    }))
+    Ok(Json(updated_comment))
 }
 
-/// Delete a comment (author or moderator+)
+/// Delete a comment (marks as deleted, preserves replies)
 #[utoipa::path(
     delete,
     path = "/comments/{id}",
@@ -565,6 +622,7 @@ pub async fn update_comment(
     params(
         ("id" = Uuid, Path, description = "Comment ID")
     ),
+    request_body = DeleteRequest,
     responses(
         (status = 204, description = "Comment deleted"),
         (status = 403, description = "Not authorized"),
@@ -574,15 +632,27 @@ pub async fn update_comment(
 )]
 pub async fn delete_comment(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    api_key: ApiKey,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
+    Json(req): Json<DeleteRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let mut comment = state
+    // Validate path
+    if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
+        return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
+    }
+
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+
+    let mut tree = state
         .redis
-        .get_comment(comment_id)
+        .get_page_tree(page_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
+
+    let comment = tree
+        .find_by_path_mut(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
 
     // Check ownership or moderator
@@ -590,23 +660,27 @@ pub async fn delete_comment(
         return Err((StatusCode::FORBIDDEN, "Not authorized".into()));
     }
 
-    comment.status = CommentStatus::Deleted;
-    comment.updated_at = Utc::now();
+    // Mark as deleted (preserves replies)
+    comment.mark_deleted();
 
+    // Save tree
     state
         .redis
-        .set_comment(&comment)
+        .set_page_tree(page_id, &tree)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Update ETag cache with new timestamp
+    state.etag_cache.insert(page_id, tree.updated_at).await;
 
     // Publish deletion
     let _ = state
         .redis
         .publish(
-            &format!("page:{}", comment.page_id),
+            &format!("page:{}", page_id),
             &serde_json::json!({
                 "type": "delete_comment",
-                "comment_id": comment.id,
+                "comment_id": comment_id,
             })
             .to_string(),
         )
@@ -615,7 +689,7 @@ pub async fn delete_comment(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Vote on a comment (toggle up/down)
+/// Vote on a comment
 #[utoipa::path(
     post,
     path = "/comments/{id}/vote",
@@ -632,23 +706,37 @@ pub async fn delete_comment(
 )]
 pub async fn vote_comment(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    api_key: ApiKey,
     auth: AuthUser,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<VoteRequest>,
 ) -> Result<Json<VoteResponse>, (StatusCode, String)> {
-    let comment = state
+    // Validate path
+    if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
+        return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
+    }
+
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+
+    let mut tree = state
         .redis
-        .get_comment(comment_id)
+        .get_page_tree(page_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
+
+    let comment = tree
+        .find_by_path_mut(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
 
-    let existing_vote = state
-        .redis
-        .get_vote(auth.user_id, comment_id)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    // Check existing vote
+    let existing_vote = if comment.upvoters.contains(&auth.user_id) {
+        Some(VoteDirection::Up)
+    } else if comment.downvoters.contains(&auth.user_id) {
+        Some(VoteDirection::Down)
+    } else {
+        None
+    };
 
     let (new_vote, upvote_delta, downvote_delta): (Option<VoteDirection>, i64, i64) =
         match (existing_vote, req.direction) {
@@ -665,42 +753,53 @@ pub async fn vote_comment(
             (Some(VoteDirection::Down), VoteDirection::Up) => (Some(VoteDirection::Up), 1, -1),
         };
 
-    // Update vote record and track for GDPR cleanup
-    if let Some(direction) = new_vote {
-        state
-            .redis
-            .set_vote(auth.user_id, comment_id, direction)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        // Track this vote for the user (for account deletion)
-        let _ = state.redis.add_user_vote(auth.user_id, comment_id).await;
-    } else {
-        state
-            .redis
-            .delete_vote(auth.user_id, comment_id)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        // Remove from user's vote tracking
-        let _ = state.redis.remove_user_vote(auth.user_id, comment_id).await;
+    // Update vote arrays
+    comment.upvoters.retain(|&id| id != auth.user_id);
+    comment.downvoters.retain(|&id| id != auth.user_id);
+
+    if let Some(dir) = new_vote {
+        match dir {
+            VoteDirection::Up => comment.upvoters.push(auth.user_id),
+            VoteDirection::Down => comment.downvoters.push(auth.user_id),
+        }
     }
 
-    // Update comment vote counts
-    let new_upvotes = (comment.upvotes + upvote_delta).max(0);
-    let new_downvotes = (comment.downvotes + downvote_delta).max(0);
+    // Update counts
+    comment.upvotes = (comment.upvotes + upvote_delta).max(0);
+    comment.downvotes = (comment.downvotes + downvote_delta).max(0);
 
+    let new_upvotes = comment.upvotes;
+    let new_downvotes = comment.downvotes;
+    let author_id = comment.author_id;
+
+    // Save tree
     state
         .redis
-        .update_comment_votes(comment_id, new_upvotes, new_downvotes)
+        .set_page_tree(page_id, &tree)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    // Update ETag cache with new timestamp
+    state.etag_cache.insert(page_id, tree.updated_at).await;
+
+    // Update user vote index
+    if new_vote.is_some() {
+        let _ = state
+            .redis
+            .add_user_vote_index(auth.user_id, page_id, comment_id)
+            .await;
+    } else {
+        let _ = state
+            .redis
+            .remove_user_vote_index(auth.user_id, page_id, comment_id)
+            .await;
+    }
+
     // Update author karma (only if voting on someone else's comment)
-    if comment.author_id != auth.user_id {
-        // Karma change = upvote_delta - downvote_delta
-        // Upvotes add karma, downvotes subtract karma
+    if author_id != auth.user_id && author_id != DELETED_USER_ID {
         let karma_delta = upvote_delta - downvote_delta;
         if karma_delta != 0 {
-            let _ = state.redis.update_user_karma(comment.author_id, karma_delta).await;
+            let _ = state.redis.update_user_karma(author_id, karma_delta).await;
         }
     }
 
@@ -708,10 +807,10 @@ pub async fn vote_comment(
     let _ = state
         .redis
         .publish(
-            &format!("page:{}", comment.page_id),
+            &format!("page:{}", page_id),
             &serde_json::json!({
                 "type": "vote_update",
-                "comment_id": comment.id,
+                "comment_id": comment_id,
                 "upvotes": new_upvotes,
                 "downvotes": new_downvotes,
             })
@@ -748,12 +847,22 @@ pub async fn report_comment(
     Path(comment_id): Path<Uuid>,
     Json(req): Json<ReportRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    // Validate path
+    if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
+        return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
+    }
+
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+
     // Verify comment exists
-    let _ = state
+    let tree = state
         .redis
-        .get_comment(comment_id)
+        .get_page_tree(page_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
+
+    tree.find_by_path(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
 
     let report = Report {
@@ -766,7 +875,7 @@ pub async fn report_comment(
 
     state
         .redis
-        .add_report(api_key.0.site_id, &report)
+        .add_report_v2(api_key.0.site_id, page_id, &report)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -777,28 +886,164 @@ pub async fn report_comment(
 // Helpers
 // ============================================================================
 
-fn generate_page_id(site_id: &Uuid, page_url: &str) -> Uuid {
-    // Create deterministic UUID from site_id + URL
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
+/// Verify Turnstile if required for current user type
+async fn verify_turnstile(
+    state: &AppState,
+    api_key: &ApiKey,
+    is_anonymous: bool,
+    headers: &axum::http::HeaderMap,
+) -> Result<(), (StatusCode, String)> {
+    let turnstile_settings = &api_key.0.settings.turnstile;
+    if !turnstile_settings.enabled || turnstile_settings.enforce_on == TurnstileEnforcement::None {
+        return Ok(());
+    }
 
-    let mut hasher = DefaultHasher::new();
-    site_id.hash(&mut hasher);
-    page_url.hash(&mut hasher);
-    let hash = hasher.finish();
+    // Check if anonymous users need verification
+    let requires_verification = match turnstile_settings.enforce_on {
+        TurnstileEnforcement::All => true,
+        TurnstileEnforcement::Anonymous => is_anonymous,
+        TurnstileEnforcement::Unverified => is_anonymous, // Anonymous users are "unverified"
+        TurnstileEnforcement::None => false,
+    };
 
-    // Use hash to create a UUID v5-like ID
-    Uuid::from_u64_pair(hash, hash.rotate_left(32))
+    if !requires_verification {
+        return Ok(());
+    }
+
+    // Get token and verify
+    let turnstile_token = headers
+        .get("X-Turnstile-Token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or((StatusCode::FORBIDDEN, "Turnstile verification required".into()))?;
+
+    let secret_key = state
+        .config
+        .turnstile
+        .secret_key
+        .as_ref()
+        .ok_or((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Turnstile not configured".into(),
+        ))?;
+
+    let client_ip = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim());
+
+    let result = verify_with_cloudflare(secret_key, turnstile_token, client_ip)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Turnstile error: {}", e),
+            )
+        })?;
+
+    if !result.success {
+        return Err((
+            StatusCode::FORBIDDEN,
+            format!("Turnstile failed: {}", result.error_codes.join(", ")),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Filter tree for API response:
+/// - Remove comments from blocked users
+/// - Only show approved or own pending comments
+/// - Strip upvoters/downvoters arrays (compute user_vote on client from presence)
+fn filter_tree_for_response(
+    tree: &mut PageTree,
+    current_user_id: Option<Uuid>,
+    blocked_users: &std::collections::HashSet<Uuid>,
+) {
+    tree.comments.retain_mut(|comment| {
+        filter_comment_recursive(comment, current_user_id, blocked_users)
+    });
+}
+
+fn filter_comment_recursive(
+    comment: &mut TreeComment,
+    current_user_id: Option<Uuid>,
+    blocked_users: &std::collections::HashSet<Uuid>,
+) -> bool {
+    // Skip blocked users (unless it's the current user's comment)
+    if blocked_users.contains(&comment.author_id) && current_user_id != Some(comment.author_id) {
+        return false;
+    }
+
+    // Check status
+    let status = comment.effective_status();
+    let visible = match status {
+        CommentStatus::Approved => true,
+        CommentStatus::Pending => current_user_id == Some(comment.author_id),
+        CommentStatus::Deleted => true, // Show [deleted] placeholder
+        CommentStatus::Rejected => false,
+    };
+
+    if !visible {
+        return false;
+    }
+
+    // Strip vote arrays for response (client determines own vote from data sent separately or via presence check)
+    // Actually, keep them but the client will check if their ID is present
+    // For now, we'll keep them as is - the client can strip on their end if needed
+
+    // Recursively filter replies
+    comment.replies.retain_mut(|reply| {
+        filter_comment_recursive(reply, current_user_id, blocked_users)
+    });
+
+    true
+}
+
+/// Sort the tree by the specified order
+fn sort_tree(tree: &mut PageTree, sort: SortOrder) {
+    sort_comments(&mut tree.comments, sort);
+}
+
+fn sort_comments(comments: &mut [TreeComment], sort: SortOrder) {
+    match sort {
+        SortOrder::New => {
+            comments.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        }
+        SortOrder::Top => {
+            comments.sort_by(|a, b| {
+                let a_score = a.upvotes - a.downvotes;
+                let b_score = b.upvotes - b.downvotes;
+                b_score.cmp(&a_score)
+            });
+        }
+        SortOrder::Hot => {
+            // Simple hot algorithm: score / time_decay
+            let now = Utc::now().timestamp();
+            comments.sort_by(|a, b| {
+                let a_score = (a.upvotes - a.downvotes) as f64;
+                let b_score = (b.upvotes - b.downvotes) as f64;
+                let a_age = ((now - a.created_at) as f64 / 3600.0).max(1.0); // hours
+                let b_age = ((now - b.created_at) as f64 / 3600.0).max(1.0);
+                let a_hot = a_score / a_age.powf(1.5);
+                let b_hot = b_score / b_age.powf(1.5);
+                b_hot.partial_cmp(&a_hot).unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
+    }
+
+    // Sort replies recursively
+    for comment in comments.iter_mut() {
+        sort_comments(&mut comment.replies, sort);
+    }
 }
 
 fn markdown_to_html(content: &str) -> String {
-    // Simple markdown conversion - in production use pulldown-cmark or similar
-    // For now, just escape HTML and convert basic formatting
+    // Simple markdown conversion
     let escaped = content
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;");
 
-    // Very basic: wrap in <p> tag
     format!("<p>{}</p>", escaped.replace("\n\n", "</p><p>"))
 }

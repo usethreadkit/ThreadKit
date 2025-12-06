@@ -99,6 +99,269 @@ pub struct CommentWithAuthor {
 }
 
 // ============================================================================
+// Compact Page Tree Types (single-letter keys for bandwidth savings)
+// ============================================================================
+
+/// Special UUID for deleted users: d0000000-0000-0000-0000-000000000000
+pub const DELETED_USER_ID: Uuid = Uuid::from_u128(0xd0000000_0000_0000_0000_000000000000);
+
+/// Special UUID for anonymous users: a0000000-0000-0000-0000-000000000000
+pub const ANONYMOUS_USER_ID: Uuid = Uuid::from_u128(0xa0000000_0000_0000_0000_000000000000);
+
+/// Compact comment stored in page tree (single-letter keys)
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[schema(no_recursion)]
+pub struct TreeComment {
+    /// id - comment UUID
+    #[serde(rename = "i")]
+    pub id: Uuid,
+    /// author_id
+    #[serde(rename = "a")]
+    pub author_id: Uuid,
+    /// author name
+    #[serde(rename = "n")]
+    pub name: String,
+    /// author avatar (picture)
+    #[serde(rename = "p")]
+    pub avatar: Option<String>,
+    /// author karma
+    #[serde(rename = "k")]
+    pub karma: i64,
+    /// text content (markdown)
+    #[serde(rename = "t")]
+    pub text: String,
+    /// html content (rendered)
+    #[serde(rename = "h")]
+    pub html: String,
+    /// upvotes count
+    #[serde(rename = "u")]
+    pub upvotes: i64,
+    /// downvotes count
+    #[serde(rename = "d")]
+    pub downvotes: i64,
+    /// created_at (unix timestamp)
+    #[serde(rename = "x")]
+    pub created_at: i64,
+    /// modified_at (unix timestamp)
+    #[serde(rename = "m")]
+    pub modified_at: i64,
+    /// upvoters (array of user IDs)
+    #[serde(rename = "v", default, skip_serializing_if = "Vec::is_empty")]
+    pub upvoters: Vec<Uuid>,
+    /// downvoters (array of user IDs)
+    #[serde(rename = "w", default, skip_serializing_if = "Vec::is_empty")]
+    pub downvoters: Vec<Uuid>,
+    /// replies (nested array of child comments)
+    #[serde(rename = "r", default, skip_serializing_if = "Vec::is_empty")]
+    pub replies: Vec<TreeComment>,
+    /// status (only stored if not approved)
+    #[serde(rename = "s", default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<CommentStatus>,
+}
+
+impl TreeComment {
+    /// Check if this comment is deleted
+    pub fn is_deleted(&self) -> bool {
+        self.author_id == DELETED_USER_ID
+    }
+
+    /// Get the user's vote direction if they voted
+    pub fn user_vote(&self, user_id: Option<Uuid>) -> Option<VoteDirection> {
+        let user_id = user_id?;
+        if self.upvoters.contains(&user_id) {
+            Some(VoteDirection::Up)
+        } else if self.downvoters.contains(&user_id) {
+            Some(VoteDirection::Down)
+        } else {
+            None
+        }
+    }
+
+    /// Mark this comment as deleted (preserves replies)
+    pub fn mark_deleted(&mut self) {
+        self.author_id = DELETED_USER_ID;
+        self.name = "[deleted]".to_string();
+        self.avatar = None;
+        self.karma = 0;
+        self.text = "[deleted]".to_string();
+        self.html = "[deleted]".to_string();
+        self.status = Some(CommentStatus::Deleted);
+    }
+
+    /// Find a comment in this tree by path of IDs
+    pub fn find_by_path(&self, path: &[Uuid]) -> Option<&TreeComment> {
+        if path.is_empty() {
+            return Some(self);
+        }
+        if path[0] != self.id {
+            return None;
+        }
+        if path.len() == 1 {
+            return Some(self);
+        }
+        // Search in replies
+        for reply in &self.replies {
+            if reply.id == path[1] {
+                return reply.find_by_path(&path[1..]);
+            }
+        }
+        None
+    }
+
+    /// Find a mutable comment in this tree by path of IDs
+    pub fn find_by_path_mut(&mut self, path: &[Uuid]) -> Option<&mut TreeComment> {
+        if path.is_empty() {
+            return Some(self);
+        }
+        if path[0] != self.id {
+            return None;
+        }
+        if path.len() == 1 {
+            return Some(self);
+        }
+        // Search in replies
+        for reply in &mut self.replies {
+            if reply.id == path[1] {
+                return reply.find_by_path_mut(&path[1..]);
+            }
+        }
+        None
+    }
+
+    /// Count total replies (including nested)
+    pub fn reply_count(&self) -> i64 {
+        let mut count = self.replies.len() as i64;
+        for reply in &self.replies {
+            count += reply.reply_count();
+        }
+        count
+    }
+
+    /// Get the effective status (defaults to Approved if not set)
+    pub fn effective_status(&self) -> CommentStatus {
+        self.status.clone().unwrap_or(CommentStatus::Approved)
+    }
+}
+
+/// Page tree - all comments for a page in one JSON blob
+#[derive(Debug, Clone, Serialize, Deserialize, Default, ToSchema)]
+pub struct PageTree {
+    /// comments (array of root comments)
+    #[serde(rename = "c", default)]
+    pub comments: Vec<TreeComment>,
+    /// updated_at (unix timestamp)
+    #[serde(rename = "u")]
+    pub updated_at: i64,
+}
+
+impl PageTree {
+    /// Create a new empty page tree
+    pub fn new() -> Self {
+        Self {
+            comments: Vec::new(),
+            updated_at: chrono::Utc::now().timestamp(),
+        }
+    }
+
+    /// Find a root comment by ID
+    pub fn find_root(&self, id: Uuid) -> Option<&TreeComment> {
+        self.comments.iter().find(|c| c.id == id)
+    }
+
+    /// Find a root comment by ID (mutable)
+    pub fn find_root_mut(&mut self, id: Uuid) -> Option<&mut TreeComment> {
+        self.comments.iter_mut().find(|c| c.id == id)
+    }
+
+    /// Find a comment by path of IDs (first ID is root, subsequent are nested)
+    pub fn find_by_path(&self, path: &[Uuid]) -> Option<&TreeComment> {
+        if path.is_empty() {
+            return None;
+        }
+        for root in &self.comments {
+            if root.id == path[0] {
+                return root.find_by_path(path);
+            }
+        }
+        None
+    }
+
+    /// Find a comment by path of IDs (mutable)
+    pub fn find_by_path_mut(&mut self, path: &[Uuid]) -> Option<&mut TreeComment> {
+        if path.is_empty() {
+            return None;
+        }
+        for root in &mut self.comments {
+            if root.id == path[0] {
+                return root.find_by_path_mut(path);
+            }
+        }
+        None
+    }
+
+    /// Add a new root comment
+    pub fn add_root(&mut self, comment: TreeComment) {
+        self.comments.push(comment);
+        self.updated_at = chrono::Utc::now().timestamp();
+    }
+
+    /// Add a reply to a comment at the given path
+    pub fn add_reply(&mut self, parent_path: &[Uuid], reply: TreeComment) -> bool {
+        if let Some(parent) = self.find_by_path_mut(parent_path) {
+            parent.replies.push(reply);
+            self.updated_at = chrono::Utc::now().timestamp();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Total comment count (including nested)
+    pub fn total_count(&self) -> i64 {
+        let mut count = self.comments.len() as i64;
+        for comment in &self.comments {
+            count += comment.reply_count();
+        }
+        count
+    }
+
+    /// Flatten the tree into a list of comments with parent_id info
+    /// Useful for API responses that need flat list format
+    pub fn flatten(&self) -> Vec<FlatComment> {
+        let mut result = Vec::new();
+        for comment in &self.comments {
+            self.flatten_recursive(comment, None, 0, &mut result);
+        }
+        result
+    }
+
+    fn flatten_recursive(
+        &self,
+        comment: &TreeComment,
+        parent_id: Option<Uuid>,
+        depth: u32,
+        result: &mut Vec<FlatComment>,
+    ) {
+        result.push(FlatComment {
+            comment: comment.clone(),
+            parent_id,
+            depth,
+        });
+        for reply in &comment.replies {
+            self.flatten_recursive(reply, Some(comment.id), depth + 1, result);
+        }
+    }
+}
+
+/// Flattened comment for API responses
+#[derive(Debug, Clone)]
+pub struct FlatComment {
+    pub comment: TreeComment,
+    pub parent_id: Option<Uuid>,
+    pub depth: u32,
+}
+
+// ============================================================================
 // Vote Types
 // ============================================================================
 

@@ -1,12 +1,22 @@
 use anyhow::Result;
+use moka::future::Cache;
 use std::sync::Arc;
+use std::time::Duration;
 use threadkit_common::{redis::RedisClient, Config, ModerationClient};
+use uuid::Uuid;
+
+/// In-memory cache for page ETags (updated_at timestamps)
+/// Key: page_id (Uuid), Value: updated_at timestamp (i64)
+/// Max 1M entries, expires after 5 minutes of inactivity
+pub type ETagCache = Cache<Uuid, i64>;
 
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
     pub redis: Arc<RedisClient>,
     pub moderation: Arc<ModerationClient>,
+    /// In-memory cache for page ETags - avoids Redis reads for unchanged pages
+    pub etag_cache: ETagCache,
 }
 
 impl AppState {
@@ -71,10 +81,17 @@ impl AppState {
             tracing::info!("Initialized site config in Redis");
         }
 
+        // Build ETag cache: 1M entries max, 5 min TTI
+        let etag_cache = Cache::builder()
+            .max_capacity(1_000_000)
+            .time_to_idle(Duration::from_secs(300))
+            .build();
+
         Ok(AppState {
             config: Arc::new(config),
             redis: Arc::new(redis),
             moderation: Arc::new(moderation),
+            etag_cache,
         })
     }
 }

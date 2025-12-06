@@ -6,6 +6,9 @@ use uuid::Uuid;
 use crate::types::*;
 use crate::{Error, Result};
 
+// Re-export PageTree for convenience
+pub use crate::types::PageTree;
+
 /// Result of a rate limit check
 #[derive(Debug, Clone)]
 pub struct RateLimitResult {
@@ -19,9 +22,7 @@ pub struct RateLimitResult {
     pub limit: u32,
 }
 
-const _USER_TTL: i64 = 0; // Persistent (reserved for future use)
 const VERIFICATION_TTL: i64 = 600; // 10 minutes
-const SESSION_TTL: i64 = 60 * 60 * 24 * 30; // 30 days
 const API_KEY_CACHE_TTL: i64 = 300; // 5 minutes
 const TYPING_TTL: i64 = 5; // 5 seconds
 const WEB3_NONCE_TTL: i64 = 600; // 10 minutes
@@ -179,7 +180,327 @@ impl RedisClient {
     }
 
     // ========================================================================
-    // Comment Operations
+    // Page Tree Operations (new denormalized schema)
+    // ========================================================================
+
+    /// Generate deterministic page_id from site_id and page_url
+    pub fn generate_page_id(site_id: Uuid, page_url: &str) -> Uuid {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        site_id.hash(&mut hasher);
+        page_url.hash(&mut hasher);
+        let hash = hasher.finish();
+        // Create UUID v8 from hash (deterministic)
+        Uuid::from_u64_pair(hash, hash.rotate_left(32))
+    }
+
+    /// Get the entire page tree (single Redis GET)
+    pub async fn get_page_tree(&self, page_id: Uuid) -> Result<Option<PageTree>> {
+        let value: Option<String> = self.client.get(format!("page:{}:tree", page_id)).await?;
+        Ok(value.and_then(|v| serde_json::from_str(&v).ok()))
+    }
+
+    /// Set the entire page tree (single Redis SET)
+    pub async fn set_page_tree(&self, page_id: Uuid, tree: &PageTree) -> Result<()> {
+        let json = serde_json::to_string(tree)?;
+        self.client
+            .set::<(), _, _>(format!("page:{}:tree", page_id), json, None, None, false)
+            .await?;
+        Ok(())
+    }
+
+    /// Get or create a page tree
+    pub async fn get_or_create_page_tree(&self, page_id: Uuid) -> Result<PageTree> {
+        match self.get_page_tree(page_id).await? {
+            Some(tree) => Ok(tree),
+            None => Ok(PageTree::new()),
+        }
+    }
+
+    /// Add a comment to user's comment index (for profile/history)
+    pub async fn add_user_comment_index(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let score = Utc::now().timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("user:{}:comments", user_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Add a comment to user's site-specific comment index (for admin bulk delete)
+    pub async fn add_user_site_comment_index(&self, user_id: Uuid, site_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let score = Utc::now().timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("user:{}:{}:comments", user_id, site_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Add a comment to site's comment index (for admin view)
+    pub async fn add_site_comment_index(&self, site_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let score = Utc::now().timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("site:{}:comments", site_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Get user's comments across all sites (for profile)
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_user_comment_index(&self, user_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrevrange(
+                format!("user:{}:comments", user_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Get site's recent comments (for admin)
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_site_comment_index(&self, site_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrevrange(
+                format!("site:{}:comments", site_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Get user's comments on a specific site (for admin bulk delete)
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_user_site_comments(&self, user_id: Uuid, site_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrevrange(
+                format!("user:{}:{}:comments", user_id, site_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Add a vote to user's vote index
+    pub async fn add_user_vote_index(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let score = Utc::now().timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("user:{}:votes", user_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Remove a vote from user's vote index
+    pub async fn remove_user_vote_index(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zrem::<(), _, _>(format!("user:{}:votes", user_id), value)
+            .await?;
+        Ok(())
+    }
+
+    /// Get user's votes
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_user_vote_index(&self, user_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrevrange(
+                format!("user:{}:votes", user_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Add to moderation queue (uses page_id:comment_id format)
+    pub async fn add_to_modqueue(&self, site_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let score = Utc::now().timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("site:{}:modqueue", site_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Remove from moderation queue
+    pub async fn remove_from_modqueue_v2(&self, site_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        let value = format!("{}:{}", page_id, comment_id);
+        self.client
+            .zrem::<(), _, _>(format!("site:{}:modqueue", site_id), value)
+            .await?;
+        Ok(())
+    }
+
+    /// Get moderation queue
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_modqueue_v2(&self, site_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrange(
+                format!("site:{}:modqueue", site_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                None,
+                false,
+                None,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Add report (uses page_id:comment_id format as value, report JSON as score member)
+    pub async fn add_report_v2(&self, site_id: Uuid, page_id: Uuid, report: &Report) -> Result<()> {
+        let score = report.created_at.timestamp_millis() as f64;
+        let value = format!("{}:{}", page_id, report.comment_id);
+        self.client
+            .zadd::<(), _, _>(
+                format!("site:{}:reports", site_id),
+                None,
+                None,
+                false,
+                false,
+                (score, value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Get reports
+    /// Returns Vec<(page_id, comment_id)>
+    pub async fn get_reports_v2(&self, site_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        let items: Vec<String> = self
+            .client
+            .zrange(
+                format!("site:{}:reports", site_id),
+                offset as i64,
+                (offset + limit - 1) as i64,
+                None,
+                false,
+                None,
+                false,
+            )
+            .await?;
+
+        Ok(items
+            .into_iter()
+            .filter_map(|s| {
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    // ========================================================================
+    // Comment Operations (legacy - kept for migration/compatibility)
     // ========================================================================
 
     pub async fn get_comment(&self, comment_id: Uuid) -> Result<Option<Comment>> {
@@ -784,9 +1105,7 @@ impl RedisClient {
                 ],
             )
             .await?;
-        self.client
-            .expire::<(), _>(format!("session:{}", session_id), SESSION_TTL, None)
-            .await?;
+        // Sessions are persistent (no TTL) for better UX
         Ok(())
     }
 
@@ -946,7 +1265,43 @@ impl RedisClient {
         self.client
             .set::<(), _, _>(format!("site:{}:config", config.id), json, None, None, false)
             .await?;
+
+        // Create API key -> site_id indexes for lookup
+        self.client
+            .set::<(), _, _>(
+                format!("apikey:{}:site", config.api_key_public),
+                config.id.to_string(),
+                None,
+                None,
+                false,
+            )
+            .await?;
+        self.client
+            .set::<(), _, _>(
+                format!("apikey:{}:site", config.api_key_secret),
+                config.id.to_string(),
+                None,
+                None,
+                false,
+            )
+            .await?;
+
         Ok(())
+    }
+
+    /// Look up site by API key (for SaaS mode)
+    pub async fn get_site_by_api_key(&self, api_key: &str) -> Result<Option<(Uuid, SiteConfig)>> {
+        // Get site_id from API key index
+        let site_id: Option<String> = self.client.get(format!("apikey:{}:site", api_key)).await?;
+        let Some(site_id_str) = site_id else {
+            return Ok(None);
+        };
+
+        let site_id: Uuid = site_id_str.parse().map_err(|_| Error::Internal("Invalid site_id".into()))?;
+
+        // Get site config
+        let config = self.get_site_config(site_id).await?;
+        Ok(config.map(|c| (site_id, c)))
     }
 
     // ========================================================================

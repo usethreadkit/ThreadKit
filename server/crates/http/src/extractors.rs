@@ -125,9 +125,34 @@ where
             return Ok(ApiKey(info));
         }
 
-        // In SaaS mode, would call internal API here
-        // TODO: Implement SaaS mode API key validation
-        Err((StatusCode::UNAUTHORIZED, "Invalid API key".to_string()))
+        // SaaS mode: look up site by API key in Redis
+        let (site_id, site_config) = state
+            .redis
+            .get_site_by_api_key(api_key)
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to validate API key".to_string()))?
+            .ok_or((StatusCode::UNAUTHORIZED, "Invalid API key".to_string()))?;
+
+        let key_type = if api_key == site_config.api_key_public {
+            ApiKeyType::Public
+        } else {
+            ApiKeyType::Secret
+        };
+
+        let info = ApiKeyInfo {
+            site_id,
+            key_type,
+            settings: site_config.settings,
+            domain: site_config.domain,
+        };
+
+        // Validate origin before caching
+        validate_origin(&parts.headers, &info)?;
+
+        // Cache for future requests
+        let _ = state.redis.cache_api_key(api_key, &info).await;
+
+        Ok(ApiKey(info))
     }
 }
 
@@ -273,6 +298,42 @@ where
             site_id: auth_user.site_id,
             role,
         })
+    }
+}
+
+/// Optional auth with role - for endpoints that allow anonymous access
+pub struct MaybeAuthUserWithRole {
+    pub user_id: Option<Uuid>,
+    pub site_id: Option<Uuid>,
+    pub role: Role,
+}
+
+impl MaybeAuthUserWithRole {
+    pub fn is_authenticated(&self) -> bool {
+        self.user_id.is_some()
+    }
+}
+
+impl<S> FromRequestParts<S> for MaybeAuthUserWithRole
+where
+    AppState: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        match AuthUserWithRole::from_request_parts(parts, state).await {
+            Ok(auth) => Ok(MaybeAuthUserWithRole {
+                user_id: Some(auth.user_id),
+                site_id: Some(auth.site_id),
+                role: auth.role,
+            }),
+            Err(_) => Ok(MaybeAuthUserWithRole {
+                user_id: None,
+                site_id: None,
+                role: Role::User, // Anonymous users have basic user role
+            }),
+        }
     }
 }
 
