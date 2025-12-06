@@ -201,6 +201,75 @@ enum Commands {
         #[arg(long, default_value = "1")]
         chains: usize,
     },
+
+    /// Load test voting endpoint
+    Vote {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "10")]
+        workers: usize,
+
+        /// Test duration in seconds
+        #[arg(short, long, default_value = "30")]
+        duration: u64,
+
+        /// Path to users.json file from setup
+        #[arg(long, default_value = "loadtest_users.json")]
+        users_file: String,
+    },
+
+    /// Load test authentication endpoints (login/register/refresh)
+    Auth {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "10")]
+        workers: usize,
+
+        /// Test duration in seconds
+        #[arg(short, long, default_value = "30")]
+        duration: u64,
+    },
+
+    /// Benchmark with latency percentiles (p50/p95/p99)
+    Bench {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "10")]
+        workers: usize,
+
+        /// Number of requests per worker
+        #[arg(short, long, default_value = "1000")]
+        requests: usize,
+
+        /// Test type: read, write, or mixed
+        #[arg(long, default_value = "read")]
+        test_type: String,
+
+        /// Path to users.json file from setup
+        #[arg(long, default_value = "loadtest_users.json")]
+        users_file: String,
+    },
 }
 
 // ============================================================================
@@ -235,6 +304,7 @@ struct Stats {
     failures: AtomicU64,
     total_latency_us: AtomicU64,
 }
+
 
 // ============================================================================
 // Main
@@ -316,6 +386,33 @@ async fn main() -> Result<()> {
             chains,
         } => {
             run_deep_test(&url, &api_key, depth, chains).await?;
+        }
+        Commands::Vote {
+            url,
+            api_key,
+            workers,
+            duration,
+            users_file,
+        } => {
+            run_vote_test(&url, &api_key, workers, duration, &users_file).await?;
+        }
+        Commands::Auth {
+            url,
+            api_key,
+            workers,
+            duration,
+        } => {
+            run_auth_test(&url, &api_key, workers, duration).await?;
+        }
+        Commands::Bench {
+            url,
+            api_key,
+            workers,
+            requests,
+            test_type,
+            users_file,
+        } => {
+            run_bench_test(&url, &api_key, workers, requests, &test_type, &users_file).await?;
         }
     }
 
@@ -1391,6 +1488,457 @@ async fn run_deep_test(
 
     let read_elapsed = read_start.elapsed();
     println!("Read deep chain: {:?} (status: {})", read_elapsed, resp.status());
+
+    Ok(())
+}
+
+// ============================================================================
+// Vote Test - Load test voting endpoint
+// ============================================================================
+
+async fn run_vote_test(
+    url: &str,
+    api_key: &str,
+    workers: usize,
+    duration: u64,
+    users_file: &str,
+) -> Result<()> {
+    tracing::info!("Starting VOTE load test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Workers: {}", workers);
+    tracing::info!("  Duration: {}s", duration);
+
+    // Load setup data
+    let data = std::fs::read_to_string(users_file)
+        .context("Failed to read users file. Run 'setup' command first.")?;
+    let setup: SetupData = serde_json::from_str(&data)?;
+
+    if setup.users.is_empty() || setup.comment_ids.is_empty() {
+        anyhow::bail!("No users or comments in setup data. Run 'setup' first.");
+    }
+
+    tracing::info!("  Users: {}", setup.users.len());
+    tracing::info!("  Comments to vote on: {}", setup.comment_ids.len());
+
+    let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(workers)
+        .build()?;
+
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+    let duration = Duration::from_secs(duration);
+    let users = Arc::new(setup.users);
+    let comment_ids = Arc::new(setup.comment_ids);
+    let pages = Arc::new(setup.pages);
+
+    let mut handles = Vec::new();
+
+    for worker_id in 0..workers {
+        let client = client.clone();
+        let stats = stats.clone();
+        let base_url = url.to_string();
+        let api_key = api_key.to_string();
+        let users = users.clone();
+        let comment_ids = comment_ids.clone();
+        let pages = pages.clone();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+
+            while start.elapsed() < duration {
+                // Pick random user, comment, and vote direction
+                let user = &users[rng.gen_range(0..users.len())];
+                let comment_id = &comment_ids[rng.gen_range(0..comment_ids.len())];
+                let page_url = &pages[rng.gen_range(0..pages.len())];
+                let direction = if rng.gen_bool(0.7) { "up" } else { "down" };
+
+                let req = serde_json::json!({
+                    "page_url": page_url,
+                    "direction": direction
+                });
+
+                let req_start = Instant::now();
+                stats.requests.fetch_add(1, Ordering::Relaxed);
+
+                let result = client
+                    .post(format!("{}/v1/comments/{}/vote", base_url, comment_id))
+                    .header("X-API-Key", &api_key)
+                    .header("Authorization", format!("Bearer {}", user.token))
+                    .json(&req)
+                    .send()
+                    .await;
+
+                let latency = req_start.elapsed().as_micros() as u64;
+                stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
+
+                match result {
+                    Ok(resp) if resp.status().is_success() => {
+                        stats.successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Ok(resp) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 {
+                            tracing::debug!("Vote failed: {}", resp.status());
+                        }
+                    }
+                    Err(e) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 {
+                            tracing::debug!("Vote error: {}", e);
+                        }
+                    }
+                }
+            }
+        }));
+    }
+
+    // Progress reporter
+    let stats_clone = stats.clone();
+    let progress_handle = tokio::spawn(async move {
+        let mut last_requests = 0;
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let current = stats_clone.requests.load(Ordering::Relaxed);
+            let rps = current - last_requests;
+            last_requests = current;
+            tracing::info!("  RPS: {} | Total: {}", rps, current);
+        }
+    });
+
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    print_stats(&stats, start.elapsed());
+    Ok(())
+}
+
+// ============================================================================
+// Auth Test - Load test authentication endpoints
+// ============================================================================
+
+async fn run_auth_test(
+    url: &str,
+    api_key: &str,
+    workers: usize,
+    duration: u64,
+) -> Result<()> {
+    tracing::info!("Starting AUTH load test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Workers: {}", workers);
+    tracing::info!("  Duration: {}s", duration);
+
+    let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(workers)
+        .build()?;
+
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+    let duration_dur = Duration::from_secs(duration);
+
+    let mut handles = Vec::new();
+
+    for worker_id in 0..workers {
+        let client = client.clone();
+        let stats = stats.clone();
+        let base_url = url.to_string();
+        let api_key = api_key.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+            let mut counter = 0u64;
+
+            while start.elapsed() < duration_dur {
+                // Rotate between register (new user) and login (attempt with random creds)
+                let op = rng.gen_range(0..10);
+
+                let req_start = Instant::now();
+                stats.requests.fetch_add(1, Ordering::Relaxed);
+
+                let result = if op < 3 {
+                    // 30% - Register new user
+                    let email = format!("authtest_{}_{}_{}@test.local", worker_id, counter, rng.r#gen::<u32>());
+                    let req = RegisterRequest {
+                        email,
+                        password: "authtest123".to_string(),
+                        name: format!("AuthTest {}", counter),
+                    };
+
+                    client
+                        .post(format!("{}/v1/auth/register", base_url))
+                        .header("X-API-Key", &api_key)
+                        .json(&req)
+                        .send()
+                        .await
+                } else {
+                    // 70% - Login attempt (may fail, that's ok)
+                    let req = serde_json::json!({
+                        "email": format!("authtest_{}_0@test.local", rng.gen_range(0..workers)),
+                        "password": "authtest123"
+                    });
+
+                    client
+                        .post(format!("{}/v1/auth/login", base_url))
+                        .header("X-API-Key", &api_key)
+                        .json(&req)
+                        .send()
+                        .await
+                };
+
+                let latency = req_start.elapsed().as_micros() as u64;
+                stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
+
+                match result {
+                    Ok(resp) if resp.status().is_success() => {
+                        stats.successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Ok(_) => {
+                        // Auth failures are expected for login attempts
+                        stats.successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Err(e) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 {
+                            tracing::debug!("Auth error: {}", e);
+                        }
+                    }
+                }
+
+                counter += 1;
+            }
+        }));
+    }
+
+    // Progress reporter
+    let stats_clone = stats.clone();
+    let progress_handle = tokio::spawn(async move {
+        let mut last_requests = 0;
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let current = stats_clone.requests.load(Ordering::Relaxed);
+            let rps = current - last_requests;
+            last_requests = current;
+            tracing::info!("  RPS: {} | Total: {}", rps, current);
+        }
+    });
+
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    print_stats(&stats, start.elapsed());
+    Ok(())
+}
+
+// ============================================================================
+// Benchmark Test - With latency percentiles
+// ============================================================================
+
+async fn run_bench_test(
+    url: &str,
+    api_key: &str,
+    workers: usize,
+    requests_per_worker: usize,
+    test_type: &str,
+    users_file: &str,
+) -> Result<()> {
+    tracing::info!("Starting BENCHMARK test with percentiles");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Workers: {}", workers);
+    tracing::info!("  Requests per worker: {}", requests_per_worker);
+    tracing::info!("  Test type: {}", test_type);
+
+    // Load setup data
+    let setup: Option<SetupData> = std::fs::read_to_string(users_file)
+        .ok()
+        .and_then(|data| serde_json::from_str(&data).ok());
+
+    let pages: Vec<String> = setup
+        .as_ref()
+        .map(|s| s.pages.clone())
+        .unwrap_or_else(|| vec!["https://loadtest.example.com/page/0".to_string()]);
+
+    let users: Vec<TestUser> = setup
+        .as_ref()
+        .map(|s| s.users.clone())
+        .unwrap_or_default();
+
+    if test_type != "read" && users.is_empty() {
+        anyhow::bail!("Write/mixed tests require setup data with users");
+    }
+
+    let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(workers)
+        .build()?;
+
+    let latencies = Arc::new(tokio::sync::Mutex::new(Vec::with_capacity(
+        workers * requests_per_worker,
+    )));
+    let successes = Arc::new(AtomicU64::new(0));
+    let failures = Arc::new(AtomicU64::new(0));
+
+    let start = Instant::now();
+    let pages = Arc::new(pages);
+    let users = Arc::new(users);
+
+    let mut handles = Vec::new();
+
+    for worker_id in 0..workers {
+        let client = client.clone();
+        let latencies = latencies.clone();
+        let successes = successes.clone();
+        let failures = failures.clone();
+        let base_url = url.to_string();
+        let api_key = api_key.to_string();
+        let pages = pages.clone();
+        let users = users.clone();
+        let test_type = test_type.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+            let mut worker_latencies = Vec::with_capacity(requests_per_worker);
+
+            for i in 0..requests_per_worker {
+                let page_url = &pages[rng.gen_range(0..pages.len())];
+
+                let req_start = Instant::now();
+
+                let result = match test_type.as_str() {
+                    "read" => {
+                        let url = format!(
+                            "{}/v1/comments?page_url={}",
+                            base_url,
+                            urlencoding::encode(page_url)
+                        );
+                        client.get(&url).header("X-API-Key", &api_key).send().await
+                    }
+                    "write" => {
+                        let user = &users[rng.gen_range(0..users.len())];
+                        let req = CreateCommentRequest {
+                            page_url: page_url.clone(),
+                            content: format!("Bench comment {} from worker {}", i, worker_id),
+                            parent_path: vec![],
+                            author_name: None,
+                        };
+                        client
+                            .post(format!("{}/v1/comments", base_url))
+                            .header("X-API-Key", &api_key)
+                            .header("Authorization", format!("Bearer {}", user.token))
+                            .json(&req)
+                            .send()
+                            .await
+                    }
+                    _ => {
+                        // Mixed: 80% read, 20% write
+                        if rng.gen_range(0..100) < 80 {
+                            let url = format!(
+                                "{}/v1/comments?page_url={}",
+                                base_url,
+                                urlencoding::encode(page_url)
+                            );
+                            client.get(&url).header("X-API-Key", &api_key).send().await
+                        } else {
+                            let user = &users[rng.gen_range(0..users.len())];
+                            let req = CreateCommentRequest {
+                                page_url: page_url.clone(),
+                                content: format!("Bench comment {} from worker {}", i, worker_id),
+                                parent_path: vec![],
+                                author_name: None,
+                            };
+                            client
+                                .post(format!("{}/v1/comments", base_url))
+                                .header("X-API-Key", &api_key)
+                                .header("Authorization", format!("Bearer {}", user.token))
+                                .json(&req)
+                                .send()
+                                .await
+                        }
+                    }
+                };
+
+                let latency_us = req_start.elapsed().as_micros() as u64;
+                worker_latencies.push(latency_us);
+
+                match result {
+                    Ok(resp) if resp.status().is_success() => {
+                        successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Ok(_) => {
+                        failures.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Err(_) => {
+                        failures.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+            }
+
+            // Merge worker latencies into global
+            latencies.lock().await.extend(worker_latencies);
+        }));
+    }
+
+    // Progress reporter
+    let successes_clone = successes.clone();
+    let failures_clone = failures.clone();
+    let total_requests = workers * requests_per_worker;
+    let progress_handle = tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let done = successes_clone.load(Ordering::Relaxed) + failures_clone.load(Ordering::Relaxed);
+            tracing::info!("  Progress: {}/{}", done, total_requests);
+        }
+    });
+
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    let elapsed = start.elapsed();
+
+    // Calculate percentiles
+    let mut all_latencies = latencies.lock().await;
+    all_latencies.sort();
+
+    let total = all_latencies.len();
+    let p50 = all_latencies.get(total * 50 / 100).copied().unwrap_or(0);
+    let p95 = all_latencies.get(total * 95 / 100).copied().unwrap_or(0);
+    let p99 = all_latencies.get(total * 99 / 100).copied().unwrap_or(0);
+    let min = all_latencies.first().copied().unwrap_or(0);
+    let max = all_latencies.last().copied().unwrap_or(0);
+    let avg = if total > 0 {
+        all_latencies.iter().sum::<u64>() / total as u64
+    } else {
+        0
+    };
+
+    let total_requests = successes.load(Ordering::Relaxed) + failures.load(Ordering::Relaxed);
+    let success_count = successes.load(Ordering::Relaxed);
+    let failure_count = failures.load(Ordering::Relaxed);
+
+    println!("\n========== Benchmark Results ==========");
+    println!("Test type: {}", test_type);
+    println!("Duration: {:.2}s", elapsed.as_secs_f64());
+    println!("Total requests: {}", total_requests);
+    println!("Successful: {}", success_count);
+    println!("Failed: {}", failure_count);
+    println!("RPS: {:.2}", total_requests as f64 / elapsed.as_secs_f64());
+    println!();
+    println!("Latency (microseconds):");
+    println!("  Min: {}µs ({:.2}ms)", min, min as f64 / 1000.0);
+    println!("  Avg: {}µs ({:.2}ms)", avg, avg as f64 / 1000.0);
+    println!("  p50: {}µs ({:.2}ms)", p50, p50 as f64 / 1000.0);
+    println!("  p95: {}µs ({:.2}ms)", p95, p95 as f64 / 1000.0);
+    println!("  p99: {}µs ({:.2}ms)", p99, p99 as f64 / 1000.0);
+    println!("  Max: {}µs ({:.2}ms)", max, max as f64 / 1000.0);
+    if total_requests > 0 {
+        println!(
+            "Success rate: {:.2}%",
+            success_count as f64 / total_requests as f64 * 100.0
+        );
+    }
 
     Ok(())
 }
