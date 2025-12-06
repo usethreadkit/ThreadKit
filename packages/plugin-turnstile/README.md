@@ -53,20 +53,38 @@ Configure Turnstile in your site settings (via API or dashboard):
 
 ### 4. Configure the Client
 
-Pass your site key to ThreadKit:
+Create the plugin and pass `getPostHeaders` to ThreadKit:
 
 ```tsx
 import { ThreadKit } from '@threadkit/react';
+import { createTurnstilePlugin } from '@threadkit/plugin-turnstile';
+
+const API_URL = 'https://api.usethreadkit.com';
+
+// Create the plugin instance
+const turnstilePlugin = createTurnstilePlugin({
+  siteKey: 'your-turnstile-site-key',
+});
 
 function App() {
+  // Create a function that gets a token before each comment submission
+  const getPostHeaders = async () => {
+    const result = await turnstilePlugin.getToken(API_URL);
+
+    if (result.success && result.token) {
+      return { 'X-Turnstile-Token': result.token };
+    }
+
+    throw new Error(result.error || 'Verification failed');
+  };
+
   return (
     <ThreadKit
       siteId="your-site-id"
       apiKey="your-api-key"
+      apiUrl={API_URL}
       url={window.location.href}
-      turnstile={{
-        siteKey: 'your-turnstile-site-key',
-      }}
+      getPostHeaders={getPostHeaders}
     />
   );
 }
@@ -75,22 +93,50 @@ function App() {
 ## How It Works
 
 1. User clicks "Submit" on a comment
-2. Plugin opens a small popup to your API's `/v1/turnstile/challenge` endpoint
-3. Cloudflare Turnstile runs its challenge (usually invisible)
-4. On success, the popup sends the token back via `postMessage`
-5. The token is included in the comment submission as `X-Turnstile-Token` header
-6. Server verifies the token with Cloudflare before accepting the comment
+2. `getPostHeaders` is called, which triggers the Turnstile plugin
+3. Plugin opens a small popup to your API's `/v1/turnstile/challenge` endpoint
+4. Cloudflare Turnstile runs its challenge (usually invisible with "Managed" mode)
+5. On success, the popup sends the token back via `postMessage`
+6. The token is included in the comment submission as `X-Turnstile-Token` header
+7. Server verifies the token with Cloudflare before accepting the comment
 
 This popup approach allows a single Turnstile configuration to work across all sites, since Turnstile widgets are limited to 15 hostnames.
+
+## React Hook
+
+For more control, use the `useTurnstile` hook:
+
+```tsx
+import { useTurnstile } from '@threadkit/plugin-turnstile';
+
+function MyComponent() {
+  const { requestToken, isLoading, error } = useTurnstile({
+    siteKey: 'your-site-key',
+    apiUrl: 'https://api.usethreadkit.com',
+  });
+
+  const handleSubmit = async () => {
+    const result = await requestToken();
+    if (result.success) {
+      // Submit with result.token
+    }
+  };
+
+  return (
+    <button onClick={handleSubmit} disabled={isLoading}>
+      {isLoading ? 'Verifying...' : 'Submit'}
+    </button>
+  );
+}
+```
 
 ## Standalone Usage
 
 You can also use the plugin directly for custom implementations:
 
 ```tsx
-import { createTurnstilePlugin, useTurnstile } from '@threadkit/plugin-turnstile';
+import { createTurnstilePlugin } from '@threadkit/plugin-turnstile';
 
-// Option 1: Create plugin instance
 const turnstile = createTurnstilePlugin({
   siteKey: 'your-site-key',
 });
@@ -108,29 +154,14 @@ async function submitComment() {
     });
   }
 }
-
-// Option 2: React hook
-function CommentForm() {
-  const { requestToken, isLoading, error } = useTurnstile({
-    siteKey: 'your-site-key',
-    apiUrl: 'https://api.usethreadkit.com',
-  });
-
-  const handleSubmit = async () => {
-    const result = await requestToken();
-    if (result.success) {
-      // Submit with token
-    }
-  };
-}
 ```
 
 ## Configuration Options
 
-### ThreadKit Integration
+### Plugin Configuration
 
 ```typescript
-interface TurnstileConfig {
+interface TurnstilePluginConfig {
   /** Your Turnstile site key from Cloudflare dashboard */
   siteKey: string;
   /** Popup window dimensions (optional) */
@@ -163,7 +194,7 @@ If you're self-hosting ThreadKit:
 1. Create your own Turnstile widget in Cloudflare
 2. Add your API domain to the widget's allowed hostnames
 3. Set `TURNSTILE_SECRET_KEY` in your server's `.env`
-4. Pass your site key to the client
+4. Pass your site key to the plugin
 
 ## API Reference
 

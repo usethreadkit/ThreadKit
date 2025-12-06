@@ -37,23 +37,6 @@ export { ThreadKitError } from '@threadkit/core';
 export type { ThreadKitPlugin };
 
 // ============================================================================
-// Turnstile Configuration
-// ============================================================================
-
-/** Cloudflare Turnstile bot protection configuration */
-export interface TurnstileConfig {
-  /** Your Turnstile site key from Cloudflare dashboard */
-  siteKey: string;
-  /** Popup window dimensions (optional) */
-  popupOptions?: {
-    width?: number;
-    height?: number;
-  };
-  /** Timeout for waiting for challenge completion in ms (default: 120000) */
-  timeout?: number;
-}
-
-// ============================================================================
 // CSS Variables
 // ============================================================================
 
@@ -168,8 +151,8 @@ export interface ThreadKitProps {
   plugins?: ThreadKitPlugin[];
   /** Auth plugins for custom authentication methods (e.g., Ethereum, Solana) */
   authPlugins?: import('./auth/types').AuthPlugin[];
-  /** Cloudflare Turnstile configuration for bot protection */
-  turnstile?: TurnstileConfig;
+  /** Function to get additional headers before posting (e.g., for bot protection plugins like Turnstile) */
+  getPostHeaders?: () => Promise<Record<string, string>>;
   /** Callback to get users for @mention autocomplete */
   getMentionSuggestions?: (query: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
 

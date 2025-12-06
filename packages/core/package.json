@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/core",
-  "version": "1.0.0",
+  "version": "0.0.5",
   "description": "Framework-agnostic core for ThreadKit commenting system",
   "type": "module",
   "main": "./dist/index.js",

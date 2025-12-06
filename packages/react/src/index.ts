@@ -57,7 +57,6 @@ export type {
   ThreadKitRef,
   ThreadKitCSSVariables,
   ThreadKitPlugin,
-  TurnstileConfig,
   Comment as CommentData, // Type for comment data (Comment component name takes precedence)
   Comment as CommentType, // Alias for backwards compatibility
   User,

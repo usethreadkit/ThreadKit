@@ -78,7 +78,7 @@ function ThreadKitInner({
   hideBranding = false,
   plugins,
   authPlugins,
-  turnstile,
+  getPostHeaders,
   onCommentPosted,
   onCommentReceived,
   onCommentDeleted,
@@ -148,30 +148,6 @@ function ThreadKitInner({
     },
   ]);
 
-  // Create Turnstile token getter if configured
-  const getPostHeaders = useCallback(async (): Promise<Record<string, string>> => {
-    if (!turnstile?.siteKey) {
-      return {};
-    }
-
-    // Dynamically import the turnstile plugin to avoid bundling it always
-    const { createTurnstilePlugin } = await import('@threadkit/plugin-turnstile');
-    const plugin = createTurnstilePlugin({
-      siteKey: turnstile.siteKey,
-      popupOptions: turnstile.popupOptions,
-      timeout: turnstile.timeout,
-    });
-
-    const result = await plugin.getToken(apiUrl);
-
-    if (result.success && result.token) {
-      return { 'X-Turnstile-Token': result.token };
-    }
-
-    // Fail fast with clear error instead of letting server reject
-    throw new Error(result.error || 'Verification failed. Please try again.');
-  }, [turnstile, apiUrl]);
-
   const {
     comments,
     loading,
@@ -190,7 +166,7 @@ function ThreadKitInner({
     apiKey,
     sortBy: currentSort,
     initialComments,
-    getPostHeaders: turnstile?.siteKey ? getPostHeaders : undefined,
+    getPostHeaders,
   });
 
   // State for imperative API
