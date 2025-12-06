@@ -26,10 +26,10 @@ jobs:
             cross: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
@@ -57,7 +57,7 @@ jobs:
           sha256sum threadkit-${{ matrix.target }}.tar.gz > threadkit-${{ matrix.target }}.tar.gz.sha256
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: threadkit-${{ matrix.target }}
           path: dist/threadkit-${{ matrix.target }}.tar.gz*
@@ -71,16 +71,16 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download x86_64 binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: threadkit-x86_64-unknown-linux-gnu
           path: dist/x86_64
 
       - name: Download aarch64 binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: threadkit-aarch64-unknown-linux-gnu
           path: dist/aarch64
@@ -114,7 +114,7 @@ jobs:
           fi
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: server/Dockerfile
@@ -134,12 +134,12 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: dist
 
       - name: Upload to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/threadkit-x86_64-unknown-linux-gnu/*

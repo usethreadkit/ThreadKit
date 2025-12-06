@@ -6,7 +6,10 @@ use testcontainers_modules::redis::Redis;
 use uuid::Uuid;
 
 use threadkit_common::{
-    config::{ContentModerationConfig, ModerationMode, RateLimitConfig, StandaloneConfig},
+    config::{
+        ContentModerationConfig, EmailConfig, ModerationMode, RateLimitConfig, SmsConfig,
+        StandaloneConfig,
+    },
     Config,
 };
 use threadkit_http::{middleware::rate_limit, routes, state::AppState};
@@ -70,9 +73,13 @@ impl TestContext {
                 user_writes_per_minute: 5,
                 user_reads_per_minute: 30,
                 auth_attempts_per_hour: 10,
+                otp_per_target_per_hour: 3,
+                otp_per_ip_per_hour: 10,
                 trusted_proxies: vec!["127.0.0.1".to_string()],
             },
             content_moderation: ContentModerationConfig::default(),
+            email: EmailConfig::default(),
+            sms: SmsConfig::default(),
             max_comment_length: 10_000,
         };
 
