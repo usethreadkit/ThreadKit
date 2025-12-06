@@ -1,5 +1,9 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use fred::interfaces::ClientLike;
+use rand::{Rng, SeedableRng};
+use rand::rngs::StdRng;
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -16,14 +20,52 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run HTTP load test
-    Http {
+    /// Setup test data (users, comments, pages)
+    Setup {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// Public API key
+        #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Secret API key (for admin operations)
+        #[arg(long, default_value = "tk_sec_loadtest_secret_key_12345")]
+        secret_key: String,
+
+        /// Number of users to create
+        #[arg(long, default_value = "100")]
+        users: usize,
+
+        /// Number of pages to create comments on
+        #[arg(long, default_value = "10")]
+        pages: usize,
+
+        /// Number of comments per page
+        #[arg(long, default_value = "50")]
+        comments_per_page: usize,
+    },
+
+    /// Teardown test data (flush Redis)
+    Teardown {
+        /// Redis URL
+        #[arg(short, long, default_value = "redis://localhost:6379")]
+        redis_url: String,
+
+        /// Confirm teardown (required)
+        #[arg(long)]
+        confirm: bool,
+    },
+
+    /// Run HTTP load test (reads)
+    Read {
         /// Target URL (e.g., http://localhost:8080)
         #[arg(short, long, default_value = "http://localhost:8080")]
         url: String,
 
         /// API key
-        #[arg(short, long)]
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
         api_key: String,
 
         /// Number of concurrent workers
@@ -39,6 +81,56 @@ enum Commands {
         rps: u64,
     },
 
+    /// Run HTTP load test (writes - requires setup first)
+    Write {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "5")]
+        workers: usize,
+
+        /// Test duration in seconds
+        #[arg(short, long, default_value = "30")]
+        duration: u64,
+
+        /// Path to users.json file from setup
+        #[arg(long, default_value = "loadtest_users.json")]
+        users_file: String,
+    },
+
+    /// Run mixed workload (reads + writes)
+    Mixed {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "10")]
+        workers: usize,
+
+        /// Test duration in seconds
+        #[arg(short, long, default_value = "30")]
+        duration: u64,
+
+        /// Write percentage (0-100)
+        #[arg(long, default_value = "20")]
+        write_percent: u8,
+
+        /// Path to users.json file from setup
+        #[arg(long, default_value = "loadtest_users.json")]
+        users_file: String,
+    },
+
     /// Run WebSocket load test
     Ws {
         /// Target URL (e.g., ws://localhost:8081)
@@ -46,7 +138,7 @@ enum Commands {
         url: String,
 
         /// API key
-        #[arg(short, long)]
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
         api_key: String,
 
         /// Number of concurrent connections
@@ -56,12 +148,120 @@ enum Commands {
         /// Test duration in seconds
         #[arg(short, long, default_value = "30")]
         duration: u64,
+    },
 
-        /// Messages per second per connection
-        #[arg(short, long, default_value = "1")]
-        mps: u64,
+    /// Build a thread: N users each post M comments, randomly replying or starting new threads
+    Thread {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Number of users to create
+        #[arg(long, default_value = "1000")]
+        users: usize,
+
+        /// Comments per user
+        #[arg(long, default_value = "1000")]
+        comments_per_user: usize,
+
+        /// Probability of replying to existing comment (0-100)
+        #[arg(long, default_value = "70")]
+        reply_percent: u8,
+
+        /// Number of concurrent workers
+        #[arg(short, long, default_value = "50")]
+        workers: usize,
+    },
+
+    /// Build a deeply nested chain of comments
+    Deep {
+        /// Target URL (e.g., http://localhost:8080)
+        #[arg(short, long, default_value = "http://localhost:8080")]
+        url: String,
+
+        /// API key
+        #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Depth of the comment chain
+        #[arg(long, default_value = "1000")]
+        depth: usize,
+
+        /// Number of parallel chains to create
+        #[arg(long, default_value = "1")]
+        chains: usize,
     },
 }
+
+// ============================================================================
+// API Types
+// ============================================================================
+
+#[derive(Debug, Serialize)]
+struct RegisterRequest {
+    email: String,
+    password: String,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AuthResponse {
+    token: String,
+    user: UserResponse,
+}
+
+#[derive(Debug, Deserialize)]
+struct UserResponse {
+    id: String,
+    name: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CreateCommentRequest {
+    page_url: String,
+    content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateCommentResponse {
+    comment: CommentResponse,
+}
+
+#[derive(Debug, Deserialize)]
+struct CommentResponse {
+    id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GetCommentsResponse {
+    comments: Vec<CommentResponse>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct TestUser {
+    email: String,
+    password: String,
+    name: String,
+    token: String,
+    user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SetupData {
+    users: Vec<TestUser>,
+    pages: Vec<String>,
+    comment_ids: Vec<String>,
+}
+
+// ============================================================================
+// Stats
+// ============================================================================
 
 #[derive(Default)]
 struct Stats {
@@ -70,6 +270,10 @@ struct Stats {
     failures: AtomicU64,
     total_latency_us: AtomicU64,
 }
+
+// ============================================================================
+// Main
+// ============================================================================
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -81,41 +285,297 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Http {
+        Commands::Setup {
+            url,
+            api_key,
+            secret_key,
+            users,
+            pages,
+            comments_per_page,
+        } => {
+            run_setup(&url, &api_key, &secret_key, users, pages, comments_per_page).await?;
+        }
+        Commands::Teardown { redis_url, confirm } => {
+            run_teardown(&redis_url, confirm).await?;
+        }
+        Commands::Read {
             url,
             api_key,
             workers,
             duration,
             rps,
         } => {
-            run_http_test(&url, &api_key, workers, duration, rps).await?;
+            run_read_test(&url, &api_key, workers, duration, rps).await?;
+        }
+        Commands::Write {
+            url,
+            api_key,
+            workers,
+            duration,
+            users_file,
+        } => {
+            run_write_test(&url, &api_key, workers, duration, &users_file).await?;
+        }
+        Commands::Mixed {
+            url,
+            api_key,
+            workers,
+            duration,
+            write_percent,
+            users_file,
+        } => {
+            run_mixed_test(&url, &api_key, workers, duration, write_percent, &users_file).await?;
         }
         Commands::Ws {
             url,
             api_key,
             connections,
             duration,
-            mps,
         } => {
-            run_ws_test(&url, &api_key, connections, duration, mps).await?;
+            run_ws_test(&url, &api_key, connections, duration).await?;
+        }
+        Commands::Thread {
+            url,
+            api_key,
+            users,
+            comments_per_user,
+            reply_percent,
+            workers,
+        } => {
+            run_thread_test(&url, &api_key, users, comments_per_user, reply_percent, workers).await?;
+        }
+        Commands::Deep {
+            url,
+            api_key,
+            depth,
+            chains,
+        } => {
+            run_deep_test(&url, &api_key, depth, chains).await?;
         }
     }
 
     Ok(())
 }
 
-async fn run_http_test(
+// ============================================================================
+// Setup Command
+// ============================================================================
+
+async fn run_setup(
+    url: &str,
+    api_key: &str,
+    _secret_key: &str,
+    num_users: usize,
+    num_pages: usize,
+    comments_per_page: usize,
+) -> Result<()> {
+    tracing::info!("Setting up load test data");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Users: {}", num_users);
+    tracing::info!("  Pages: {}", num_pages);
+    tracing::info!("  Comments per page: {}", comments_per_page);
+
+    let client = reqwest::Client::new();
+    let mut users = Vec::with_capacity(num_users);
+    let mut pages = Vec::with_capacity(num_pages);
+    let mut comment_ids = Vec::new();
+
+    // Create users
+    tracing::info!("Creating {} users...", num_users);
+    for i in 0..num_users {
+        let email = format!("loadtest_user_{}@test.local", i);
+        let password = "loadtest123".to_string();
+        let name = format!("LoadTest User {}", i);
+
+        let req = RegisterRequest {
+            email: email.clone(),
+            password: password.clone(),
+            name: name.clone(),
+        };
+
+        let resp = client
+            .post(format!("{}/v1/auth/register", url))
+            .header("X-API-Key", api_key)
+            .json(&req)
+            .send()
+            .await
+            .context("Failed to send register request")?;
+
+        if resp.status().is_success() {
+            let auth: AuthResponse = resp.json().await?;
+            users.push(TestUser {
+                email,
+                password,
+                name,
+                token: auth.token,
+                user_id: auth.user.id,
+            });
+            if (i + 1) % 10 == 0 {
+                tracing::info!("  Created {} users", i + 1);
+            }
+        } else {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            // User might already exist, try to login
+            if body.contains("already") || body.contains("duplicate") {
+                tracing::debug!("User {} already exists, skipping", email);
+            } else {
+                tracing::warn!("Failed to create user {}: {} - {}", email, status, body);
+            }
+        }
+    }
+
+    tracing::info!("Created {} users", users.len());
+
+    if users.is_empty() {
+        anyhow::bail!("No users created, cannot continue");
+    }
+
+    // Generate page URLs
+    for i in 0..num_pages {
+        pages.push(format!("https://loadtest.example.com/page/{}", i));
+    }
+
+    // Create comments on each page
+    tracing::info!(
+        "Creating {} comments across {} pages...",
+        comments_per_page * num_pages,
+        num_pages
+    );
+
+    let mut comment_count = 0;
+    for page_url in &pages {
+        for j in 0..comments_per_page {
+            // Pick a random user
+            let user = &users[comment_count % users.len()];
+
+            let req = CreateCommentRequest {
+                page_url: page_url.clone(),
+                content: format!(
+                    "Load test comment {} on page. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                    j
+                ),
+                parent_id: None,
+            };
+
+            let resp = client
+                .post(format!("{}/v1/comments", url))
+                .header("X-API-Key", api_key)
+                .header("Authorization", format!("Bearer {}", user.token))
+                .json(&req)
+                .send()
+                .await;
+
+            match resp {
+                Ok(r) if r.status().is_success() => {
+                    if let Ok(created) = r.json::<CreateCommentResponse>().await {
+                        comment_ids.push(created.comment.id);
+                    }
+                    comment_count += 1;
+                }
+                Ok(r) => {
+                    let body = r.text().await.unwrap_or_default();
+                    tracing::warn!("Failed to create comment: {}", body);
+                }
+                Err(e) => {
+                    tracing::warn!("Request failed: {}", e);
+                }
+            }
+
+            if comment_count % 50 == 0 && comment_count > 0 {
+                tracing::info!("  Created {} comments", comment_count);
+            }
+        }
+    }
+
+    tracing::info!("Created {} comments", comment_ids.len());
+
+    // Save setup data to file
+    let setup_data = SetupData {
+        users,
+        pages,
+        comment_ids,
+    };
+
+    let json = serde_json::to_string_pretty(&setup_data)?;
+    std::fs::write("loadtest_users.json", &json)?;
+
+    tracing::info!("Setup complete! Data saved to loadtest_users.json");
+    tracing::info!("  Users: {}", setup_data.users.len());
+    tracing::info!("  Pages: {}", setup_data.pages.len());
+    tracing::info!("  Comments: {}", setup_data.comment_ids.len());
+
+    Ok(())
+}
+
+// ============================================================================
+// Teardown Command
+// ============================================================================
+
+async fn run_teardown(redis_url: &str, confirm: bool) -> Result<()> {
+    if !confirm {
+        tracing::error!("Teardown requires --confirm flag");
+        tracing::error!("This will FLUSH ALL DATA from Redis!");
+        tracing::error!("Run with: threadkit-loadtest teardown --confirm");
+        return Ok(());
+    }
+
+    tracing::warn!("Flushing Redis database at {}", redis_url);
+
+    let client = fred::prelude::Client::new(
+        fred::prelude::Config::from_url(redis_url)?,
+        None,
+        None,
+        None,
+    );
+    client.init().await?;
+
+    client.flushall::<()>(false).await?;
+
+    tracing::info!("Redis flushed successfully");
+
+    // Clean up local files
+    if std::path::Path::new("loadtest_users.json").exists() {
+        std::fs::remove_file("loadtest_users.json")?;
+        tracing::info!("Removed loadtest_users.json");
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// Read Test
+// ============================================================================
+
+async fn run_read_test(
     url: &str,
     api_key: &str,
     workers: usize,
     duration: u64,
     rps: u64,
 ) -> Result<()> {
-    tracing::info!("Starting HTTP load test");
+    tracing::info!("Starting READ load test");
     tracing::info!("  URL: {}", url);
     tracing::info!("  Workers: {}", workers);
     tracing::info!("  Duration: {}s", duration);
-    tracing::info!("  RPS limit: {}", if rps == 0 { "unlimited".to_string() } else { rps.to_string() });
+    tracing::info!(
+        "  RPS limit: {}",
+        if rps == 0 {
+            "unlimited".to_string()
+        } else {
+            rps.to_string()
+        }
+    );
+
+    // Load setup data if available
+    let pages: Vec<String> = if let Ok(data) = std::fs::read_to_string("loadtest_users.json") {
+        let setup: SetupData = serde_json::from_str(&data)?;
+        tracing::info!("  Using {} pages from setup data", setup.pages.len());
+        setup.pages
+    } else {
+        tracing::info!("  No setup data found, using default page");
+        vec!["https://loadtest.example.com/page/0".to_string()]
+    };
 
     let client = reqwest::Client::builder()
         .pool_max_idle_per_host(workers)
@@ -124,6 +584,7 @@ async fn run_http_test(
     let stats = Arc::new(Stats::default());
     let start = Instant::now();
     let duration = Duration::from_secs(duration);
+    let pages = Arc::new(pages);
 
     // Rate limiter
     let rate_limiter = if rps > 0 {
@@ -134,14 +595,17 @@ async fn run_http_test(
 
     let mut handles = Vec::new();
 
-    for _ in 0..workers {
+    for worker_id in 0..workers {
         let client = client.clone();
         let stats = stats.clone();
-        let url = format!("{}/v1/comments?page_url=test-page", url);
+        let base_url = url.to_string();
         let api_key = api_key.to_string();
         let rate_limiter = rate_limiter.clone();
+        let pages = pages.clone();
 
         handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+
             while start.elapsed() < duration {
                 // Rate limiting
                 let _permit = if let Some(ref rl) = rate_limiter {
@@ -150,14 +614,18 @@ async fn run_http_test(
                     None
                 };
 
+                // Pick a random page
+                let page_url = &pages[rng.gen_range(0..pages.len())];
+                let url = format!(
+                    "{}/v1/comments?page_url={}",
+                    base_url,
+                    urlencoding::encode(page_url)
+                );
+
                 let req_start = Instant::now();
                 stats.requests.fetch_add(1, Ordering::Relaxed);
 
-                let result = client
-                    .get(&url)
-                    .header("X-API-Key", &api_key)
-                    .send()
-                    .await;
+                let result = client.get(&url).header("X-API-Key", &api_key).send().await;
 
                 let latency = req_start.elapsed().as_micros() as u64;
                 stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
@@ -166,8 +634,17 @@ async fn run_http_test(
                     Ok(resp) if resp.status().is_success() => {
                         stats.successes.fetch_add(1, Ordering::Relaxed);
                     }
-                    _ => {
+                    Ok(resp) => {
                         stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 {
+                            tracing::debug!("Request failed: {}", resp.status());
+                        }
+                    }
+                    Err(e) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 {
+                            tracing::debug!("Request error: {}", e);
+                        }
                     }
                 }
             }
@@ -188,7 +665,7 @@ async fn run_http_test(
 
     // Progress reporter
     let stats_clone = stats.clone();
-    tokio::spawn(async move {
+    let progress_handle = tokio::spawn(async move {
         let mut last_requests = 0;
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
@@ -203,43 +680,274 @@ async fn run_http_test(
     for handle in handles {
         let _ = handle.await;
     }
+    progress_handle.abort();
 
-    // Print results
-    let total_requests = stats.requests.load(Ordering::Relaxed);
-    let successes = stats.successes.load(Ordering::Relaxed);
-    let failures = stats.failures.load(Ordering::Relaxed);
-    let total_latency = stats.total_latency_us.load(Ordering::Relaxed);
-    let avg_latency = if total_requests > 0 {
-        total_latency / total_requests
-    } else {
-        0
-    };
-    let elapsed = start.elapsed();
-
-    println!("\n========== Results ==========");
-    println!("Duration: {:.2}s", elapsed.as_secs_f64());
-    println!("Total requests: {}", total_requests);
-    println!("Successful: {}", successes);
-    println!("Failed: {}", failures);
-    println!("RPS: {:.2}", total_requests as f64 / elapsed.as_secs_f64());
-    println!("Avg latency: {:.2}ms", avg_latency as f64 / 1000.0);
-    println!("Success rate: {:.2}%", successes as f64 / total_requests as f64 * 100.0);
-
+    print_stats(&stats, start.elapsed());
     Ok(())
 }
+
+// ============================================================================
+// Write Test
+// ============================================================================
+
+async fn run_write_test(
+    url: &str,
+    api_key: &str,
+    workers: usize,
+    duration: u64,
+    users_file: &str,
+) -> Result<()> {
+    tracing::info!("Starting WRITE load test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Workers: {}", workers);
+    tracing::info!("  Duration: {}s", duration);
+
+    // Load setup data
+    let data = std::fs::read_to_string(users_file)
+        .context("Failed to read users file. Run 'setup' command first.")?;
+    let setup: SetupData = serde_json::from_str(&data)?;
+
+    if setup.users.is_empty() {
+        anyhow::bail!("No users in setup data");
+    }
+
+    tracing::info!("  Users: {}", setup.users.len());
+    tracing::info!("  Pages: {}", setup.pages.len());
+
+    let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(workers)
+        .build()?;
+
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+    let duration = Duration::from_secs(duration);
+    let users = Arc::new(setup.users);
+    let pages = Arc::new(setup.pages);
+
+    let mut handles = Vec::new();
+
+    for worker_id in 0..workers {
+        let client = client.clone();
+        let stats = stats.clone();
+        let base_url = url.to_string();
+        let api_key = api_key.to_string();
+        let users = users.clone();
+        let pages = pages.clone();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+            let mut counter = 0u64;
+
+            while start.elapsed() < duration {
+                // Pick a random user and page
+                let user = &users[rng.gen_range(0..users.len())];
+                let page_url = &pages[rng.gen_range(0..pages.len())];
+
+                let req = CreateCommentRequest {
+                    page_url: page_url.clone(),
+                    content: format!(
+                        "Load test comment from worker {} - {}",
+                        worker_id, counter
+                    ),
+                    parent_id: None,
+                };
+
+                let req_start = Instant::now();
+                stats.requests.fetch_add(1, Ordering::Relaxed);
+
+                let result = client
+                    .post(format!("{}/v1/comments", base_url))
+                    .header("X-API-Key", &api_key)
+                    .header("Authorization", format!("Bearer {}", user.token))
+                    .json(&req)
+                    .send()
+                    .await;
+
+                let latency = req_start.elapsed().as_micros() as u64;
+                stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
+
+                match result {
+                    Ok(resp) if resp.status().is_success() => {
+                        stats.successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Ok(resp) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 && counter % 100 == 0 {
+                            tracing::debug!("Request failed: {}", resp.status());
+                        }
+                    }
+                    Err(e) => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                        if worker_id == 0 && counter % 100 == 0 {
+                            tracing::debug!("Request error: {}", e);
+                        }
+                    }
+                }
+
+                counter += 1;
+            }
+        }));
+    }
+
+    // Progress reporter
+    let stats_clone = stats.clone();
+    let progress_handle = tokio::spawn(async move {
+        let mut last_requests = 0;
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let current = stats_clone.requests.load(Ordering::Relaxed);
+            let rps = current - last_requests;
+            last_requests = current;
+            tracing::info!("  RPS: {} | Total: {}", rps, current);
+        }
+    });
+
+    // Wait for all workers
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    print_stats(&stats, start.elapsed());
+    Ok(())
+}
+
+// ============================================================================
+// Mixed Test
+// ============================================================================
+
+async fn run_mixed_test(
+    url: &str,
+    api_key: &str,
+    workers: usize,
+    duration: u64,
+    write_percent: u8,
+    users_file: &str,
+) -> Result<()> {
+    tracing::info!("Starting MIXED load test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Workers: {}", workers);
+    tracing::info!("  Duration: {}s", duration);
+    tracing::info!("  Write %: {}%", write_percent);
+
+    // Load setup data
+    let data = std::fs::read_to_string(users_file)
+        .context("Failed to read users file. Run 'setup' command first.")?;
+    let setup: SetupData = serde_json::from_str(&data)?;
+
+    if setup.users.is_empty() {
+        anyhow::bail!("No users in setup data");
+    }
+
+    let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(workers)
+        .build()?;
+
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+    let duration = Duration::from_secs(duration);
+    let users = Arc::new(setup.users);
+    let pages = Arc::new(setup.pages);
+
+    let mut handles = Vec::new();
+
+    for worker_id in 0..workers {
+        let client = client.clone();
+        let stats = stats.clone();
+        let base_url = url.to_string();
+        let api_key = api_key.to_string();
+        let users = users.clone();
+        let pages = pages.clone();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+            let mut counter = 0u64;
+
+            while start.elapsed() < duration {
+                let is_write = rng.gen_range(0..100) < write_percent;
+                let user = &users[rng.gen_range(0..users.len())];
+                let page_url = &pages[rng.gen_range(0..pages.len())];
+
+                let req_start = Instant::now();
+                stats.requests.fetch_add(1, Ordering::Relaxed);
+
+                let result = if is_write {
+                    let req = CreateCommentRequest {
+                        page_url: page_url.clone(),
+                        content: format!("Mixed test comment {} - {}", worker_id, counter),
+                        parent_id: None,
+                    };
+
+                    client
+                        .post(format!("{}/v1/comments", base_url))
+                        .header("X-API-Key", &api_key)
+                        .header("Authorization", format!("Bearer {}", user.token))
+                        .json(&req)
+                        .send()
+                        .await
+                } else {
+                    let url = format!(
+                        "{}/v1/comments?page_url={}",
+                        base_url,
+                        urlencoding::encode(page_url)
+                    );
+                    client.get(&url).header("X-API-Key", &api_key).send().await
+                };
+
+                let latency = req_start.elapsed().as_micros() as u64;
+                stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
+
+                match result {
+                    Ok(resp) if resp.status().is_success() => {
+                        stats.successes.fetch_add(1, Ordering::Relaxed);
+                    }
+                    _ => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+
+                counter += 1;
+            }
+        }));
+    }
+
+    // Progress reporter
+    let stats_clone = stats.clone();
+    let progress_handle = tokio::spawn(async move {
+        let mut last_requests = 0;
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let current = stats_clone.requests.load(Ordering::Relaxed);
+            let rps = current - last_requests;
+            last_requests = current;
+            tracing::info!("  RPS: {} | Total: {}", rps, current);
+        }
+    });
+
+    // Wait for all workers
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    print_stats(&stats, start.elapsed());
+    Ok(())
+}
+
+// ============================================================================
+// WebSocket Test
+// ============================================================================
 
 async fn run_ws_test(
     url: &str,
     api_key: &str,
     connections: usize,
     duration: u64,
-    mps: u64,
 ) -> Result<()> {
     tracing::info!("Starting WebSocket load test");
     tracing::info!("  URL: {}", url);
     tracing::info!("  Connections: {}", connections);
     tracing::info!("  Duration: {}s", duration);
-    tracing::info!("  Messages/sec/conn: {}", mps);
 
     let stats = Arc::new(Stats::default());
     let start = Instant::now();
@@ -249,8 +957,8 @@ async fn run_ws_test(
 
     for i in 0..connections {
         let stats = stats.clone();
-        let url = format!("{}/ws?api_key={}", url, api_key);
-        let page_id = uuid::Uuid::now_v7();
+        let url = format!("{}?api_key={}", url, api_key);
+        let page_id = format!("loadtest-page-{}", i % 10);
 
         handles.push(tokio::spawn(async move {
             use futures_util::{SinkExt, StreamExt};
@@ -260,7 +968,7 @@ async fn run_ws_test(
             let (mut ws, _) = match connect_result {
                 Ok(conn) => conn,
                 Err(e) => {
-                    tracing::error!("Connection {} failed: {}", i, e);
+                    tracing::debug!("Connection {} failed: {}", i, e);
                     stats.failures.fetch_add(1, Ordering::Relaxed);
                     return;
                 }
@@ -271,19 +979,16 @@ async fn run_ws_test(
             // Subscribe to a page
             let subscribe_msg = serde_json::json!({
                 "type": "subscribe",
-                "page_id": page_id.to_string()
+                "page_id": page_id
             });
-            let _ = ws.send(tokio_tungstenite::tungstenite::Message::Text(
-                subscribe_msg.to_string().into(),
-            )).await;
+            let _ = ws
+                .send(tokio_tungstenite::tungstenite::Message::Text(
+                    subscribe_msg.to_string().into(),
+                ))
+                .await;
 
-            let msg_interval = if mps > 0 {
-                Duration::from_millis(1000 / mps)
-            } else {
-                Duration::from_secs(3600) // Effectively no messages
-            };
-
-            let mut interval = tokio::time::interval(msg_interval);
+            // Keep connection alive, occasionally send pings
+            let mut interval = tokio::time::interval(Duration::from_secs(5));
 
             while start.elapsed() < duration {
                 tokio::select! {
@@ -311,12 +1016,18 @@ async fn run_ws_test(
 
     // Progress reporter
     let stats_clone = stats.clone();
-    tokio::spawn(async move {
+    let progress_handle = tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let current = stats_clone.requests.load(Ordering::Relaxed);
             let connected = stats_clone.successes.load(Ordering::Relaxed);
-            tracing::info!("  Connected: {} | Messages: {}", connected, current);
+            let failed = stats_clone.failures.load(Ordering::Relaxed);
+            let messages = stats_clone.requests.load(Ordering::Relaxed);
+            tracing::info!(
+                "  Connected: {} | Failed: {} | Messages: {}",
+                connected,
+                failed,
+                messages
+            );
         }
     });
 
@@ -324,6 +1035,7 @@ async fn run_ws_test(
     for handle in handles {
         let _ = handle.await;
     }
+    progress_handle.abort();
 
     // Print results
     let total_messages = stats.requests.load(Ordering::Relaxed);
@@ -331,13 +1043,382 @@ async fn run_ws_test(
     let failed = stats.failures.load(Ordering::Relaxed);
     let elapsed = start.elapsed();
 
-    println!("\n========== Results ==========");
+    println!("\n========== WebSocket Results ==========");
     println!("Duration: {:.2}s", elapsed.as_secs_f64());
     println!("Connections attempted: {}", connections);
     println!("Connections successful: {}", connected);
     println!("Connections failed: {}", failed);
     println!("Total messages sent: {}", total_messages);
-    println!("Messages/sec: {:.2}", total_messages as f64 / elapsed.as_secs_f64());
+    println!(
+        "Messages/sec: {:.2}",
+        total_messages as f64 / elapsed.as_secs_f64()
+    );
+
+    Ok(())
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+fn print_stats(stats: &Stats, elapsed: Duration) {
+    let total_requests = stats.requests.load(Ordering::Relaxed);
+    let successes = stats.successes.load(Ordering::Relaxed);
+    let failures = stats.failures.load(Ordering::Relaxed);
+    let total_latency = stats.total_latency_us.load(Ordering::Relaxed);
+    let avg_latency = if total_requests > 0 {
+        total_latency / total_requests
+    } else {
+        0
+    };
+
+    println!("\n========== Results ==========");
+    println!("Duration: {:.2}s", elapsed.as_secs_f64());
+    println!("Total requests: {}", total_requests);
+    println!("Successful: {}", successes);
+    println!("Failed: {}", failures);
+    println!(
+        "RPS: {:.2}",
+        total_requests as f64 / elapsed.as_secs_f64()
+    );
+    println!("Avg latency: {:.2}ms", avg_latency as f64 / 1000.0);
+    if total_requests > 0 {
+        println!(
+            "Success rate: {:.2}%",
+            successes as f64 / total_requests as f64 * 100.0
+        );
+    }
+}
+
+// ============================================================================
+// Thread Test - Many users building a conversation with replies
+// ============================================================================
+
+async fn run_thread_test(
+    url: &str,
+    api_key: &str,
+    num_users: usize,
+    comments_per_user: usize,
+    reply_percent: u8,
+    num_workers: usize,
+) -> Result<()> {
+    tracing::info!("Starting THREAD building test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Users: {}", num_users);
+    tracing::info!("  Comments per user: {}", comments_per_user);
+    tracing::info!("  Reply probability: {}%", reply_percent);
+    tracing::info!("  Workers: {}", num_workers);
+
+    let client = reqwest::Client::new();
+    let page_url = "https://loadtest.example.com/thread-test";
+
+    // Step 1: Create users
+    tracing::info!("Creating {} users...", num_users);
+    let mut users = Vec::with_capacity(num_users);
+
+    for i in 0..num_users {
+        let email = format!("thread_user_{}@test.local", i);
+        let password = "threadtest123".to_string();
+        let name = format!("ThreadUser{}", i);
+
+        let req = RegisterRequest {
+            email: email.clone(),
+            password: password.clone(),
+            name: name.clone(),
+        };
+
+        let resp = client
+            .post(format!("{}/v1/auth/register", url))
+            .header("X-API-Key", api_key)
+            .json(&req)
+            .send()
+            .await;
+
+        match resp {
+            Ok(r) if r.status().is_success() => {
+                if let Ok(auth) = r.json::<AuthResponse>().await {
+                    users.push(TestUser {
+                        email,
+                        password,
+                        name,
+                        token: auth.token,
+                        user_id: auth.user.id,
+                    });
+                }
+            }
+            _ => {}
+        }
+
+        if (i + 1) % 100 == 0 {
+            tracing::info!("  Created {} users", users.len());
+        }
+    }
+
+    tracing::info!("Created {} users", users.len());
+
+    if users.is_empty() {
+        anyhow::bail!("No users created");
+    }
+
+    // Step 2: Create comments with threading
+    let total_comments = num_users * comments_per_user;
+    tracing::info!("Creating {} comments with threading...", total_comments);
+
+    let users = Arc::new(users);
+    let comment_ids = Arc::new(tokio::sync::RwLock::new(Vec::<String>::new()));
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+
+    // Distribute comments across workers
+    let comments_per_worker = total_comments / num_workers;
+    let mut handles = Vec::new();
+
+    for worker_id in 0..num_workers {
+        let client = client.clone();
+        let users = users.clone();
+        let comment_ids = comment_ids.clone();
+        let stats = stats.clone();
+        let url = url.to_string();
+        let api_key = api_key.to_string();
+        let page_url = page_url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let mut rng = StdRng::from_entropy();
+
+            for i in 0..comments_per_worker {
+                let user = &users[rng.gen_range(0..users.len())];
+
+                // Decide whether to reply or create new top-level comment
+                let parent_id = {
+                    let ids = comment_ids.read().await;
+                    if !ids.is_empty() && rng.gen_range(0..100) < reply_percent {
+                        Some(ids[rng.gen_range(0..ids.len())].clone())
+                    } else {
+                        None
+                    }
+                };
+
+                let req = CreateCommentRequest {
+                    page_url: page_url.clone(),
+                    content: format!(
+                        "Thread comment {} from worker {}. This is a test comment with some content.",
+                        i, worker_id
+                    ),
+                    parent_id,
+                };
+
+                stats.requests.fetch_add(1, Ordering::Relaxed);
+
+                let resp = client
+                    .post(format!("{}/v1/comments", url))
+                    .header("X-API-Key", &api_key)
+                    .header("Authorization", format!("Bearer {}", user.token))
+                    .json(&req)
+                    .send()
+                    .await;
+
+                match resp {
+                    Ok(r) if r.status().is_success() => {
+                        if let Ok(created) = r.json::<CreateCommentResponse>().await {
+                            comment_ids.write().await.push(created.comment.id);
+                            stats.successes.fetch_add(1, Ordering::Relaxed);
+                        }
+                    }
+                    _ => {
+                        stats.failures.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+            }
+        }));
+    }
+
+    // Progress reporter
+    let stats_clone = stats.clone();
+    let comment_ids_clone = comment_ids.clone();
+    let progress_handle = tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            let total = stats_clone.requests.load(Ordering::Relaxed);
+            let success = stats_clone.successes.load(Ordering::Relaxed);
+            let comments = comment_ids_clone.read().await.len();
+            tracing::info!(
+                "  Progress: {}/{} requests | {} comments created",
+                success,
+                total,
+                comments
+            );
+        }
+    });
+
+    for handle in handles {
+        let _ = handle.await;
+    }
+    progress_handle.abort();
+
+    let elapsed = start.elapsed();
+    let final_count = comment_ids.read().await.len();
+
+    println!("\n========== Thread Test Results ==========");
+    println!("Duration: {:.2}s", elapsed.as_secs_f64());
+    println!("Users created: {}", users.len());
+    println!("Comments created: {}", final_count);
+    println!(
+        "Comments/sec: {:.2}",
+        final_count as f64 / elapsed.as_secs_f64()
+    );
+    print_stats(&stats, elapsed);
+
+    Ok(())
+}
+
+// ============================================================================
+// Deep Test - Build deeply nested comment chains
+// ============================================================================
+
+async fn run_deep_test(
+    url: &str,
+    api_key: &str,
+    depth: usize,
+    num_chains: usize,
+) -> Result<()> {
+    tracing::info!("Starting DEEP nesting test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Depth: {}", depth);
+    tracing::info!("  Parallel chains: {}", num_chains);
+
+    let client = reqwest::Client::new();
+
+    // Create a test user
+    tracing::info!("Creating test user...");
+    let email = "deep_test_user@test.local";
+    let password = "deeptest123";
+    let name = "DeepTestUser";
+
+    let req = RegisterRequest {
+        email: email.to_string(),
+        password: password.to_string(),
+        name: name.to_string(),
+    };
+
+    let resp = client
+        .post(format!("{}/v1/auth/register", url))
+        .header("X-API-Key", api_key)
+        .json(&req)
+        .send()
+        .await
+        .context("Failed to register user")?;
+
+    let token = if resp.status().is_success() {
+        let auth: AuthResponse = resp.json().await?;
+        auth.token
+    } else {
+        anyhow::bail!("Failed to create test user: {}", resp.text().await?);
+    };
+
+    tracing::info!("User created, building {} chains of depth {}...", num_chains, depth);
+
+    let start = Instant::now();
+    let mut handles = Vec::new();
+
+    for chain_id in 0..num_chains {
+        let client = client.clone();
+        let url = url.to_string();
+        let api_key = api_key.to_string();
+        let token = token.clone();
+
+        handles.push(tokio::spawn(async move {
+            let page_url = format!("https://loadtest.example.com/deep-chain-{}", chain_id);
+            let mut parent_id: Option<String> = None;
+            let mut created = 0;
+
+            for level in 0..depth {
+                let req = CreateCommentRequest {
+                    page_url: page_url.clone(),
+                    content: format!(
+                        "Deep comment at level {} in chain {}. Lorem ipsum dolor sit amet.",
+                        level, chain_id
+                    ),
+                    parent_id: parent_id.clone(),
+                };
+
+                let resp = client
+                    .post(format!("{}/v1/comments", url))
+                    .header("X-API-Key", &api_key)
+                    .header("Authorization", format!("Bearer {}", token))
+                    .json(&req)
+                    .send()
+                    .await;
+
+                match resp {
+                    Ok(r) if r.status().is_success() => {
+                        if let Ok(comment) = r.json::<CreateCommentResponse>().await {
+                            parent_id = Some(comment.comment.id);
+                            created += 1;
+                        }
+                    }
+                    Ok(r) => {
+                        let status = r.status();
+                        let body = r.text().await.unwrap_or_default();
+                        tracing::warn!(
+                            "Chain {} level {} failed: {} - {}",
+                            chain_id,
+                            level,
+                            status,
+                            body
+                        );
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::warn!("Chain {} level {} error: {}", chain_id, level, e);
+                        break;
+                    }
+                }
+
+                if (level + 1) % 100 == 0 {
+                    tracing::info!("  Chain {}: depth {}/{}", chain_id, level + 1, depth);
+                }
+            }
+
+            created
+        }));
+    }
+
+    let mut total_created = 0;
+    for handle in handles {
+        if let Ok(count) = handle.await {
+            total_created += count;
+        }
+    }
+
+    let elapsed = start.elapsed();
+
+    println!("\n========== Deep Nesting Test Results ==========");
+    println!("Duration: {:.2}s", elapsed.as_secs_f64());
+    println!("Chains: {}", num_chains);
+    println!("Target depth: {}", depth);
+    println!("Total comments created: {}", total_created);
+    println!(
+        "Comments/sec: {:.2}",
+        total_created as f64 / elapsed.as_secs_f64()
+    );
+
+    // Now test reading the deep chain
+    tracing::info!("Testing read performance on deep chain...");
+    let read_start = Instant::now();
+
+    let page_url = "https://loadtest.example.com/deep-chain-0";
+    let resp = client
+        .get(format!(
+            "{}/v1/comments?page_url={}",
+            url,
+            urlencoding::encode(page_url)
+        ))
+        .header("X-API-Key", api_key)
+        .send()
+        .await?;
+
+    let read_elapsed = read_start.elapsed();
+    println!("Read deep chain: {:?} (status: {})", read_elapsed, resp.status());
 
     Ok(())
 }
