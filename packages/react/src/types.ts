@@ -230,8 +230,13 @@ export interface CommentProps {
   depth?: number;
   maxDepth?: number;
   collapsed?: boolean;
+  highlighted?: boolean;
   index?: number;
   totalSiblings?: number;
+  /** ID of currently highlighted comment (for nested highlighting) */
+  highlightedCommentId?: string | null;
+  /** Set of collapsed thread IDs (for nested collapse state) */
+  collapsedThreads?: Set<string>;
   onReply?: (parentId: string) => void;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
   onDelete?: (commentId: string) => void;

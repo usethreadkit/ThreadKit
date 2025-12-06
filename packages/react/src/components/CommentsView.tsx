@@ -9,6 +9,8 @@ interface CommentsViewProps {
   maxDepth?: number;
   allowVoting?: boolean;
   sortBy?: SortBy;
+  highlightedCommentId?: string | null;
+  collapsedThreads?: Set<string>;
   onSortChange?: (sort: SortBy) => void;
   onPost: (text: string, parentId?: string) => Promise<void>;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -19,6 +21,7 @@ interface CommentsViewProps {
   onBlock?: (userId: string) => void;
   onReport?: (commentId: string) => void;
   onPermalink?: (commentId: string) => void;
+  onCollapse?: (commentId: string) => void;
   getUserProfile?: (userId: string) => UserProfile | undefined;
   toolbarEnd?: React.ReactNode;
   plugins?: ThreadKitPlugin[];
@@ -37,6 +40,8 @@ export function CommentsView({
   maxDepth = 5,
   allowVoting = true,
   sortBy = 'votes',
+  highlightedCommentId,
+  collapsedThreads,
   onSortChange,
   onPost,
   onVote,
@@ -47,6 +52,7 @@ export function CommentsView({
   onBlock,
   onReport,
   onPermalink,
+  onCollapse,
   getUserProfile,
   toolbarEnd,
   plugins,
@@ -98,6 +104,8 @@ export function CommentsView({
               maxDepth={maxDepth}
               index={index}
               totalSiblings={comments.length}
+              highlighted={highlightedCommentId === comment.id}
+              collapsed={collapsedThreads?.has(comment.id)}
               onReply={handleReply}
               onVote={allowVoting ? onVote : undefined}
               onDelete={onDelete}
@@ -107,8 +115,11 @@ export function CommentsView({
               onBlock={onBlock}
               onReport={onReport}
               onPermalink={onPermalink}
+              onCollapse={onCollapse}
               getUserProfile={getUserProfile}
               plugins={plugins}
+              highlightedCommentId={highlightedCommentId}
+              collapsedThreads={collapsedThreads}
             />
           ))}
         </div>

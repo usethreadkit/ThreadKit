@@ -329,11 +329,12 @@ function ThreadKitInner({
         }
 
         updateComment(commentId, { text: newText, edited: true });
+        onCommentEdited?.(commentId, newText);
       } catch (err) {
         onError?.(err instanceof Error ? err : new Error('Failed to edit'));
       }
     },
-    [apiUrl, updateComment, onError]
+    [apiUrl, updateComment, onCommentEdited, onError]
   );
 
   const handleBan = useCallback(
@@ -526,7 +527,7 @@ function ThreadKitInner({
 
   if (loading) {
     return (
-      <div className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
         <div className="threadkit-loading">Loading comments...</div>
       </div>
     );
@@ -534,7 +535,7 @@ function ThreadKitInner({
 
   if (error) {
     return (
-      <div className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
         <div className="threadkit-error">
           Failed to load comments. Please try again later.
         </div>
@@ -566,7 +567,7 @@ function ThreadKitInner({
   );
 
   return (
-    <div className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+    <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
       {mode === 'chat' ? (
         <ChatView
           comments={comments}
@@ -628,8 +629,8 @@ function ThreadKitInner({
 }
 
 // Main exported component that wraps with AuthProvider
-export function ThreadKit(props: ThreadKitProps) {
-  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn } = props;
+export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
+  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -644,14 +645,16 @@ export function ThreadKit(props: ThreadKitProps) {
           name: user.name,
           avatar: user.avatar_url,
         });
+      } else if (!user && onSignOut) {
+        onSignOut();
       }
     },
-    [onSignIn]
+    [onSignIn, onSignOut]
   );
 
   return (
     <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
-      <ThreadKitInner {...props} />
+      <ThreadKitInner {...props} innerRef={ref} />
     </AuthProvider>
   );
-}
+});

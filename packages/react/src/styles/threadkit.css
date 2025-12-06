@@ -117,6 +117,24 @@
   padding: 8px 0;
 }
 
+/* Highlighted comment (via scrollToComment/highlightComment) */
+.threadkit-comment.threadkit-highlighted {
+  animation: threadkit-highlight-pulse 0.5s ease-out;
+  background-color: var(--threadkit-bg-hover);
+  border-radius: var(--threadkit-radius);
+}
+
+@keyframes threadkit-highlight-pulse {
+  0% {
+    background-color: var(--threadkit-primary);
+    opacity: 0.3;
+  }
+  100% {
+    background-color: var(--threadkit-bg-hover);
+    opacity: 1;
+  }
+}
+
 .threadkit-comment-wrapper {
   display: flex;
   gap: 8px;

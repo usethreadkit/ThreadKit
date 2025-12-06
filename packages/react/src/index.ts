@@ -53,6 +53,7 @@ export type {
 // Types
 export type {
   ThreadKitProps,
+  ThreadKitRef,
   ThreadKitCSSVariables,
   ThreadKitPlugin,
   PluginSegmentCallback,
