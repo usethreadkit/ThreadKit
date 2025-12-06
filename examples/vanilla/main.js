@@ -112,25 +112,63 @@ function renderUI(state) {
   attachListeners();
 }
 
+// Show error message in form
+function showFormError(form, message) {
+  // Remove existing error
+  const existing = form.querySelector('.threadkit-form-error');
+  if (existing) existing.remove();
+
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'threadkit-form-error';
+  errorDiv.style.cssText = 'color: var(--threadkit-danger); padding: 8px 0; font-size: 13px;';
+  errorDiv.textContent = message;
+  form.insertBefore(errorDiv, form.querySelector('.threadkit-form-actions') || form.lastChild);
+
+  // Auto-remove after 5 seconds
+  setTimeout(() => errorDiv.remove(), 5000);
+}
+
 // Attach event listeners
 function attachListeners() {
   document.getElementById('comment-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const textarea = e.target.querySelector('textarea');
+    const form = e.target;
+    const textarea = form.querySelector('textarea');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
     if (textarea.value.trim()) {
-      const comment = await commentStore.post(textarea.value.trim());
-      commentStore.addComment(comment);
-      textarea.value = '';
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Posting...';
+        const comment = await commentStore.post(textarea.value.trim());
+        commentStore.addComment(comment);
+        textarea.value = '';
+      } catch (err) {
+        showFormError(form, err.message || 'Failed to post comment');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Post';
+      }
     }
   });
 
   document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input = e.target.querySelector('input');
+    const form = e.target;
+    const input = form.querySelector('input');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
     if (input.value.trim()) {
-      const comment = await commentStore.post(input.value.trim());
-      commentStore.addComment(comment);
-      input.value = '';
+      try {
+        submitBtn.disabled = true;
+        const comment = await commentStore.post(input.value.trim());
+        commentStore.addComment(comment);
+        input.value = '';
+      } catch (err) {
+        showFormError(form, err.message || 'Failed to send message');
+      } finally {
+        submitBtn.disabled = false;
+      }
     }
   });
 

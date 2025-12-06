@@ -64,10 +64,6 @@
   function handleReply(parentId: string) {
     onReplyStart?.(parentId);
   }
-
-  async function handleFormSubmit(e: CustomEvent<{ text: string; parentId?: string }>) {
-    await onPost(e.detail.text, e.detail.parentId);
-  }
 </script>
 
 <div class="threadkit-comments">
@@ -93,7 +89,7 @@
   <div class="threadkit-comments-header">
     <CommentForm
       placeholder={currentUser ? 'Write a comment...' : 'Sign in to comment'}
-      on:submit={handleFormSubmit}
+      onSubmit={onPost}
     />
   </div>
 

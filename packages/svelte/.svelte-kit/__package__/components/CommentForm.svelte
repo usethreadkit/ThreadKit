@@ -1,18 +1,13 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  const dispatch = createEventDispatcher<{
-    submit: { text: string; parentId?: string };
-    cancel: void;
-  }>();
-
   interface Props {
     parentId?: string;
     placeholder?: string;
     showCancel?: boolean;
+    onSubmit?: (text: string, parentId?: string) => Promise<void>;
+    onCancel?: () => void;
   }
 
-  let { parentId, placeholder = 'Write a comment...', showCancel = false }: Props = $props();
+  let { parentId, placeholder = 'Write a comment...', showCancel = false, onSubmit, onCancel }: Props = $props();
 
   let text = $state('');
   let isSubmitting = $state(false);
@@ -32,13 +27,13 @@
     e.preventDefault();
 
     const trimmedText = text.trim();
-    if (!trimmedText) return;
+    if (!trimmedText || !onSubmit) return;
 
     isSubmitting = true;
     error = null;
 
     try {
-      dispatch('submit', { text: trimmedText, parentId });
+      await onSubmit(trimmedText, parentId);
       text = '';
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to post comment';
@@ -48,7 +43,7 @@
   }
 
   function handleCancel() {
-    dispatch('cancel');
+    onCancel?.();
   }
 </script>
 
