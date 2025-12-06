@@ -118,18 +118,15 @@ pub async fn get_me(
     _api_key: ApiKey,
     auth: AuthUser,
 ) -> Result<Json<MeResponse>, (StatusCode, String)> {
-    let user = state
-        .redis
-        .get_user(auth.user_id)
-        .await
+    // Parallelize user and unread count fetches
+    let (user_result, unread) = tokio::join!(
+        state.redis.get_user(auth.user_id),
+        async { state.redis.get_unread_count(auth.user_id).await.unwrap_or(0) }
+    );
+
+    let user = user_result
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, "User not found".into()))?;
-
-    let unread = state
-        .redis
-        .get_unread_count(auth.user_id)
-        .await
-        .unwrap_or(0);
 
     Ok(Json(MeResponse {
         id: user.id,
@@ -295,33 +292,34 @@ pub async fn get_notifications(
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(50).min(100);
 
-    let notifications = state
-        .redis
-        .get_notifications(auth.user_id, offset, limit)
-        .await
+    // Fetch notifications and unread count in parallel
+    let (notifications_result, unread_count) = tokio::join!(
+        state.redis.get_notifications(auth.user_id, offset, limit),
+        async { state.redis.get_unread_count(auth.user_id).await.unwrap_or(0) }
+    );
+
+    let notifications = notifications_result
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut results = Vec::with_capacity(notifications.len());
-    for notification in notifications {
-        let from_user = state
-            .redis
-            .get_user(notification.from_user_id)
-            .await
-            .ok()
-            .flatten()
-            .map(UserPublic::from);
+    // Fetch all from_users in parallel
+    let user_futures: Vec<_> = notifications
+        .iter()
+        .map(|n| state.redis.get_user(n.from_user_id))
+        .collect();
 
-        results.push(NotificationWithDetails {
-            notification,
-            from_user,
-        });
-    }
+    let user_results = futures::future::join_all(user_futures).await;
 
-    let unread_count = state
-        .redis
-        .get_unread_count(auth.user_id)
-        .await
-        .unwrap_or(0);
+    let results: Vec<_> = notifications
+        .into_iter()
+        .zip(user_results)
+        .map(|(notification, user_result)| {
+            let from_user = user_result.ok().flatten().map(UserPublic::from);
+            NotificationWithDetails {
+                notification,
+                from_user,
+            }
+        })
+        .collect();
 
     Ok(Json(NotificationsResponse {
         notifications: results,
@@ -386,12 +384,18 @@ pub async fn get_blocked_users(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut users = Vec::with_capacity(blocked_ids.len());
-    for user_id in blocked_ids {
-        if let Ok(Some(user)) = state.redis.get_user(user_id).await {
-            users.push(UserPublic::from(user));
-        }
-    }
+    // Fetch all blocked users in parallel
+    let user_futures: Vec<_> = blocked_ids
+        .iter()
+        .map(|&user_id| state.redis.get_user(user_id))
+        .collect();
+
+    let user_results = futures::future::join_all(user_futures).await;
+
+    let users: Vec<_> = user_results
+        .into_iter()
+        .filter_map(|r| r.ok().flatten().map(UserPublic::from))
+        .collect();
 
     Ok(Json(BlockedUsersResponse { users }))
 }

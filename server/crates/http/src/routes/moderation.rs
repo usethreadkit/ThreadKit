@@ -130,19 +130,29 @@ pub async fn get_queue(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut items = Vec::with_capacity(queue_items.len());
-    for (page_id, comment_id) in queue_items {
-        // Get the page tree and find the comment
-        if let Ok(Some(tree)) = state.redis.get_page_tree(page_id).await {
-            // Search for the comment in the tree
-            if let Some(comment) = find_comment_in_tree(&tree.comments, comment_id) {
-                items.push(QueueItem {
-                    page_id,
-                    comment: comment.clone(),
-                });
+    // Fetch all page trees in parallel
+    let tree_futures: Vec<_> = queue_items
+        .iter()
+        .map(|(page_id, _)| state.redis.get_page_tree(*page_id))
+        .collect();
+
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    let items: Vec<_> = queue_items
+        .iter()
+        .zip(tree_results)
+        .filter_map(|((page_id, comment_id), tree_result)| {
+            if let Ok(Some(tree)) = tree_result {
+                if let Some(comment) = find_comment_in_tree(&tree.comments, *comment_id) {
+                    return Some(QueueItem {
+                        page_id: *page_id,
+                        comment: comment.clone(),
+                    });
+                }
             }
-        }
-    }
+            None
+        })
+        .collect();
 
     Ok(Json(QueueResponse {
         total: items.len(),
@@ -180,24 +190,33 @@ pub async fn get_reports(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut items = Vec::with_capacity(report_items.len());
-    for (page_id, comment_id) in report_items {
-        // Get the page tree and find the comment
-        let comment = if let Ok(Some(tree)) = state.redis.get_page_tree(page_id).await {
-            find_comment_in_tree(&tree.comments, comment_id).cloned()
-        } else {
-            None
-        };
+    // Fetch all page trees in parallel
+    let tree_futures: Vec<_> = report_items
+        .iter()
+        .map(|(page_id, _)| state.redis.get_page_tree(*page_id))
+        .collect();
 
-        // For now, reporter info is not stored in the new schema
-        // We could add a separate reports hash if needed
-        items.push(ReportItem {
-            page_id,
-            comment_id,
-            comment,
-            reporter: None,
-        });
-    }
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    let items: Vec<_> = report_items
+        .iter()
+        .zip(tree_results)
+        .map(|((page_id, comment_id), tree_result)| {
+            let comment = tree_result
+                .ok()
+                .flatten()
+                .and_then(|tree| find_comment_in_tree(&tree.comments, *comment_id).cloned());
+
+            // For now, reporter info is not stored in the new schema
+            // We could add a separate reports hash if needed
+            ReportItem {
+                page_id: *page_id,
+                comment_id: *comment_id,
+                comment,
+                reporter: None,
+            }
+        })
+        .collect();
 
     Ok(Json(ReportsResponse {
         total: items.len(),

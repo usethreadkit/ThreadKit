@@ -78,12 +78,18 @@ pub async fn get_admins(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut users = Vec::with_capacity(admin_ids.len());
-    for user_id in admin_ids {
-        if let Ok(Some(user)) = state.redis.get_user(user_id).await {
-            users.push(UserPublic::from(user));
-        }
-    }
+    // Fetch all admin users in parallel
+    let user_futures: Vec<_> = admin_ids
+        .iter()
+        .map(|&user_id| state.redis.get_user(user_id))
+        .collect();
+
+    let user_results = futures::future::join_all(user_futures).await;
+
+    let users: Vec<_> = user_results
+        .into_iter()
+        .filter_map(|r| r.ok().flatten().map(UserPublic::from))
+        .collect();
 
     Ok(Json(RoleListResponse { users }))
 }
@@ -203,12 +209,18 @@ pub async fn get_moderators(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut users = Vec::with_capacity(mod_ids.len());
-    for user_id in mod_ids {
-        if let Ok(Some(user)) = state.redis.get_user(user_id).await {
-            users.push(UserPublic::from(user));
-        }
-    }
+    // Fetch all moderator users in parallel
+    let user_futures: Vec<_> = mod_ids
+        .iter()
+        .map(|&user_id| state.redis.get_user(user_id))
+        .collect();
+
+    let user_results = futures::future::join_all(user_futures).await;
+
+    let users: Vec<_> = user_results
+        .into_iter()
+        .filter_map(|r| r.ok().flatten().map(UserPublic::from))
+        .collect();
 
     Ok(Json(RoleListResponse { users }))
 }
