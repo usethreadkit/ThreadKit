@@ -1,0 +1,1421 @@
+/* ThreadKit CSS - Reddit/Hacker News Style */
+
+/* Scoped CSS Reset - ensures consistent styling when embedded */
+.threadkit-root *,
+.threadkit-root *::before,
+.threadkit-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.threadkit-root button,
+.threadkit-root input,
+.threadkit-root textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.threadkit-root button {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.threadkit-root a {
+  color: var(--threadkit-link);
+  text-decoration: none;
+}
+
+.threadkit-root ul,
+.threadkit-root ol {
+  list-style: none;
+}
+
+.threadkit-root img {
+  max-width: 100%;
+  display: block;
+}
+
+.threadkit-root {
+  position: relative;
+
+  /* CSS Variables for theming */
+  --threadkit-primary: #ff4500;
+  --threadkit-primary-hover: #cc3700;
+  --threadkit-upvote: #ff4500;
+  --threadkit-downvote: #7193ff;
+  --threadkit-link: #0066cc;
+  --threadkit-link-hover: #0052a3;
+  --threadkit-danger: #dc3545;
+  --threadkit-success: #28a745;
+  --threadkit-bg: #ffffff;
+  --threadkit-bg-secondary: #f6f7f8;
+  --threadkit-bg-hover: #f0f0f0;
+  --threadkit-border: #ccc;
+  --threadkit-border-light: #edeff1;
+  --threadkit-text: #1a1a1b;
+  --threadkit-text-secondary: #787c7e;
+  --threadkit-text-muted: #878a8c;
+  --threadkit-radius: 4px;
+  --threadkit-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --threadkit-font-size: 13px;
+  --threadkit-line-height: 1.5;
+
+  /* Base styles */
+  box-sizing: border-box;
+  font-family: var(--threadkit-font-family);
+  font-size: var(--threadkit-font-size);
+  line-height: var(--threadkit-line-height);
+  color: var(--threadkit-text);
+  background: var(--threadkit-bg);
+}
+
+/* Dark theme */
+.threadkit-root[data-theme="dark"] {
+  --threadkit-primary: #ff4500;
+  --threadkit-primary-hover: #ff5722;
+  --threadkit-upvote: #ff4500;
+  --threadkit-downvote: #7193ff;
+  --threadkit-link: #4fbcff;
+  --threadkit-link-hover: #79c8ff;
+  --threadkit-bg: #1a1a1b;
+  --threadkit-bg-secondary: #272729;
+  --threadkit-bg-hover: #333;
+  --threadkit-border: #474748;
+  --threadkit-border-light: #343536;
+  --threadkit-text: #d7dadc;
+  --threadkit-text-secondary: #818384;
+  --threadkit-text-muted: #6e7071;
+}
+
+/* Reset for all elements within threadkit */
+.threadkit-root *,
+.threadkit-root *::before,
+.threadkit-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Reset buttons */
+.threadkit-root button {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  color: inherit;
+}
+
+/* ===== Comment Styles ===== */
+
+.threadkit-comment {
+  padding: 8px 0;
+}
+
+.threadkit-comment-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+/* Vote column */
+.threadkit-vote-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.threadkit-vote-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  font-size: 18px;
+  color: var(--threadkit-text-muted);
+  border-radius: 2px;
+  transition: color 0.1s;
+  line-height: 1;
+}
+
+.threadkit-vote-up:hover,
+.threadkit-vote-up.active {
+  color: var(--threadkit-upvote);
+}
+
+.threadkit-vote-down:hover,
+.threadkit-vote-down.active {
+  color: var(--threadkit-downvote);
+}
+
+/* Content column */
+.threadkit-comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Comment header */
+.threadkit-comment-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.threadkit-username-trigger {
+  cursor: pointer;
+}
+
+.threadkit-author {
+  font-weight: 600;
+  color: var(--threadkit-link);
+  text-decoration: none;
+}
+
+.threadkit-author:hover {
+  text-decoration: underline;
+}
+
+.threadkit-score {
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-score-breakdown {
+  color: var(--threadkit-text-muted);
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+.threadkit-timestamp {
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-edited {
+  color: var(--threadkit-text-muted);
+  font-weight: bold;
+}
+
+.threadkit-pinned {
+  background: var(--threadkit-success);
+  color: white;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.threadkit-header-divider {
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-nav-btn {
+  color: var(--threadkit-text-muted);
+  font-size: 12px;
+}
+
+.threadkit-nav-btn:hover {
+  color: var(--threadkit-link);
+  text-decoration: underline;
+}
+
+.threadkit-collapse-btn {
+  color: var(--threadkit-text-muted);
+  font-family: monospace;
+  font-size: 11px;
+  padding: 0 2px;
+}
+
+.threadkit-collapse-btn:hover {
+  color: var(--threadkit-link);
+}
+
+/* Comment body */
+.threadkit-comment-body {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Comment actions */
+.threadkit-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.threadkit-action-btn {
+  color: var(--threadkit-text-muted);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.threadkit-action-btn:hover {
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-action-btn.disabled,
+.threadkit-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.threadkit-action-btn.disabled:hover,
+.threadkit-action-btn:disabled:hover {
+  background: transparent;
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-mod-action {
+  color: var(--threadkit-danger);
+}
+
+.threadkit-mod-action:hover {
+  background: var(--threadkit-danger);
+  color: white;
+}
+
+/* Inline confirmations */
+.threadkit-confirm-inline,
+.threadkit-report-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.threadkit-confirm-btn {
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.threadkit-confirm-yes {
+  background: var(--threadkit-danger);
+  color: white;
+}
+
+.threadkit-confirm-yes:hover:not(:disabled) {
+  background: var(--threadkit-primary-hover);
+}
+
+.threadkit-confirm-yes:disabled {
+  background: transparent;
+  border: 1px solid var(--threadkit-border);
+  color: var(--threadkit-text-muted);
+  cursor: not-allowed;
+}
+
+.threadkit-confirm-no {
+  background: var(--threadkit-bg-secondary);
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-confirm-no:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+/* Report form */
+.threadkit-report-select {
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid var(--threadkit-border);
+  border-radius: 2px;
+  background: var(--threadkit-bg);
+  color: var(--threadkit-text);
+}
+
+.threadkit-report-thanks {
+  color: var(--threadkit-success);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Reply form */
+.threadkit-reply-form {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* Edit form */
+.threadkit-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.threadkit-edit-form .threadkit-textarea {
+  min-height: 80px;
+}
+
+.threadkit-edit-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.threadkit-edit-actions .threadkit-submit-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+}
+
+.threadkit-edit-actions .threadkit-cancel-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+}
+
+/* Nested replies */
+.threadkit-replies {
+  margin-left: 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--threadkit-border-light);
+  margin-top: 4px;
+}
+
+/* Collapsed comment */
+.threadkit-comment-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.threadkit-expand-btn {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--threadkit-text-muted);
+  padding: 0 2px;
+}
+
+.threadkit-expand-btn:hover {
+  color: var(--threadkit-link);
+}
+
+.threadkit-collapsed-info {
+  color: var(--threadkit-text-muted);
+}
+
+/* ===== User Hover Card ===== */
+
+.threadkit-hover-card {
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  min-width: 240px;
+  max-width: 300px;
+}
+
+.threadkit-hover-card-content {
+  display: flex;
+  gap: 12px;
+}
+
+.threadkit-hover-card-avatar {
+  flex-shrink: 0;
+}
+
+.threadkit-hover-card-avatar img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--threadkit-bg-secondary);
+}
+
+.threadkit-hover-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.threadkit-hover-card-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--threadkit-text);
+}
+
+.threadkit-hover-card-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.threadkit-hover-card-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.threadkit-hover-card-stat-value {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--threadkit-text);
+}
+
+.threadkit-hover-card-stat-label {
+  font-size: 11px;
+  color: var(--threadkit-text-muted);
+  text-transform: uppercase;
+}
+
+.threadkit-hover-card-joined {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+}
+
+/* ===== Comment Form ===== */
+
+.threadkit-form {
+  max-width: 600px;
+  margin-bottom: 16px;
+}
+
+.threadkit-textarea {
+  width: 100%;
+  max-width: 600px;
+  min-height: 100px;
+  padding: 10px 12px;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  background: var(--threadkit-bg);
+  resize: both;
+  font-size: 14px;
+}
+
+.threadkit-textarea:focus {
+  border-color: var(--threadkit-link);
+  outline: none;
+}
+
+.threadkit-formatting-help-toggle {
+  font-size: 11px;
+  color: var(--threadkit-link);
+}
+
+.threadkit-formatting-help-toggle:hover {
+  text-decoration: underline;
+}
+
+.threadkit-formatting-help {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--threadkit-bg-secondary);
+  border: 1px solid var(--threadkit-border-light);
+  border-radius: var(--threadkit-radius);
+  font-size: 12px;
+}
+
+.threadkit-formatting-help-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-formatting-help-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.threadkit-formatting-help-table th {
+  text-align: left;
+  padding: 4px 8px;
+  color: var(--threadkit-text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--threadkit-border-light);
+}
+
+.threadkit-formatting-help-table td {
+  padding: 4px 8px;
+  vertical-align: top;
+}
+
+.threadkit-formatting-help-table code {
+  background: var(--threadkit-bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.threadkit-format-italic {
+  font-style: italic;
+}
+
+.threadkit-format-bold {
+  font-weight: 700;
+}
+
+.threadkit-format-link {
+  color: var(--threadkit-link);
+  text-decoration: underline;
+}
+
+.threadkit-format-strikethrough {
+  text-decoration: line-through;
+}
+
+.threadkit-format-code {
+  background: var(--threadkit-bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.threadkit-format-quote {
+  border-left: 2px solid var(--threadkit-border);
+  padding-left: 8px;
+  color: var(--threadkit-text-secondary);
+  font-style: italic;
+}
+
+.threadkit-format-list {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+.threadkit-format-list li {
+  list-style: disc;
+}
+
+.threadkit-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.threadkit-form-actions-spacer {
+  flex: 1;
+}
+
+.threadkit-root .threadkit-submit-btn {
+  padding: 4px 12px;
+  background: var(--threadkit-primary);
+  color: white;
+  border: 1px solid var(--threadkit-primary);
+  border-radius: var(--threadkit-radius);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.threadkit-root .threadkit-submit-btn:hover:not(:disabled) {
+  background: var(--threadkit-primary-hover);
+  border-color: var(--threadkit-primary-hover);
+}
+
+.threadkit-submit-btn:disabled {
+  background: transparent;
+  border-color: var(--threadkit-border);
+  color: var(--threadkit-text-muted);
+  cursor: not-allowed;
+}
+
+.threadkit-cancel-btn {
+  padding: 4px 10px;
+  color: var(--threadkit-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.threadkit-cancel-btn:hover {
+  color: var(--threadkit-text);
+}
+
+/* ===== Comments Header ===== */
+
+.threadkit-comments-header {
+  margin-bottom: 16px;
+}
+
+.threadkit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.threadkit-sort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.threadkit-sort-label {
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-sort-option {
+  color: var(--threadkit-link);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.threadkit-sort-option:hover {
+  text-decoration: underline;
+}
+
+.threadkit-sort-option.active {
+  color: var(--threadkit-link);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ===== Chat Mode Styles ===== */
+
+.threadkit-chat {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
+.threadkit-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.threadkit-chat-message {
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.threadkit-chat-message:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-chat-message.expanded {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-chat-message-line {
+  display: block;
+}
+
+.threadkit-chat-time {
+  color: var(--threadkit-text-muted);
+  font-size: 11px;
+  margin-right: 8px;
+}
+
+.threadkit-chat-author {
+  color: var(--threadkit-link);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.threadkit-chat-text {
+  color: var(--threadkit-text);
+}
+
+.threadkit-chat-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding-left: 60px;
+}
+
+.threadkit-chat-input {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.threadkit-chat-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  background: var(--threadkit-bg);
+}
+
+/* ===== Loading & Empty States ===== */
+
+.threadkit-loading,
+.threadkit-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--threadkit-text-secondary);
+}
+
+/* ===== Branding ===== */
+
+.threadkit-branding {
+  text-align: center;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-branding a {
+  color: var(--threadkit-text-muted);
+  text-decoration: none;
+}
+
+.threadkit-branding a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Markdown Styles ===== */
+
+.threadkit-inline-code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--threadkit-bg-hover);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.threadkit-paragraph {
+  margin: 0 0 8px 0;
+}
+
+.threadkit-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.threadkit-blockquote {
+  border-left: 3px solid var(--threadkit-border);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-list {
+  list-style: disc;
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.threadkit-list li {
+  margin: 4px 0;
+}
+
+.threadkit-link {
+  color: var(--threadkit-link);
+}
+
+.threadkit-unsafe-link {
+  color: var(--threadkit-text-secondary);
+  text-decoration: line-through;
+}
+
+/* ===== Headings ===== */
+
+.threadkit-heading {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--threadkit-text);
+}
+
+.threadkit-h1 { font-size: 1.5em; }
+.threadkit-h2 { font-size: 1.3em; }
+.threadkit-h3 { font-size: 1.15em; }
+.threadkit-h4 { font-size: 1em; }
+.threadkit-h5 { font-size: 0.95em; }
+.threadkit-h6 { font-size: 0.9em; color: var(--threadkit-text-secondary); }
+
+/* ===== Cancel/Secondary Button ===== */
+
+.threadkit-cancel-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  background: var(--threadkit-bg-hover);
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+}
+
+.threadkit-cancel-btn:hover {
+  background: var(--threadkit-bg-secondary);
+}
+
+/* ===== Settings Panel ===== */
+
+.threadkit-settings {
+  position: relative;
+}
+
+.threadkit-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--threadkit-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--threadkit-radius);
+}
+
+.threadkit-settings-btn:hover {
+  color: var(--threadkit-text);
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-settings-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 280px;
+  margin-top: 4px;
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.threadkit-settings-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--threadkit-border-light);
+}
+
+.threadkit-settings-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.threadkit-settings-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.threadkit-settings-username {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.threadkit-settings-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--threadkit-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+}
+
+.threadkit-settings-edit-btn:hover {
+  color: var(--threadkit-link);
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-settings-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.threadkit-settings-name-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  background: var(--threadkit-bg);
+}
+
+.threadkit-settings-name-input.error {
+  border-color: var(--threadkit-danger);
+}
+
+.threadkit-username-taken {
+  font-size: 11px;
+  color: var(--threadkit-danger);
+}
+
+.threadkit-username-available {
+  font-size: 11px;
+  color: var(--threadkit-success);
+}
+
+.threadkit-settings-section {
+  padding: 4px 0;
+}
+
+.threadkit-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--threadkit-text);
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.threadkit-settings-item:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-settings-arrow {
+  font-size: 10px;
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-settings-value {
+  font-size: 14px;
+}
+
+.threadkit-settings-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--threadkit-border-light);
+}
+
+.threadkit-settings-danger {
+  color: var(--threadkit-danger);
+}
+
+.threadkit-settings-danger:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.threadkit-delete-hold {
+  background: var(--threadkit-danger);
+  color: white;
+  font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.threadkit-delete-hold:hover {
+  background: var(--threadkit-danger);
+}
+
+.threadkit-delete-hold:active {
+  background: #a02030;
+}
+
+.threadkit-delete-complete {
+  color: var(--threadkit-text-muted);
+  font-style: italic;
+}
+
+.threadkit-settings-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--threadkit-text-muted);
+  text-align: center;
+}
+
+/* Avatar Grid */
+.threadkit-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+
+.threadkit-avatar-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.threadkit-avatar-option:hover {
+  border-color: var(--threadkit-link);
+}
+
+.threadkit-avatar-option img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+/* Blocked Users List */
+.threadkit-blocked-list {
+  padding: 8px 12px;
+}
+
+.threadkit-blocked-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+/* Notification Settings */
+.threadkit-notification-settings {
+  padding: 8px 12px;
+}
+
+.threadkit-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.threadkit-settings-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.threadkit-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== Notifications Panel ===== */
+
+.threadkit-notifications {
+  position: relative;
+}
+
+.threadkit-notifications-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--threadkit-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--threadkit-radius);
+  position: relative;
+}
+
+.threadkit-notifications-btn:hover {
+  color: var(--threadkit-text);
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-notifications-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  color: white;
+  background: var(--threadkit-danger);
+  border-radius: 8px;
+}
+
+.threadkit-notifications-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  margin-top: 4px;
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.threadkit-notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--threadkit-border-light);
+}
+
+.threadkit-notifications-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.threadkit-notifications-mark-all {
+  font-size: 12px;
+  color: var(--threadkit-link);
+  background: none;
+  border: none;
+}
+
+.threadkit-notifications-mark-all:hover {
+  text-decoration: underline;
+}
+
+.threadkit-notifications-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.threadkit-notifications-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--threadkit-text-muted);
+  font-size: 13px;
+}
+
+.threadkit-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+}
+
+.threadkit-notification-item:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-notification-item.unread {
+  background: var(--threadkit-bg-secondary);
+}
+
+.threadkit-notification-item.unread:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-notification-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-notification-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.threadkit-notification-message {
+  font-size: 13px;
+  color: var(--threadkit-text);
+  line-height: 1.4;
+}
+
+.threadkit-notification-time {
+  font-size: 11px;
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-notification-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--threadkit-primary);
+  border-radius: 50%;
+  margin-top: 6px;
+}
+
+/* ===== Toolbar Icons Container ===== */
+
+.threadkit-toolbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ===== Mention Input ===== */
+
+.threadkit-mention-input-wrapper {
+  position: relative;
+}
+
+.threadkit-mention-suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 250px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+.threadkit-mention-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--threadkit-text);
+}
+
+.threadkit-mention-suggestion:hover,
+.threadkit-mention-suggestion.selected {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-mention-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.threadkit-mention-name {
+  font-weight: 500;
+}
+
+/* ===== Inline Mentions ===== */
+
+.threadkit-mention {
+  color: var(--threadkit-primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.threadkit-mention:hover {
+  text-decoration: underline;
+}
+
+/* ===== Mobile Header (hidden on desktop) ===== */
+
+.threadkit-mobile-header {
+  display: none;
+}
+
+/* ===== Mobile Styles ===== */
+
+@media (max-width: 640px) {
+  /* Show mobile header */
+  .threadkit-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--threadkit-border);
+    background: var(--threadkit-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .threadkit-mobile-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .threadkit-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--threadkit-text);
+    border-radius: var(--threadkit-radius);
+  }
+
+  .threadkit-mobile-close:hover {
+    background: var(--threadkit-bg-hover);
+  }
+
+  /* Full-screen settings panel on mobile */
+  .threadkit-settings-dropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    overflow-y: auto;
+  }
+
+  /* Full-screen notifications panel on mobile */
+  .threadkit-notifications-dropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+  }
+
+  .threadkit-notifications-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Larger touch targets on mobile */
+  .threadkit-settings-item {
+    padding: 14px 12px;
+  }
+
+  .threadkit-notification-item {
+    padding: 14px 12px;
+  }
+}

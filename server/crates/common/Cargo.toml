@@ -1,0 +1,29 @@
+[package]
+name = "threadkit-common"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+fred.workspace = true
+jsonwebtoken.workspace = true
+argon2.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+dotenvy.workspace = true
+tracing.workspace = true
+rand.workspace = true
+utoipa.workspace = true
+reqwest.workspace = true
+
+# Web3 signature verification
+alloy-primitives.workspace = true
+ed25519-dalek.workspace = true
+bs58.workspace = true
+hex.workspace = true

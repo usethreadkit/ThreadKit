@@ -1,0 +1,383 @@
+mod common;
+
+use axum::http::{HeaderName, HeaderValue, StatusCode};
+use common::TestContext;
+use serde_json::json;
+
+fn api_key_header(api_key: &str) -> (HeaderName, HeaderValue) {
+    (
+        HeaderName::from_static("x-api-key"),
+        HeaderValue::from_str(api_key).unwrap(),
+    )
+}
+
+fn auth_header(token: &str) -> (HeaderName, HeaderValue) {
+    (
+        HeaderName::from_static("authorization"),
+        HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+    )
+}
+
+#[tokio::test]
+async fn test_create_comment() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("commenter", "commenter@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx
+        .create_comment(token, "https://example.com/page1", "This is a test comment", None)
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["comment"]["content"], "This is a test comment");
+    assert_eq!(body["comment"]["page_url"], "https://example.com/page1");
+    assert_eq!(body["comment"]["author"]["name"], "commenter");
+}
+
+#[tokio::test]
+async fn test_create_reply() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("replier", "replier@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create parent comment
+    let response = ctx
+        .create_comment(token, "https://example.com/page2", "Parent comment", None)
+        .await;
+    response.assert_status(StatusCode::OK);
+    let parent: serde_json::Value = response.json();
+    let parent_id = parent["comment"]["id"].as_str().unwrap();
+
+    // Create reply
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token);
+    let response = ctx
+        .server
+        .post("/v1/comments")
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_url": "https://example.com/page2",
+            "content": "This is a reply",
+            "parent_id": parent_id
+        }))
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["comment"]["content"], "This is a reply");
+    assert_eq!(body["comment"]["depth"], 1);
+    assert_eq!(body["comment"]["parent_id"], parent_id);
+}
+
+#[tokio::test]
+async fn test_get_comments() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("reader", "reader@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create a few comments
+    for i in 1..=3 {
+        ctx.create_comment(
+            token,
+            "https://example.com/page3",
+            &format!("Comment {}", i),
+            None,
+        )
+        .await;
+    }
+
+    // Get comments
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let response = ctx
+        .server
+        .get("/v1/comments")
+        .add_query_param("page_url", "https://example.com/page3")
+        .add_header(key_name, key_value)
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["total"], 3);
+    assert_eq!(body["comments"].as_array().unwrap().len(), 3);
+}
+
+#[tokio::test]
+async fn test_update_comment() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("editor", "editor@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx
+        .create_comment(token, "https://example.com/page4", "Original content", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Update comment
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token);
+    let response = ctx
+        .server
+        .put(&format!("/v1/comments/{}", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "content": "Updated content"
+        }))
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let body: serde_json::Value = response.json();
+    // update_comment returns CommentWithAuthor directly (not wrapped)
+    assert_eq!(body["content"], "Updated content");
+    assert_eq!(body["edited"], true);
+}
+
+#[tokio::test]
+async fn test_update_comment_not_owner() {
+    let ctx = TestContext::new().await;
+
+    // Register first user
+    let auth1 = ctx
+        .register_user("owner", "owner@example.com", "password123")
+        .await;
+    let token1 = auth1["token"].as_str().unwrap();
+
+    // Register second user
+    let auth2 = ctx
+        .register_user("other", "other@example.com", "password123")
+        .await;
+    let token2 = auth2["token"].as_str().unwrap();
+
+    // Create comment as first user
+    let response = ctx
+        .create_comment(token1, "https://example.com/page5", "My comment", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Try to update as second user
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token2);
+    let response = ctx
+        .server
+        .put(&format!("/v1/comments/{}", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "content": "Hijacked content"
+        }))
+        .await;
+
+    response.assert_status(StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_delete_comment() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("deleter", "deleter@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx
+        .create_comment(token, "https://example.com/page6", "To be deleted", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Delete comment
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token);
+    let response = ctx
+        .server
+        .delete(&format!("/v1/comments/{}", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .await;
+
+    response.assert_status(StatusCode::NO_CONTENT);
+
+    // Verify comment is not visible
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let response = ctx
+        .server
+        .get("/v1/comments")
+        .add_query_param("page_url", "https://example.com/page6")
+        .add_header(key_name, key_value)
+        .await;
+
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["total"], 0);
+}
+
+#[tokio::test]
+async fn test_vote_comment() {
+    let ctx = TestContext::new().await;
+
+    // Register two users
+    let auth1 = ctx
+        .register_user("voter1", "voter1@example.com", "password123")
+        .await;
+    let token1 = auth1["token"].as_str().unwrap();
+
+    let auth2 = ctx
+        .register_user("voter2", "voter2@example.com", "password123")
+        .await;
+    let token2 = auth2["token"].as_str().unwrap();
+
+    // Create comment as first user
+    let response = ctx
+        .create_comment(token1, "https://example.com/page7", "Vote on me", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Upvote as second user
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token2);
+    let response = ctx
+        .server
+        .post(&format!("/v1/comments/{}/vote", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "direction": "up"
+        }))
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["upvotes"], 1);
+    assert_eq!(body["downvotes"], 0);
+    assert_eq!(body["user_vote"], "up");
+}
+
+#[tokio::test]
+async fn test_vote_toggle() {
+    let ctx = TestContext::new().await;
+
+    // Register users
+    let auth1 = ctx
+        .register_user("toggler1", "toggler1@example.com", "password123")
+        .await;
+    let token1 = auth1["token"].as_str().unwrap();
+
+    let auth2 = ctx
+        .register_user("toggler2", "toggler2@example.com", "password123")
+        .await;
+    let token2 = auth2["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx
+        .create_comment(token1, "https://example.com/page8", "Toggle vote", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Upvote
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token2);
+    let response = ctx
+        .server
+        .post(&format!("/v1/comments/{}/vote", comment_id))
+        .add_header(key_name.clone(), key_value.clone())
+        .add_header(auth_name.clone(), auth_value.clone())
+        .json(&json!({ "direction": "up" }))
+        .await;
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["upvotes"], 1);
+
+    // Upvote again to remove
+    let response = ctx
+        .server
+        .post(&format!("/v1/comments/{}/vote", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({ "direction": "up" }))
+        .await;
+    let body: serde_json::Value = response.json();
+    assert_eq!(body["upvotes"], 0);
+    assert!(body["user_vote"].is_null());
+}
+
+#[tokio::test]
+async fn test_report_comment() {
+    let ctx = TestContext::new().await;
+
+    // Register users
+    let auth1 = ctx
+        .register_user("reported", "reported@example.com", "password123")
+        .await;
+    let token1 = auth1["token"].as_str().unwrap();
+
+    let auth2 = ctx
+        .register_user("reporter", "reporter@example.com", "password123")
+        .await;
+    let token2 = auth2["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx
+        .create_comment(token1, "https://example.com/page9", "Report me", None)
+        .await;
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["id"].as_str().unwrap();
+
+    // Report comment
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (auth_name, auth_value) = auth_header(token2);
+    let response = ctx
+        .server
+        .post(&format!("/v1/comments/{}/report", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "reason": "spam",
+            "details": "This is spam content"
+        }))
+        .await;
+
+    response.assert_status(StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn test_create_comment_requires_auth() {
+    let ctx = TestContext::new().await;
+
+    // Try to create comment without auth
+    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let response = ctx
+        .server
+        .post("/v1/comments")
+        .add_header(key_name, key_value)
+        .json(&json!({
+            "page_url": "https://example.com/page10",
+            "content": "Unauthenticated comment"
+        }))
+        .await;
+
+    response.assert_status(StatusCode::UNAUTHORIZED);
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreadKit - Vanilla JS Example</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 32px;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    .description {
+      color: #666;
+      margin-bottom: 16px;
+    }
+    .controls {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .controls select {
+      padding: 4px 8px;
+    }
+    #threadkit-container {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .code-example {
+      margin-top: 32px;
+      padding: 16px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .code-example code {
+      color: #e0e0e0;
+      font-family: 'Fira Code', Monaco, Consolas, monospace;
+      font-size: 13px;
+      white-space: pre;
+    }
+    .code-example .comment {
+      color: #6a9955;
+    }
+    .code-example .keyword {
+      color: #569cd6;
+    }
+    .code-example .string {
+      color: #ce9178;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ThreadKit - Vanilla JS Example</h1>
+      <p class="description">
+        ThreadKit can be used without a build step using the <code>render()</code> function.
+      </p>
+
+      <div class="controls">
+        <label>
+          Mode:
+          <select id="mode-select">
+            <option value="comments">Comments</option>
+            <option value="chat">Chat</option>
+          </select>
+        </label>
+
+        <label>
+          Theme:
+          <select id="theme-select">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main id="threadkit-container"></main>
+
+    <div class="code-example">
+      <code><span class="comment">// Import ThreadKit</span>
+<span class="keyword">import</span> { render } <span class="keyword">from</span> <span class="string">'@threadkit/react'</span>;
+<span class="keyword">import</span> <span class="string">'@threadkit/react/styles'</span>;
+
+<span class="comment">// Render into a DOM element</span>
+<span class="keyword">const</span> threadkit = render(<span class="string">'#threadkit-container'</span>, {
+  siteId: <span class="string">'demo'</span>,
+  url: <span class="string">'/vanilla'</span>,
+  apiUrl: <span class="string">'/api'</span>,
+  mode: <span class="string">'comments'</span>,
+  theme: <span class="string">'light'</span>,
+});
+
+<span class="comment">// To unmount later:</span>
+<span class="comment">// threadkit.unmount();</span></code>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

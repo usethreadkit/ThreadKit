@@ -1,0 +1,48 @@
+{
+  "name": "@threadkit/plugin-auth-solana",
+  "version": "0.0.1",
+  "description": "Solana wallet authentication plugin for ThreadKit",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js",
+    "dev": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js --watch"
+  },
+  "peerDependencies": {
+    "@threadkit/react": ">=0.0.1",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@solana/wallet-adapter-react": "^0.15.35",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
+    "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/web3.js": "^1.98.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT",
+  "author": "fantauma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usethreadkit/threadkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/usethreadkit/threadkit/issues"
+  },
+  "homepage": "https://usethreadkit.com"
+}
