@@ -136,14 +136,14 @@ async fn test_rate_limit_exceeded() {
     let ctx = TestContext::new().await;
 
     // Make many requests to exhaust the rate limit (5 writes per minute)
+    // Note: register uses a separate "auth" rate limit bucket, not "write"
     let auth = ctx
         .register_user("spammer", "spammer@example.com", "password123")
         .await;
     let token = auth["token"].as_str().unwrap();
 
-    // The register call counts as a write, so we have 4 remaining
-    // Make 4 more write requests
-    for i in 0..4 {
+    // Make 5 write requests to exhaust the write limit
+    for i in 0..5 {
         let response = ctx
             .create_comment(
                 token,
@@ -153,12 +153,12 @@ async fn test_rate_limit_exceeded() {
             )
             .await;
 
-        if i < 3 {
+        if i < 4 {
             response.assert_status(StatusCode::OK);
         }
     }
 
-    // The 5th write should be rate limited
+    // The 6th write should be rate limited
     let response = ctx
         .create_comment(token, "https://example.com/spam_final", "Final spam", None)
         .await;
