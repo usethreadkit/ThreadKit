@@ -5,15 +5,18 @@ import { CommentStore, type Comment, type SortBy, type CommentStoreState } from 
 export { ThreadKitError, type ThreadKitErrorCode } from '@threadkit/core';
 
 interface UseCommentsOptions {
-  siteId: string;
   url: string;
   apiUrl: string;
-  apiKey?: string;
+  apiKey: string;
   sortBy: SortBy;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];
   /** Function to get additional headers before posting (e.g., Turnstile token) */
   getPostHeaders?: () => Promise<Record<string, string>>;
+  /**
+   * @deprecated siteId is no longer needed - site is derived from API key
+   */
+  siteId?: string;
 }
 
 interface UseCommentsReturn {
@@ -22,7 +25,7 @@ interface UseCommentsReturn {
   error: Error | null;
   postComment: (text: string, parentId?: string) => Promise<Comment>;
   deleteComment: (commentId: string) => Promise<void>;
-  vote: (commentId: string, voteType: 'up' | 'down') => Promise<void>;
+  vote: (commentId: string, voteType: 'up' | 'down') => Promise<{ upvotes: number; downvotes: number; user_vote?: 'up' | 'down' | null }>;
   refresh: () => Promise<void>;
   addComment: (comment: Comment) => void;
   removeComment: (commentId: string) => void;
@@ -34,7 +37,6 @@ interface UseCommentsReturn {
  * Thin wrapper around @threadkit/core CommentStore.
  */
 export function useComments({
-  siteId,
   url,
   apiUrl,
   apiKey,
@@ -48,7 +50,6 @@ export function useComments({
   if (!storeRef.current) {
     storeRef.current = new CommentStore({
       apiUrl,
-      siteId,
       url,
       apiKey,
       sortBy,

@@ -1,13 +1,14 @@
 import { EventEmitter } from '../EventEmitter';
 import type { Comment, CommentStoreState, SortBy, ThreadKitErrorCode } from '../types';
 import { ThreadKitError } from '../types';
+import type { GetCommentsResponse, CreateCommentResponse, VoteResponse } from '../api.types';
 import {
-  buildCommentTree,
   sortComments,
   addToTree,
   removeFromTree,
   updateInTree,
 } from '../utils/commentTree';
+import { pageTreeToComments, treeCommentToComment, getCommentPath } from '../utils/treeConvert';
 
 // ============================================================================
 // Configuration
@@ -16,20 +17,24 @@ import {
 export interface CommentStoreConfig {
   /** API base URL */
   apiUrl: string;
-  /** Site ID from ThreadKit dashboard */
-  siteId: string;
   /** Page URL/identifier for this comment thread */
   url: string;
-  /** API key (public key) */
-  apiKey?: string;
+  /** API key (public key) - required */
+  apiKey: string;
   /** Function to get the current auth token (injected, not hardcoded) */
   getToken: () => string | null;
+  /** Function to get the current user ID (for vote tracking) */
+  getUserId?: () => string | null;
   /** Function to get additional headers before posting (e.g., Turnstile token) */
   getPostHeaders?: () => Promise<Record<string, string>>;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];
   /** Initial sort order */
   sortBy?: SortBy;
+  /**
+   * @deprecated siteId is no longer needed - site is derived from API key
+   */
+  siteId?: string;
 }
 
 // ============================================================================
@@ -60,9 +65,8 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
 
     // Initialize state
     if (config.initialComments && config.initialComments.length > 0) {
-      const tree = buildCommentTree(config.initialComments);
       this.state = {
-        comments: sortComments(tree, this.sortBy),
+        comments: sortComments(config.initialComments, this.sortBy),
         loading: false,
         error: null,
       };
@@ -111,14 +115,16 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
     try {
       this.setState({ loading: true, error: null });
 
-      const { apiUrl, siteId, url, apiKey } = this.config;
-      const headers: Record<string, string> = {};
-      if (apiKey) {
-        headers['X-API-Key'] = apiKey;
-      }
+      const { apiUrl, url, apiKey } = this.config;
+      const headers: Record<string, string> = {
+        'X-API-Key': apiKey,
+      };
+
+      // Map our SortBy to server's SortOrder
+      const sortParam = this.mapSortByToSortOrder(this.sortBy);
 
       const response = await fetch(
-        `${apiUrl}/sites/${siteId}/comments?url=${encodeURIComponent(url)}`,
+        `${apiUrl}/comments?page_url=${encodeURIComponent(url)}&sort=${sortParam}`,
         { headers }
       );
 
@@ -127,10 +133,11 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
         throw error;
       }
 
-      const data = await response.json();
-      const tree = buildCommentTree(data.comments || []);
+      const data: GetCommentsResponse = await response.json();
+      const comments = pageTreeToComments(data.tree);
+
       this.setState({
-        comments: sortComments(tree, this.sortBy),
+        comments: sortComments(comments, this.sortBy),
         loading: false,
       });
     } catch (err) {
@@ -149,15 +156,13 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Post a new comment
    */
   async post(text: string, parentId?: string): Promise<Comment> {
-    const { apiUrl, siteId, url, apiKey } = this.config;
+    const { apiUrl, url, apiKey } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
     };
-    if (apiKey) {
-      headers['X-API-Key'] = apiKey;
-    }
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -168,10 +173,26 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       Object.assign(headers, additionalHeaders);
     }
 
-    const response = await fetch(`${apiUrl}/sites/${siteId}/comments`, {
+    // Build the parent_path if replying to a comment
+    let parentPath: string[] | undefined;
+    if (parentId) {
+      const path = getCommentPath(this.state.comments, parentId);
+      if (path) {
+        parentPath = path;
+      } else {
+        // If we can't find the path, just use the parentId directly
+        parentPath = [parentId];
+      }
+    }
+
+    const response = await fetch(`${apiUrl}/comments`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ url, text, parentId }),
+      body: JSON.stringify({
+        page_url: url,
+        content: text,
+        parent_path: parentPath,
+      }),
     });
 
     if (!response.ok) {
@@ -179,7 +200,9 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       throw error;
     }
 
-    const comment = await response.json();
+    const data: CreateCommentResponse = await response.json();
+    // Convert the TreeComment to our Comment format
+    const comment = treeCommentToComment(data.comment, parentId);
     return comment;
   }
 
@@ -187,20 +210,30 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Delete a comment
    */
   async delete(commentId: string): Promise<void> {
-    const { apiUrl, apiKey } = this.config;
+    const { apiUrl, url, apiKey } = this.config;
     const token = this.config.getToken();
 
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers['X-API-Key'] = apiKey;
-    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
+    };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Get the path to the comment
+    const path = getCommentPath(this.state.comments, commentId);
+    if (!path) {
+      throw new ThreadKitError('Comment not found', 'UNKNOWN');
     }
 
     const response = await fetch(`${apiUrl}/comments/${commentId}`, {
       method: 'DELETE',
       headers,
+      body: JSON.stringify({
+        page_url: url,
+        path,
+      }),
     });
 
     if (!response.ok) {
@@ -212,24 +245,114 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   /**
    * Vote on a comment
    */
-  async vote(commentId: string, type: 'up' | 'down'): Promise<void> {
-    const { apiUrl, apiKey } = this.config;
+  async vote(commentId: string, type: 'up' | 'down'): Promise<VoteResponse> {
+    const { apiUrl, url, apiKey } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
     };
-    if (apiKey) {
-      headers['X-API-Key'] = apiKey;
-    }
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Get the path to the comment
+    const path = getCommentPath(this.state.comments, commentId);
+    if (!path) {
+      throw new ThreadKitError('Comment not found', 'UNKNOWN');
     }
 
     const response = await fetch(`${apiUrl}/comments/${commentId}/vote`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ type }),
+      body: JSON.stringify({
+        page_url: url,
+        path,
+        direction: type, // Server expects 'up' or 'down'
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await this.parseErrorResponse(response);
+      throw error;
+    }
+
+    const data: VoteResponse = await response.json();
+    return data;
+  }
+
+  /**
+   * Edit a comment
+   */
+  async edit(commentId: string, newText: string): Promise<void> {
+    const { apiUrl, url, apiKey } = this.config;
+    const token = this.config.getToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Get the path to the comment
+    const path = getCommentPath(this.state.comments, commentId);
+    if (!path) {
+      throw new ThreadKitError('Comment not found', 'UNKNOWN');
+    }
+
+    const response = await fetch(`${apiUrl}/comments/${commentId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        page_url: url,
+        path,
+        content: newText,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await this.parseErrorResponse(response);
+      throw error;
+    }
+  }
+
+  /**
+   * Report a comment
+   */
+  async report(
+    commentId: string,
+    reason: 'spam' | 'harassment' | 'hate_speech' | 'misinformation' | 'other',
+    details?: string
+  ): Promise<void> {
+    const { apiUrl, url, apiKey } = this.config;
+    const token = this.config.getToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Get the path to the comment
+    const path = getCommentPath(this.state.comments, commentId);
+    if (!path) {
+      throw new ThreadKitError('Comment not found', 'UNKNOWN');
+    }
+
+    const response = await fetch(`${apiUrl}/comments/${commentId}/report`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        page_url: url,
+        path,
+        reason,
+        details,
+      }),
     });
 
     if (!response.ok) {
@@ -298,6 +421,24 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   // Private Helpers
   // ============================================================================
 
+  /**
+   * Map our SortBy enum to the server's SortOrder enum
+   */
+  private mapSortByToSortOrder(sortBy: SortBy): string {
+    switch (sortBy) {
+      case 'newest':
+        return 'new';
+      case 'votes':
+        return 'top';
+      case 'oldest':
+        return 'new'; // Server doesn't have oldest, we'll reverse client-side
+      case 'controversial':
+        return 'hot'; // Map to hot, closest equivalent
+      default:
+        return 'new';
+    }
+  }
+
   private async parseErrorResponse(response: Response): Promise<ThreadKitError> {
     let errorCode: ThreadKitErrorCode = 'UNKNOWN';
     let errorMessage = `Request failed: ${response.statusText}`;
@@ -312,7 +453,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       if (response.status === 404) {
         errorCode = 'SITE_NOT_FOUND';
         errorMessage =
-          errorData.error || 'Site not found. Please check your siteId configuration.';
+          errorData.error || 'Page not found. Please check your configuration.';
       } else if (response.status === 401 || response.status === 403) {
         errorCode = errorData.error?.includes('API key')
           ? 'INVALID_API_KEY'

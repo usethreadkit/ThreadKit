@@ -8,13 +8,25 @@ export interface Comment {
   userName: string;
   userAvatar?: string;
   text: string;
+  /** Rendered HTML content */
+  html?: string;
   timestamp: number;
+  /** Array of user IDs who upvoted (for tracking user's vote) */
   upvotes: string[];
+  /** Array of user IDs who downvoted (for tracking user's vote) */
   downvotes: string[];
+  /** Total upvote count (from server) */
+  upvoteCount?: number;
+  /** Total downvote count (from server) */
+  downvoteCount?: number;
   parentId?: string;
   children: Comment[];
   edited?: boolean;
   pinned?: boolean;
+  /** Author's karma score */
+  karma?: number;
+  /** Comment status: approved, pending, rejected, deleted */
+  status?: 'approved' | 'pending' | 'rejected' | 'deleted';
 }
 
 export interface User {

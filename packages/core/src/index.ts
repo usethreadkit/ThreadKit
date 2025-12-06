@@ -64,6 +64,16 @@ export {
   flattenTree,
 } from './utils/commentTree';
 
+// Tree Conversion Utilities (API <-> Client format)
+export {
+  treeCommentToComment,
+  pageTreeToComments,
+  commentToTreeComment,
+  getCommentPath,
+  isDeletedUser,
+  isAnonymousUser,
+} from './utils/treeConvert';
+
 // Markdown Tokenizer
 export {
   tokenizeLine,

@@ -9,7 +9,7 @@ type Theme = 'light' | 'dark';
 // Configuration for local development
 // Make sure your server is running at localhost:8080
 // Set these values to match your server/.env file
-const LOCAL_API_KEY = 'tk_pub_your_public_key';
+const LOCAL_API_KEY = 'tk_pub_your_public_key_here';
 
 function App() {
   const [mode, setMode] = useState<Mode>('comments');
@@ -43,7 +43,7 @@ function App() {
             </li>
             <li>
               Update <code>LOCAL_API_KEY</code> in this file to match your{' '}
-              <code>API_KEY_PUBLIC</code> in <code>server/.env</code>
+              <code>API_KEY_PUBLIC</code> from <code>server/.env</code>
             </li>
           </ol>
         </div>
@@ -103,6 +103,7 @@ function App() {
           showPresence={mode === 'chat'}
           showTyping={mode === 'chat'}
           apiUrl="/v1"
+          onError={(error) => console.error('ThreadKit error:', error)}
         />
       </main>
 

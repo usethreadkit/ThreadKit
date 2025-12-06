@@ -89,10 +89,12 @@ export interface ThreadKitCSSVariables {
 // ============================================================================
 
 export interface ThreadKitProps {
-  /** Your site ID from ThreadKit dashboard */
-  siteId: string;
   /** The URL/page identifier for this comment thread */
   url: string;
+  /**
+   * @deprecated siteId is no longer needed - site is derived from API key
+   */
+  siteId?: string;
   /** Display mode: 'comments' for threaded, 'chat' for live stream */
   mode?: ThreadKitMode;
   /** Theme: 'light' or 'dark' */

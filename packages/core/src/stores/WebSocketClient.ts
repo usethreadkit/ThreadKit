@@ -8,8 +8,6 @@ import type { Comment, WebSocketMessage, WebSocketState } from '../types';
 export interface WebSocketClientConfig {
   /** API base URL (will be converted to ws:// or wss://) */
   apiUrl: string;
-  /** Site ID from ThreadKit dashboard */
-  siteId: string;
   /** Page URL/identifier for this comment thread */
   url: string;
   /** Function to get the current auth token */
@@ -18,6 +16,10 @@ export interface WebSocketClientConfig {
   reconnectDelay?: number;
   /** How long to show typing indicator before auto-removing (default: 3000ms) */
   typingTimeout?: number;
+  /**
+   * @deprecated siteId is no longer needed - site is derived from API key/token
+   */
+  siteId?: string;
 }
 
 // ============================================================================
@@ -105,7 +107,9 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
       const { apiUrl, siteId, url } = this.config;
       const wsUrl = apiUrl.replace(/^http/, 'ws');
       const token = this.config.getToken();
-      const wsUrlWithParams = `${wsUrl}/ws/${siteId}?url=${encodeURIComponent(url)}${token ? `&token=${token}` : ''}`;
+      // Build WebSocket URL - siteId is optional (site derived from token)
+      const wsPath = siteId ? `/ws/${siteId}` : '/ws';
+      const wsUrlWithParams = `${wsUrl}${wsPath}?url=${encodeURIComponent(url)}${token ? `&token=${token}` : ''}`;
 
       this.ws = new WebSocket(wsUrlWithParams);
 

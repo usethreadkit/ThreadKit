@@ -58,7 +58,6 @@ interface ThreadKitInnerProps extends ThreadKitProps {
 
 // Inner component that has access to auth context
 function ThreadKitInner({
-  siteId,
   url,
   mode = 'comments',
   theme = 'light',
@@ -160,7 +159,6 @@ function ThreadKitInner({
     updateComment,
     refresh,
   } = useComments({
-    siteId,
     url,
     apiUrl,
     apiKey,
@@ -270,7 +268,6 @@ function ThreadKitInner({
   );
 
   const { presenceCount, typingUsers, sendTyping } = useWebSocket({
-    siteId,
     url,
     apiUrl,
     enabled: true,
@@ -566,13 +563,12 @@ function ThreadKitInner({
           <>
             <strong>Site not configured</strong>
             <p>
-              This site ID hasn't been set up yet. Visit{' '}
+              This API key is not associated with a configured site. Visit{' '}
               <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
                 usethreadkit.com/dashboard
               </a>{' '}
               to complete your setup.
             </p>
-            <code className="threadkit-error-code">siteId: {siteId}</code>
           </>
         );
         break;

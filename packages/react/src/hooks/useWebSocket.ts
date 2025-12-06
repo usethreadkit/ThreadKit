@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebSocketClient, type Comment, type WebSocketState } from '@threadkit/core';
 
 interface UseWebSocketOptions {
-  siteId: string;
   url: string;
   apiUrl: string;
   enabled?: boolean;
@@ -13,6 +12,10 @@ interface UseWebSocketOptions {
   onUserBanned?: (userId: string) => void;
   onTyping?: (userId: string, userName: string) => void;
   onPresenceUpdate?: (count: number) => void;
+  /**
+   * @deprecated siteId is no longer needed - site is derived from token
+   */
+  siteId?: string;
 }
 
 interface UseWebSocketReturn {
@@ -27,7 +30,6 @@ interface UseWebSocketReturn {
  * Thin wrapper around @threadkit/core WebSocketClient.
  */
 export function useWebSocket({
-  siteId,
   url,
   apiUrl,
   enabled = true,
@@ -45,7 +47,6 @@ export function useWebSocket({
   if (!clientRef.current) {
     clientRef.current = new WebSocketClient({
       apiUrl,
-      siteId,
       url,
       getToken: () => localStorage.getItem('threadkit_token'),
     });
