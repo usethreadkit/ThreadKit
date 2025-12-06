@@ -1194,6 +1194,20 @@ impl RedisClient {
         Ok(count)
     }
 
+    /// Increment both pageview and usage counters in a single pipeline (one round trip)
+    pub async fn increment_pageview_with_usage(&self, page_id: Uuid, site_id: Uuid) -> Result<()> {
+        let month = Utc::now().format("%Y-%m").to_string();
+        let pipeline = self.client.pipeline();
+
+        // Queue both commands to the pipeline
+        pipeline.incr::<i64, _>(format!("page:{}:views", page_id)).await?;
+        pipeline.hincrby::<i64, _, _>(format!("site:{}:usage:{}", site_id, month), "pageviews", 1).await?;
+
+        // Execute both commands in a single round trip
+        let _: Vec<i64> = pipeline.all().await?;
+        Ok(())
+    }
+
     pub async fn get_pageviews(&self, page_id: Uuid) -> Result<i64> {
         let count: i64 = self
             .client

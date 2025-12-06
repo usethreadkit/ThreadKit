@@ -122,6 +122,9 @@ pub async fn get_comments(
     Query(query): Query<GetCommentsQuery>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
     use axum::response::IntoResponse;
+    use std::time::Instant;
+
+    let request_start = Instant::now();
 
     // Generate page_id from URL
     let page_id = RedisClient::generate_page_id(api_key.0.site_id, &query.page_url);
@@ -144,19 +147,51 @@ pub async fn get_comments(
         }
     }
 
-    // Increment pageview
-    let _ = state.redis.increment_pageview(page_id).await;
-    let _ = state
-        .redis
-        .increment_usage(api_key.0.site_id, "pageviews", 1)
-        .await;
+    // Fire-and-forget pageview increments (spawned task, no await blocking response)
+    // Uses pipeline to batch both increments into a single Redis round trip
+    {
+        let redis = state.redis.clone();
+        let site_id = api_key.0.site_id;
+        tokio::spawn(async move {
+            let _ = redis.increment_pageview_with_usage(page_id, site_id).await;
+        });
+    }
 
-    // Get the entire page tree in ONE Redis call
-    let mut tree = state
-        .redis
-        .get_or_create_page_tree(page_id)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    // Prepare concurrent fetches - we need blocked_users and pageviews in parallel with tree
+    let user_id_for_blocked = maybe_auth.0.as_ref().map(|u| u.user_id);
+    let show_pageviews = api_key.0.settings.display.show_pageviews;
+
+    // Run all Redis reads concurrently using tokio::join!
+    let redis_start = Instant::now();
+    let (tree_result, blocked_users, pageviews) = tokio::join!(
+        // Primary: get the page tree
+        state.redis.get_or_create_page_tree(page_id),
+        // Get blocked users (if authenticated)
+        async {
+            if let Some(user_id) = user_id_for_blocked {
+                state
+                    .redis
+                    .get_blocked_users(user_id)
+                    .await
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect::<std::collections::HashSet<Uuid>>()
+            } else {
+                std::collections::HashSet::new()
+            }
+        },
+        // Get pageviews (if enabled)
+        async {
+            if show_pageviews {
+                state.redis.get_pageviews(page_id).await.ok()
+            } else {
+                None
+            }
+        }
+    );
+    let redis_elapsed = redis_start.elapsed();
+
+    let mut tree = tree_result.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // Update in-memory cache with latest timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
@@ -179,42 +214,44 @@ pub async fn get_comments(
         }
     }
 
-    // Get blocked users for filtering
-    let blocked_users: std::collections::HashSet<Uuid> = if let Some(ref auth) = maybe_auth.0 {
-        state
-            .redis
-            .get_blocked_users(auth.user_id)
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .collect()
-    } else {
-        std::collections::HashSet::new()
-    };
-
     let current_user_id = maybe_auth.0.as_ref().map(|u| u.user_id);
 
     // Filter comments in place and strip vote lists
+    let filter_start = Instant::now();
     filter_tree_for_response(&mut tree, current_user_id, &blocked_users);
+    let filter_elapsed = filter_start.elapsed();
 
     // Sort if requested
+    let sort_start = Instant::now();
     let sort = query.sort.unwrap_or_default();
     sort_tree(&mut tree, sort);
-
-    // Get pageviews if enabled
-    let pageviews = if api_key.0.settings.display.show_pageviews {
-        state.redis.get_pageviews(page_id).await.ok()
-    } else {
-        None
-    };
+    let sort_elapsed = sort_start.elapsed();
 
     let total = tree.total_count();
 
+    let serialize_start = Instant::now();
     let response = GetCommentsResponse {
         tree,
         total,
         pageviews,
     };
+
+    let json_response = Json(response);
+    let serialize_elapsed = serialize_start.elapsed();
+    let total_elapsed = request_start.elapsed();
+
+    // Log timing breakdown for slow requests (>10ms)
+    if total_elapsed.as_millis() > 10 {
+        tracing::debug!(
+            redis_ms = redis_elapsed.as_millis(),
+            filter_ms = filter_elapsed.as_micros() as f64 / 1000.0,
+            sort_ms = sort_elapsed.as_micros() as f64 / 1000.0,
+            serialize_ms = serialize_elapsed.as_micros() as f64 / 1000.0,
+            total_ms = total_elapsed.as_millis(),
+            comment_count = total,
+            "get_comments timing breakdown"
+        );
+    }
 
     Ok((
         StatusCode::OK,
@@ -222,7 +259,7 @@ pub async fn get_comments(
             ("ETag", etag),
             ("Cache-Control", "public, max-age=0, must-revalidate".to_string()),
         ],
-        Json(response),
+        json_response,
     )
         .into_response())
 }
