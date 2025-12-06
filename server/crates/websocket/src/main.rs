@@ -16,34 +16,67 @@ use threadkit_common::Config;
 use threadkit_websocket::{handler::handle_socket, state::WsState};
 
 #[derive(Parser)]
-#[command(name = "threadkit-ws")]
+#[command(name = "threadkit-websocket")]
 #[command(about = "ThreadKit WebSocket server")]
+#[command(version)]
 struct Args {
     /// Path to .env file (e.g., .env.loadtest)
     #[arg(short, long)]
     env: Option<String>,
+
+    /// Log level (e.g., "info", "debug", "info,threadkit=debug")
+    #[arg(short, long)]
+    log: Option<String>,
+
+    /// Host to bind to (overrides WS_HOST env var)
+    #[arg(long)]
+    host: Option<String>,
+
+    /// Port to listen on (overrides WS_PORT env var)
+    #[arg(short, long)]
+    port: Option<u16>,
+
+    /// Redis URL (overrides REDIS_URL env var)
+    #[arg(long)]
+    redis_url: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Initialize tracing
+    // Initialize tracing (CLI --log takes precedence over RUST_LOG env var)
+    let log_filter = args
+        .log
+        .clone()
+        .or_else(|| std::env::var("RUST_LOG").ok())
+        .unwrap_or_else(|| "info,threadkit=debug".into());
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info,threadkit=debug".into()),
-        ))
+        .with(tracing_subscriber::EnvFilter::new(&log_filter))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     // Load config
-    let config = match &args.env {
+    let mut config = match &args.env {
         Some(path) => {
             tracing::info!("Loading config from: {}", path);
             Config::from_env_file(path)?
         }
         None => Config::from_env()?,
     };
+
+    // Apply CLI arg overrides
+    if let Some(host) = args.host {
+        config.ws_host = host;
+    }
+    if let Some(port) = args.port {
+        config.ws_port = port;
+    }
+    if let Some(redis_url) = args.redis_url {
+        config.redis_url = redis_url;
+    }
+
     tracing::info!("Starting ThreadKit WebSocket server");
 
     // Initialize state
@@ -57,7 +90,11 @@ async fn main() -> Result<()> {
         .with_state(state);
 
     // Start server
-    let addr = SocketAddr::from(([0, 0, 0, 0], config.ws_port));
+    let host: std::net::IpAddr = config.ws_host.parse().unwrap_or_else(|_| {
+        tracing::warn!("Invalid WS_HOST '{}', defaulting to 127.0.0.1", config.ws_host);
+        std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))
+    });
+    let addr = SocketAddr::from((host, config.ws_port));
     tracing::info!("WebSocket server listening on {}", addr);
 
     let listener = TcpListener::bind(addr).await?;

@@ -21,38 +21,139 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-use threadkit_common::Config;
+use threadkit_common::{Config, Mode, ModerationMode};
 use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::AppState};
 
 #[derive(Parser)]
 #[command(name = "threadkit-http")]
 #[command(about = "ThreadKit HTTP API server")]
+#[command(version)]
 struct Args {
     /// Path to .env file (e.g., .env.loadtest)
     #[arg(short, long)]
     env: Option<String>,
+
+    /// Log level (e.g., "info", "debug", "info,threadkit=debug")
+    #[arg(short, long)]
+    log: Option<String>,
+
+    /// Host to bind to (overrides HTTP_HOST env var)
+    #[arg(long)]
+    host: Option<String>,
+
+    /// Port to listen on (overrides HTTP_PORT env var)
+    #[arg(short, long)]
+    port: Option<u16>,
+
+    /// Redis URL (overrides REDIS_URL env var)
+    #[arg(long)]
+    redis_url: Option<String>,
+
+    /// Disable rate limiting
+    #[arg(long)]
+    no_rate_limit: bool,
+
+    /// Allow localhost/127.0.0.1/::1 origins (development only)
+    #[arg(long)]
+    allow_localhost_origin: bool,
+
+    /// Site ID (standalone mode, overrides SITE_ID)
+    #[arg(long)]
+    site_id: Option<String>,
+
+    /// Site name (standalone mode, overrides SITE_NAME)
+    #[arg(long)]
+    site_name: Option<String>,
+
+    /// Site domain (standalone mode, overrides SITE_DOMAIN)
+    #[arg(long)]
+    site_domain: Option<String>,
+
+    /// Public API key (standalone mode, overrides API_KEY_PUBLIC)
+    #[arg(long)]
+    api_key_public: Option<String>,
+
+    /// Secret API key (standalone mode, overrides API_KEY_SECRET)
+    #[arg(long)]
+    api_key_secret: Option<String>,
+
+    /// Moderation mode: none, pre, or post (standalone mode)
+    #[arg(long)]
+    moderation_mode: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Initialize tracing
+    // Initialize tracing (CLI --log takes precedence over RUST_LOG env var)
+    let log_filter = args
+        .log
+        .clone()
+        .or_else(|| std::env::var("RUST_LOG").ok())
+        .unwrap_or_else(|| "info,threadkit=debug".into());
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info,threadkit=debug".into()),
-        ))
+        .with(tracing_subscriber::EnvFilter::new(&log_filter))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     // Load config
-    let config = match &args.env {
+    let mut config = match &args.env {
         Some(path) => {
             tracing::info!("Loading config from: {}", path);
             Config::from_env_file(path)?
         }
         None => Config::from_env()?,
     };
+
+    // Apply CLI arg overrides
+    if let Some(host) = args.host {
+        config.http_host = host;
+    }
+    if let Some(port) = args.port {
+        config.http_port = port;
+    }
+    if let Some(redis_url) = args.redis_url {
+        config.redis_url = redis_url;
+    }
+    if args.no_rate_limit {
+        config.rate_limit.enabled = false;
+    }
+    if args.allow_localhost_origin {
+        config.allow_localhost_origin = true;
+    }
+
+    // Standalone mode overrides
+    if let Mode::Standalone(ref mut standalone) = config.mode {
+        if let Some(site_id) = args.site_id {
+            if let Ok(id) = site_id.parse() {
+                standalone.site_id = id;
+            } else {
+                tracing::warn!("Invalid --site-id '{}', ignoring", site_id);
+            }
+        }
+        if let Some(name) = args.site_name {
+            standalone.site_name = name;
+        }
+        if let Some(domain) = args.site_domain {
+            standalone.site_domain = domain;
+        }
+        if let Some(key) = args.api_key_public {
+            standalone.api_key_public = key;
+        }
+        if let Some(key) = args.api_key_secret {
+            standalone.api_key_secret = key;
+        }
+        if let Some(mode) = args.moderation_mode {
+            standalone.moderation_mode = match mode.to_lowercase().as_str() {
+                "pre" => ModerationMode::Pre,
+                "post" => ModerationMode::Post,
+                _ => ModerationMode::None,
+            };
+        }
+    }
+
     tracing::info!("Starting ThreadKit HTTP server");
     tracing::info!("Mode: {:?}", if config.is_standalone() { "standalone" } else { "saas" });
 
@@ -103,7 +204,11 @@ async fn main() -> Result<()> {
         .with_state(state);
 
     // Start server
-    let addr = SocketAddr::from(([0, 0, 0, 0], config.http_port));
+    let host: std::net::IpAddr = config.http_host.parse().unwrap_or_else(|_| {
+        tracing::warn!("Invalid HTTP_HOST '{}', defaulting to 127.0.0.1", config.http_host);
+        std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))
+    });
+    let addr = SocketAddr::from((host, config.http_port));
     tracing::info!("Listening on {}", addr);
 
     let listener = TcpListener::bind(addr).await?;

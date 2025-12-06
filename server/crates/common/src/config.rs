@@ -6,7 +6,9 @@ use uuid::Uuid;
 pub struct Config {
     pub mode: Mode,
     pub redis_url: String,
+    pub http_host: String,
     pub http_port: u16,
+    pub ws_host: String,
     pub ws_port: u16,
     pub jwt_secret: String,
     pub jwt_expiry_hours: u64,
@@ -286,10 +288,12 @@ impl Config {
         Ok(Config {
             mode,
             redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string()),
+            http_host: env::var("HTTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             http_port: env::var("HTTP_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(8080),
+            ws_host: env::var("WS_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             ws_port: env::var("WS_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
