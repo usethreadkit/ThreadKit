@@ -69,6 +69,10 @@ use crate::routes::{admin, auth, comments, moderation, users};
         admin::get_moderators,
         admin::add_moderator,
         admin::remove_moderator,
+        admin::get_posting_status,
+        admin::set_site_posting,
+        admin::get_page_posting_status,
+        admin::set_page_posting,
     ),
     components(
         schemas(
@@ -120,6 +124,8 @@ use crate::routes::{admin, auth, comments, moderation, users};
             // Admin types
             admin::RoleListResponse,
             admin::AddUserRequest,
+            admin::PostingStatusResponse,
+            admin::SetPostingRequest,
         )
     ),
     security(

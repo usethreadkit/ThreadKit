@@ -62,6 +62,7 @@ impl AppState {
                     rate_limits: Default::default(),
                     content_moderation: content_moderation_settings,
                     allowed_origins: standalone.allowed_origins.clone(),
+                    posting_disabled: false,
                 },
             };
 

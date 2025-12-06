@@ -23,6 +23,9 @@ pub fn router() -> Router<AppState> {
         // Moderator management (admin+)
         .route("/sites/{id}/moderators", get(get_moderators).post(add_moderator))
         .route("/sites/{id}/moderators/{user_id}", delete(remove_moderator))
+        // Posting controls (admin+)
+        .route("/sites/{id}/posting", get(get_posting_status).put(set_site_posting))
+        .route("/pages/{page_id}/posting", get(get_page_posting_status).put(set_page_posting))
 }
 
 // ============================================================================
@@ -302,4 +305,178 @@ pub async fn remove_moderator(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(StatusCode::OK)
+}
+
+// ============================================================================
+// Posting Control Types
+// ============================================================================
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PostingStatusResponse {
+    /// Whether posting is disabled
+    pub disabled: bool,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SetPostingRequest {
+    /// Set to true to disable posting, false to enable
+    pub disabled: bool,
+}
+
+// ============================================================================
+// Site Posting Control Handlers (Admin+)
+// ============================================================================
+
+/// Get site-wide posting status (admin+)
+#[utoipa::path(
+    get,
+    path = "/sites/{id}/posting",
+    tag = "admin",
+    params(
+        ("id" = Uuid, Path, description = "Site ID")
+    ),
+    responses(
+        (status = 200, description = "Posting status", body = PostingStatusResponse),
+        (status = 403, description = "Not an admin")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn get_posting_status(
+    api_key: ApiKey,
+    auth: AuthUserWithRole,
+    Path(site_id): Path<Uuid>,
+) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
+    auth.require_admin()?;
+
+    if site_id != api_key.0.site_id {
+        return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
+    }
+
+    Ok(Json(PostingStatusResponse {
+        disabled: api_key.0.settings.posting_disabled,
+    }))
+}
+
+/// Enable or disable site-wide posting (admin+)
+#[utoipa::path(
+    put,
+    path = "/sites/{id}/posting",
+    tag = "admin",
+    params(
+        ("id" = Uuid, Path, description = "Site ID")
+    ),
+    request_body = SetPostingRequest,
+    responses(
+        (status = 200, description = "Posting status updated", body = PostingStatusResponse),
+        (status = 403, description = "Not an admin")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn set_site_posting(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUserWithRole,
+    Path(site_id): Path<Uuid>,
+    Json(req): Json<SetPostingRequest>,
+) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
+    auth.require_admin()?;
+
+    if site_id != api_key.0.site_id {
+        return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
+    }
+
+    // Update settings
+    let mut settings = api_key.0.settings.clone();
+    settings.posting_disabled = req.disabled;
+
+    state
+        .redis
+        .update_site_settings(site_id, &settings)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Invalidate cached API key so changes take effect immediately
+    // (The cache will be refreshed on next request)
+
+    Ok(Json(PostingStatusResponse {
+        disabled: req.disabled,
+    }))
+}
+
+// ============================================================================
+// Page Posting Control Handlers (Admin+)
+// ============================================================================
+
+/// Get page posting status (admin+)
+#[utoipa::path(
+    get,
+    path = "/pages/{page_id}/posting",
+    tag = "admin",
+    params(
+        ("page_id" = Uuid, Path, description = "Page ID")
+    ),
+    responses(
+        (status = 200, description = "Page posting status", body = PostingStatusResponse),
+        (status = 403, description = "Not an admin")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn get_page_posting_status(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUserWithRole,
+    Path(page_id): Path<Uuid>,
+) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
+    auth.require_admin()?;
+
+    let is_locked = state
+        .redis
+        .is_page_locked(api_key.0.site_id, page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(PostingStatusResponse { disabled: is_locked }))
+}
+
+/// Enable or disable posting on a specific page (admin+)
+#[utoipa::path(
+    put,
+    path = "/pages/{page_id}/posting",
+    tag = "admin",
+    params(
+        ("page_id" = Uuid, Path, description = "Page ID")
+    ),
+    request_body = SetPostingRequest,
+    responses(
+        (status = 200, description = "Page posting status updated", body = PostingStatusResponse),
+        (status = 403, description = "Not an admin")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn set_page_posting(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUserWithRole,
+    Path(page_id): Path<Uuid>,
+    Json(req): Json<SetPostingRequest>,
+) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
+    auth.require_admin()?;
+
+    if req.disabled {
+        state
+            .redis
+            .lock_page(api_key.0.site_id, page_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    } else {
+        state
+            .redis
+            .unlock_page(api_key.0.site_id, page_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+
+    Ok(Json(PostingStatusResponse {
+        disabled: req.disabled,
+    }))
 }

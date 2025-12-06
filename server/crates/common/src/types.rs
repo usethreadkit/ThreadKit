@@ -137,6 +137,9 @@ pub struct SiteSettings {
     /// Supports wildcards like "*.example.com" for subdomains
     #[serde(default)]
     pub allowed_origins: Vec<String>,
+    /// When true, new comments are disabled site-wide
+    #[serde(default)]
+    pub posting_disabled: bool,
 }
 
 /// Per-site AI content moderation settings

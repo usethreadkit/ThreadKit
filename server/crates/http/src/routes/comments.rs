@@ -225,6 +225,23 @@ pub async fn create_comment(
         return Err((StatusCode::FORBIDDEN, "User is blocked".into()));
     }
 
+    // Check if site-wide posting is disabled
+    if api_key.0.settings.posting_disabled {
+        return Err((StatusCode::FORBIDDEN, "Posting is currently disabled".into()));
+    }
+
+    // Check if page-level posting is disabled
+    let page_id = generate_page_id(&api_key.0.site_id, &req.page_url);
+    let page_locked = state
+        .redis
+        .is_page_locked(api_key.0.site_id, page_id)
+        .await
+        .unwrap_or(false);
+
+    if page_locked {
+        return Err((StatusCode::FORBIDDEN, "Posting is disabled on this page".into()));
+    }
+
     // Validate comment length
     let max_length = state.config.max_comment_length;
     if req.content.chars().count() > max_length {
@@ -267,8 +284,6 @@ pub async fn create_comment(
             }
         }
     }
-
-    let page_id = generate_page_id(&api_key.0.site_id, &req.page_url);
 
     // Determine depth
     let depth = if let Some(parent_id) = req.parent_id {

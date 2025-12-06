@@ -1191,6 +1191,63 @@ impl RedisClient {
     }
 
     // ========================================================================
+    // Page Posting Lock
+    // ========================================================================
+
+    /// Lock posting on a specific page
+    pub async fn lock_page(&self, site_id: Uuid, page_id: Uuid) -> Result<()> {
+        self.client
+            .sadd::<(), _, _>(format!("site:{}:locked_pages", site_id), page_id.to_string())
+            .await?;
+        Ok(())
+    }
+
+    /// Unlock posting on a specific page
+    pub async fn unlock_page(&self, site_id: Uuid, page_id: Uuid) -> Result<()> {
+        self.client
+            .srem::<(), _, _>(format!("site:{}:locked_pages", site_id), page_id.to_string())
+            .await?;
+        Ok(())
+    }
+
+    /// Check if a page is locked for posting
+    pub async fn is_page_locked(&self, site_id: Uuid, page_id: Uuid) -> Result<bool> {
+        let is_member: bool = self
+            .client
+            .sismember(format!("site:{}:locked_pages", site_id), page_id.to_string())
+            .await?;
+        Ok(is_member)
+    }
+
+    /// Get all locked pages for a site
+    pub async fn get_locked_pages(&self, site_id: Uuid) -> Result<Vec<Uuid>> {
+        let ids: Vec<String> = self
+            .client
+            .smembers(format!("site:{}:locked_pages", site_id))
+            .await?;
+        Ok(ids.into_iter().filter_map(|s| s.parse().ok()).collect())
+    }
+
+    // ========================================================================
+    // Site Posting Lock
+    // ========================================================================
+
+    /// Update site settings (for toggling posting_disabled, etc.)
+    pub async fn update_site_settings(&self, site_id: Uuid, settings: &SiteSettings) -> Result<()> {
+        // Get current config
+        let mut config = self
+            .get_site_config(site_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("Site config not found".into()))?;
+
+        // Update settings
+        config.settings = settings.clone();
+
+        // Save back
+        self.set_site_config(&config).await
+    }
+
+    // ========================================================================
     // Helper methods
     // ========================================================================
 
