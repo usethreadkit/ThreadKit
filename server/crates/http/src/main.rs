@@ -7,6 +7,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use clap::Parser;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use serde::Serialize;
 use std::net::SocketAddr;
@@ -23,8 +24,19 @@ use utoipa_scalar::{Scalar, Servable};
 use threadkit_common::Config;
 use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::AppState};
 
+#[derive(Parser)]
+#[command(name = "threadkit-http")]
+#[command(about = "ThreadKit HTTP API server")]
+struct Args {
+    /// Path to .env file (e.g., .env.loadtest)
+    #[arg(short, long)]
+    env: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
@@ -34,7 +46,13 @@ async fn main() -> Result<()> {
         .init();
 
     // Load config
-    let config = Config::from_env()?;
+    let config = match &args.env {
+        Some(path) => {
+            tracing::info!("Loading config from: {}", path);
+            Config::from_env_file(path)?
+        }
+        None => Config::from_env()?,
+    };
     tracing::info!("Starting ThreadKit HTTP server");
     tracing::info!("Mode: {:?}", if config.is_standalone() { "standalone" } else { "saas" });
 

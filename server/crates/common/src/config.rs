@@ -157,8 +157,19 @@ pub struct OAuthProvider {
 }
 
 impl Config {
+    /// Load configuration from default .env file
     pub fn from_env() -> anyhow::Result<Self> {
         dotenvy::dotenv().ok();
+        Self::load_from_env()
+    }
+
+    /// Load configuration from a specific .env file
+    pub fn from_env_file(path: &str) -> anyhow::Result<Self> {
+        dotenvy::from_filename(path)?;
+        Self::load_from_env()
+    }
+
+    fn load_from_env() -> anyhow::Result<Self> {
 
         let mode = match env::var("MODE").unwrap_or_else(|_| "standalone".to_string()).as_str() {
             "saas" => Mode::Saas,

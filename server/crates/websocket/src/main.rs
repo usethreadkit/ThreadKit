@@ -5,6 +5,7 @@ use axum::{
     routing::get,
     Router,
 };
+use clap::Parser;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -14,8 +15,19 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use threadkit_common::Config;
 use threadkit_websocket::{handler::handle_socket, state::WsState};
 
+#[derive(Parser)]
+#[command(name = "threadkit-ws")]
+#[command(about = "ThreadKit WebSocket server")]
+struct Args {
+    /// Path to .env file (e.g., .env.loadtest)
+    #[arg(short, long)]
+    env: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
@@ -25,7 +37,13 @@ async fn main() -> Result<()> {
         .init();
 
     // Load config
-    let config = Config::from_env()?;
+    let config = match &args.env {
+        Some(path) => {
+            tracing::info!("Loading config from: {}", path);
+            Config::from_env_file(path)?
+        }
+        None => Config::from_env()?,
+    };
     tracing::info!("Starting ThreadKit WebSocket server");
 
     // Initialize state
