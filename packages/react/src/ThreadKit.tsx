@@ -168,9 +168,8 @@ function ThreadKitInner({
       return { 'X-Turnstile-Token': result.token };
     }
 
-    // If Turnstile fails, we still try to post - the server will reject if required
-    console.warn('Turnstile verification failed:', result.error);
-    return {};
+    // Fail fast with clear error instead of letting server reject
+    throw new Error(result.error || 'Verification failed. Please try again.');
   }, [turnstile, apiUrl]);
 
   const {

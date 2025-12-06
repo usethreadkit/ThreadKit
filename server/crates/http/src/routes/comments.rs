@@ -152,41 +152,61 @@ pub async fn get_comments(
         std::collections::HashSet::new()
     };
 
-    // Fetch full comments with authors
-    let mut comments = Vec::with_capacity(comment_ids.len());
-    for comment_id in comment_ids {
-        if let Ok(Some(comment)) = state.redis.get_comment(comment_id).await {
+    // Batch fetch all comments concurrently
+    let all_comments = state.redis.get_comments_batch(&comment_ids).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Filter comments based on status and blocked users
+    let current_user_id = maybe_auth.0.as_ref().map(|u| u.user_id);
+    let visible_comments: Vec<_> = all_comments
+        .into_iter()
+        .filter(|c| {
             // Skip comments from blocked users
-            if blocked_users.contains(&comment.author_id) {
-                continue;
+            if blocked_users.contains(&c.author_id) {
+                return false;
             }
-
             // Only show approved comments (or pending if it's the author)
-            let show = match comment.status {
+            match c.status {
                 CommentStatus::Approved => true,
-                CommentStatus::Pending => {
-                    maybe_auth.0.as_ref().map(|u| u.user_id) == Some(comment.author_id)
-                }
+                CommentStatus::Pending => current_user_id == Some(c.author_id),
                 _ => false,
-            };
+            }
+        })
+        .collect();
 
-            if show {
-                if let Ok(Some(author)) = state.redis.get_user(comment.author_id).await {
-                    let user_vote = if let Some(ref auth) = maybe_auth.0 {
-                        state.redis.get_vote(auth.user_id, comment_id).await.ok().flatten()
-                    } else {
-                        None
-                    };
+    // Collect unique author IDs and comment IDs for batch fetching
+    let author_ids: Vec<_> = visible_comments.iter().map(|c| c.author_id).collect();
+    let visible_comment_ids: Vec<_> = visible_comments.iter().map(|c| c.id).collect();
 
-                    comments.push(CommentWithAuthor {
-                        comment,
-                        author: UserPublic::from(author),
-                        user_vote,
-                    });
-                }
+    // Batch fetch authors and votes concurrently
+    let (authors_map, votes_map) = tokio::join!(
+        state.redis.get_users_batch(&author_ids),
+        async {
+            if let Some(ref auth) = maybe_auth.0 {
+                state.redis.get_votes_batch(auth.user_id, &visible_comment_ids).await
+            } else {
+                Ok(std::collections::HashMap::new())
             }
         }
-    }
+    );
+
+    let authors_map = authors_map.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let votes_map = votes_map.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Build final response
+    let comments: Vec<_> = visible_comments
+        .into_iter()
+        .filter_map(|comment| {
+            authors_map.get(&comment.author_id).map(|author| {
+                let user_vote = votes_map.get(&comment.id).copied();
+                CommentWithAuthor {
+                    comment,
+                    author: UserPublic::from(author.clone()),
+                    user_vote,
+                }
+            })
+        })
+        .collect();
 
     // Get pageviews if enabled
     let pageviews = if api_key.0.settings.display.show_pageviews {

@@ -289,6 +289,60 @@ impl RedisClient {
         Ok(ids.into_iter().filter_map(|s| s.parse().ok()).collect())
     }
 
+    /// Batch fetch multiple comments concurrently
+    pub async fn get_comments_batch(&self, comment_ids: &[Uuid]) -> Result<Vec<Comment>> {
+        if comment_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let futures: Vec<_> = comment_ids
+            .iter()
+            .map(|id| self.get_comment(*id))
+            .collect();
+
+        let results = futures_util::future::join_all(futures).await;
+        Ok(results.into_iter().filter_map(|r| r.ok().flatten()).collect())
+    }
+
+    /// Batch fetch multiple users concurrently
+    pub async fn get_users_batch(&self, user_ids: &[Uuid]) -> Result<std::collections::HashMap<Uuid, User>> {
+        if user_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        // Deduplicate user IDs
+        let unique_ids: Vec<_> = user_ids.iter().copied().collect::<std::collections::HashSet<_>>().into_iter().collect();
+
+        let futures: Vec<_> = unique_ids
+            .iter()
+            .map(|id| async move { (*id, self.get_user(*id).await) })
+            .collect();
+
+        let results = futures_util::future::join_all(futures).await;
+        Ok(results
+            .into_iter()
+            .filter_map(|(id, r)| r.ok().flatten().map(|u| (id, u)))
+            .collect())
+    }
+
+    /// Batch fetch multiple votes concurrently
+    pub async fn get_votes_batch(&self, user_id: Uuid, comment_ids: &[Uuid]) -> Result<std::collections::HashMap<Uuid, VoteDirection>> {
+        if comment_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let futures: Vec<_> = comment_ids
+            .iter()
+            .map(|id| async move { (*id, self.get_vote(user_id, *id).await) })
+            .collect();
+
+        let results = futures_util::future::join_all(futures).await;
+        Ok(results
+            .into_iter()
+            .filter_map(|(id, r)| r.ok().flatten().map(|v| (id, v)))
+            .collect())
+    }
+
     pub async fn update_comment_votes(&self, comment_id: Uuid, upvotes: i64, downvotes: i64) -> Result<()> {
         let comment = self.get_comment(comment_id).await?.ok_or(Error::NotFound("Comment".into()))?;
 

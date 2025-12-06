@@ -4046,6 +4046,7 @@ dependencies = [
  "dotenvy",
  "ed25519-dalek",
  "fred",
+ "futures-util",
  "hex",
  "jsonwebtoken",
  "rand 0.8.5",
