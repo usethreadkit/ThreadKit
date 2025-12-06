@@ -18,6 +18,8 @@ pub struct Config {
     pub turnstile: TurnstileConfig,
     /// Maximum comment length in characters
     pub max_comment_length: usize,
+    /// Allow localhost/127.0.0.1/::1 origins for API requests (development only)
+    pub allow_localhost_origin: bool,
 }
 
 /// Configuration for Cloudflare Turnstile bot protection
@@ -310,6 +312,9 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(10_000),
+            allow_localhost_origin: env::var("ALLOW_LOCALHOST_ORIGIN")
+                .map(|v| v == "true" || v == "1")
+                .unwrap_or(false),
         })
     }
 

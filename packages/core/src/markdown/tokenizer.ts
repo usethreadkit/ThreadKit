@@ -112,8 +112,12 @@ export function tokenizeLine(text: string, options: TokenizerOptions = {}): Toke
       }
     }
 
-    // Plain text: consume until next special char or end
-    const plainMatch = remaining.match(/^[^*`~[\]@]+/);
+    // Plain text: consume until next special char, URL start, or end
+    // The pattern stops before 'h' followed by 'ttp' to allow URL detection
+    const plainPattern = options.enableAutoLinks
+      ? /^(?:(?!https?:\/\/)[^*`~[\]@])+/
+      : /^[^*`~[\]@]+/;
+    const plainMatch = remaining.match(plainPattern);
     if (plainMatch) {
       tokens.push({ type: 'text', content: plainMatch[0] });
       remaining = remaining.slice(plainMatch[0].length);

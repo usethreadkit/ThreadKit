@@ -1,17 +1,18 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::{delete, get},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use threadkit_common::types::{Role, UserPublic};
+use threadkit_common::types::{Role, TreeComment, UserPublic};
 
 use crate::{
     extractors::{ApiKey, AuthUserWithRole, OwnerAccess},
+    routes::users::find_comment_in_tree,
     state::AppState,
 };
 
@@ -23,6 +24,8 @@ pub fn router() -> Router<AppState> {
         // Moderator management (admin+)
         .route("/sites/{id}/moderators", get(get_moderators).post(add_moderator))
         .route("/sites/{id}/moderators/{user_id}", delete(remove_moderator))
+        // Site comment feed (moderator+)
+        .route("/sites/{id}/comments", get(get_site_comments))
         // Posting controls (admin+)
         .route("/sites/{id}/posting", get(get_posting_status).put(set_site_posting))
         .route("/pages/{page_id}/posting", get(get_page_posting_status).put(set_page_posting))
@@ -42,6 +45,32 @@ pub struct RoleListResponse {
 pub struct AddUserRequest {
     /// User ID to add to role
     pub user_id: Uuid,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct SiteCommentsQuery {
+    /// Number of comments to skip (default: 0)
+    #[param(default = 0)]
+    pub offset: Option<usize>,
+    /// Maximum number of comments to return (default: 50, max: 100)
+    #[param(default = 50)]
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SiteCommentItem {
+    /// Page ID where the comment was posted
+    pub page_id: Uuid,
+    /// The comment data
+    pub comment: TreeComment,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SiteCommentsResponse {
+    /// List of comments
+    pub comments: Vec<SiteCommentItem>,
+    /// Whether there are more comments available
+    pub has_more: bool,
 }
 
 // ============================================================================
@@ -317,6 +346,87 @@ pub async fn remove_moderator(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(StatusCode::OK)
+}
+
+/// Get all comments on the site (moderator+)
+///
+/// Returns a paginated list of all comments on the site, sorted by creation time (newest first).
+/// Useful for site-wide moderation views.
+#[utoipa::path(
+    get,
+    path = "/sites/{id}/comments",
+    tag = "admin",
+    params(
+        ("id" = Uuid, Path, description = "Site ID"),
+        SiteCommentsQuery
+    ),
+    responses(
+        (status = 200, description = "List of site comments", body = SiteCommentsResponse),
+        (status = 403, description = "Not a moderator")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn get_site_comments(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUserWithRole,
+    Path(site_id): Path<Uuid>,
+    Query(query): Query<SiteCommentsQuery>,
+) -> Result<Json<SiteCommentsResponse>, (StatusCode, String)> {
+    auth.require_moderator()?;
+
+    if site_id != api_key.0.site_id {
+        return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
+    }
+
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(50).min(100);
+
+    // Get comment index from site's comment feed
+    let comment_refs = state
+        .redis
+        .get_site_comment_index(site_id, offset, limit + 1)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let has_more = comment_refs.len() > limit;
+    let comment_refs: Vec<_> = comment_refs.into_iter().take(limit).collect();
+
+    // Group by page_id for efficient page tree fetches
+    let mut page_ids: Vec<Uuid> = comment_refs.iter().map(|(page_id, _)| *page_id).collect();
+    page_ids.sort();
+    page_ids.dedup();
+
+    // Fetch all needed page trees in parallel
+    let tree_futures: Vec<_> = page_ids
+        .iter()
+        .map(|&page_id| state.redis.get_page_tree(page_id))
+        .collect();
+
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    // Build page_id -> tree map
+    let mut trees = std::collections::HashMap::new();
+    for (page_id, result) in page_ids.iter().zip(tree_results) {
+        if let Ok(Some(tree)) = result {
+            trees.insert(*page_id, tree);
+        }
+    }
+
+    // Find each comment in its page tree
+    let mut comments = Vec::with_capacity(comment_refs.len());
+    for (page_id, comment_id) in comment_refs {
+        if let Some(tree) = trees.get(&page_id) {
+            if let Some(comment) = find_comment_in_tree(&tree.comments, comment_id) {
+                comments.push(SiteCommentItem {
+                    page_id,
+                    comment: comment.clone(),
+                });
+            }
+        }
+    }
+
+    Ok(Json(SiteCommentsResponse { comments, has_more }))
 }
 
 // ============================================================================

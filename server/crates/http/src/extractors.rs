@@ -33,12 +33,19 @@ fn extract_request_origin(headers: &HeaderMap) -> Option<String> {
 
 /// Check if a request origin matches allowed origins
 /// Supports exact matches and wildcard subdomains (e.g., "*.example.com")
-fn is_origin_allowed(origin: &str, primary_domain: &str, allowed_origins: &[String]) -> bool {
+fn is_origin_allowed(
+    origin: &str,
+    primary_domain: &str,
+    allowed_origins: &[String],
+    allow_localhost: bool,
+) -> bool {
     let origin = origin.to_lowercase();
     let primary = primary_domain.to_lowercase();
 
-    // Always allow localhost for development
-    if origin == "localhost" || origin.starts_with("127.0.0.1") || origin == "::1" {
+    // Allow localhost only if explicitly enabled (for development)
+    if allow_localhost
+        && (origin == "localhost" || origin.starts_with("127.0.0.1") || origin == "::1")
+    {
         return true;
     }
 
@@ -85,10 +92,12 @@ where
             .and_then(|v| v.to_str().ok())
             .ok_or((StatusCode::UNAUTHORIZED, "Missing X-API-Key header".to_string()))?;
 
+        let allow_localhost = state.config.allow_localhost_origin;
+
         // Check cache first
         if let Ok(Some(info)) = state.redis.get_cached_api_key(api_key).await {
             // Validate origin for cached API keys too
-            validate_origin(&parts.headers, &info)?;
+            validate_origin(&parts.headers, &info, allow_localhost)?;
             return Ok(ApiKey(info));
         }
 
@@ -117,7 +126,7 @@ where
             };
 
             // Validate origin before caching
-            validate_origin(&parts.headers, &info)?;
+            validate_origin(&parts.headers, &info, allow_localhost)?;
 
             // Cache for future requests
             let _ = state.redis.cache_api_key(api_key, &info).await;
@@ -147,7 +156,7 @@ where
         };
 
         // Validate origin before caching
-        validate_origin(&parts.headers, &info)?;
+        validate_origin(&parts.headers, &info, allow_localhost)?;
 
         // Cache for future requests
         let _ = state.redis.cache_api_key(api_key, &info).await;
@@ -157,7 +166,11 @@ where
 }
 
 /// Validate that the request origin is allowed for this API key
-fn validate_origin(headers: &HeaderMap, info: &ApiKeyInfo) -> Result<(), (StatusCode, String)> {
+fn validate_origin(
+    headers: &HeaderMap,
+    info: &ApiKeyInfo,
+    allow_localhost: bool,
+) -> Result<(), (StatusCode, String)> {
     // Secret keys skip origin validation (server-to-server)
     if info.key_type == ApiKeyType::Secret {
         return Ok(());
@@ -170,7 +183,12 @@ fn validate_origin(headers: &HeaderMap, info: &ApiKeyInfo) -> Result<(), (Status
         return Ok(());
     };
 
-    if is_origin_allowed(&origin, &info.domain, &info.settings.allowed_origins) {
+    if is_origin_allowed(
+        &origin,
+        &info.domain,
+        &info.settings.allowed_origins,
+        allow_localhost,
+    ) {
         Ok(())
     } else {
         Err((
@@ -416,55 +434,64 @@ mod tests {
 
     #[test]
     fn test_is_origin_allowed_exact_primary_domain() {
-        assert!(is_origin_allowed("example.com", "example.com", &[]));
+        assert!(is_origin_allowed("example.com", "example.com", &[], false));
     }
 
     #[test]
     fn test_is_origin_allowed_subdomain_of_primary() {
-        assert!(is_origin_allowed("blog.example.com", "example.com", &[]));
-        assert!(is_origin_allowed("app.blog.example.com", "example.com", &[]));
+        assert!(is_origin_allowed("blog.example.com", "example.com", &[], false));
+        assert!(is_origin_allowed("app.blog.example.com", "example.com", &[], false));
     }
 
     #[test]
     fn test_is_origin_allowed_case_insensitive() {
-        assert!(is_origin_allowed("EXAMPLE.COM", "example.com", &[]));
-        assert!(is_origin_allowed("example.com", "EXAMPLE.COM", &[]));
-        assert!(is_origin_allowed("Blog.Example.Com", "example.com", &[]));
+        assert!(is_origin_allowed("EXAMPLE.COM", "example.com", &[], false));
+        assert!(is_origin_allowed("example.com", "EXAMPLE.COM", &[], false));
+        assert!(is_origin_allowed("Blog.Example.Com", "example.com", &[], false));
     }
 
     #[test]
-    fn test_is_origin_allowed_localhost() {
-        assert!(is_origin_allowed("localhost", "example.com", &[]));
-        assert!(is_origin_allowed("127.0.0.1", "example.com", &[]));
-        assert!(is_origin_allowed("::1", "example.com", &[]));
+    fn test_is_origin_allowed_localhost_when_enabled() {
+        // Localhost allowed when flag is true
+        assert!(is_origin_allowed("localhost", "example.com", &[], true));
+        assert!(is_origin_allowed("127.0.0.1", "example.com", &[], true));
+        assert!(is_origin_allowed("::1", "example.com", &[], true));
+    }
+
+    #[test]
+    fn test_is_origin_allowed_localhost_when_disabled() {
+        // Localhost rejected when flag is false
+        assert!(!is_origin_allowed("localhost", "example.com", &[], false));
+        assert!(!is_origin_allowed("127.0.0.1", "example.com", &[], false));
+        assert!(!is_origin_allowed("::1", "example.com", &[], false));
     }
 
     #[test]
     fn test_is_origin_allowed_different_domain_rejected() {
-        assert!(!is_origin_allowed("evil.com", "example.com", &[]));
-        assert!(!is_origin_allowed("example.com.evil.com", "example.com", &[]));
-        assert!(!is_origin_allowed("notexample.com", "example.com", &[]));
+        assert!(!is_origin_allowed("evil.com", "example.com", &[], false));
+        assert!(!is_origin_allowed("example.com.evil.com", "example.com", &[], false));
+        assert!(!is_origin_allowed("notexample.com", "example.com", &[], false));
     }
 
     #[test]
     fn test_is_origin_allowed_exact_match_in_allowed_origins() {
         let allowed = vec!["staging.myapp.com".to_string(), "other-site.org".to_string()];
 
-        assert!(is_origin_allowed("staging.myapp.com", "example.com", &allowed));
-        assert!(is_origin_allowed("other-site.org", "example.com", &allowed));
+        assert!(is_origin_allowed("staging.myapp.com", "example.com", &allowed, false));
+        assert!(is_origin_allowed("other-site.org", "example.com", &allowed, false));
         // Subdomains of allowed origins are NOT automatically allowed (need wildcard)
-        assert!(!is_origin_allowed("sub.staging.myapp.com", "example.com", &allowed));
+        assert!(!is_origin_allowed("sub.staging.myapp.com", "example.com", &allowed, false));
     }
 
     #[test]
     fn test_is_origin_allowed_wildcard_subdomain() {
         let allowed = vec!["*.partner.com".to_string()];
 
-        assert!(is_origin_allowed("app.partner.com", "example.com", &allowed));
-        assert!(is_origin_allowed("blog.partner.com", "example.com", &allowed));
-        assert!(is_origin_allowed("deep.nested.partner.com", "example.com", &allowed));
+        assert!(is_origin_allowed("app.partner.com", "example.com", &allowed, false));
+        assert!(is_origin_allowed("blog.partner.com", "example.com", &allowed, false));
+        assert!(is_origin_allowed("deep.nested.partner.com", "example.com", &allowed, false));
         // The base domain itself should also match
-        assert!(is_origin_allowed("partner.com", "example.com", &allowed));
+        assert!(is_origin_allowed("partner.com", "example.com", &allowed, false));
     }
 
     #[test]
@@ -472,8 +499,8 @@ mod tests {
         let allowed = vec!["*.partner.com".to_string()];
 
         // Should not match domains that just contain "partner.com"
-        assert!(!is_origin_allowed("fakepartner.com", "example.com", &allowed));
-        assert!(!is_origin_allowed("partner.com.evil.com", "example.com", &allowed));
+        assert!(!is_origin_allowed("fakepartner.com", "example.com", &allowed, false));
+        assert!(!is_origin_allowed("partner.com.evil.com", "example.com", &allowed, false));
     }
 
     #[test]
@@ -483,9 +510,9 @@ mod tests {
             "*.partner.org".to_string(),
         ];
 
-        assert!(is_origin_allowed("app.staging.example.com", "example.com", &allowed));
-        assert!(is_origin_allowed("api.partner.org", "example.com", &allowed));
-        assert!(!is_origin_allowed("random.com", "example.com", &allowed));
+        assert!(is_origin_allowed("app.staging.example.com", "example.com", &allowed, false));
+        assert!(is_origin_allowed("api.partner.org", "example.com", &allowed, false));
+        assert!(!is_origin_allowed("random.com", "example.com", &allowed, false));
     }
 
     #[test]
@@ -495,8 +522,8 @@ mod tests {
             "*.wildcard.com".to_string(),
         ];
 
-        assert!(is_origin_allowed("specific.other.com", "example.com", &allowed));
-        assert!(!is_origin_allowed("sub.specific.other.com", "example.com", &allowed));
-        assert!(is_origin_allowed("any.wildcard.com", "example.com", &allowed));
+        assert!(is_origin_allowed("specific.other.com", "example.com", &allowed, false));
+        assert!(!is_origin_allowed("sub.specific.other.com", "example.com", &allowed, false));
+        assert!(is_origin_allowed("any.wildcard.com", "example.com", &allowed, false));
     }
 }

@@ -52,6 +52,14 @@ describe('renderMarkdown', () => {
       });
       expect(result).toContain('<a href="https://example.com"');
     });
+
+    it('renders auto-detected links in the middle of text', () => {
+      const result = renderMarkdown('Check out https://example.com today', {
+        allowLinks: true,
+        enableAutoLinks: true,
+      });
+      expect(result).toContain('<a href="https://example.com"');
+    });
   });
 
   describe('mentions', () => {

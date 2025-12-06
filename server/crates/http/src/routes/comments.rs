@@ -356,11 +356,24 @@ pub async fn create_comment(
     };
 
     // Content moderation check
+    //
+    // DESIGN: Fail-open policy - if the moderation service is unavailable (network error,
+    // timeout, API outage), the comment is allowed through. This prioritizes availability
+    // over strict moderation. The alternative (fail-closed) would reject all comments when
+    // moderation is down, which provides worse UX for legitimate users.
     let content_moderation_settings = &api_key.0.settings.content_moderation;
     let moderation_result = state
         .moderation
         .check(&req.content, content_moderation_settings)
         .await;
+
+    // Log moderation failures so operators can monitor service health
+    if let Err(ref e) = moderation_result {
+        tracing::warn!(
+            error = %e,
+            "Content moderation check failed - allowing comment through (fail-open policy)"
+        );
+    }
 
     let mut moderation_flagged = false;
     if let Ok(ModerationCheckResult::Blocked { category, result }) = moderation_result {

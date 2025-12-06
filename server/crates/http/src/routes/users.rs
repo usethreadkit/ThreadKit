@@ -656,7 +656,7 @@ pub async fn get_user_comments(
 }
 
 /// Helper to find a comment by ID in a tree
-fn find_comment_in_tree(comments: &[TreeComment], comment_id: Uuid) -> Option<&TreeComment> {
+pub fn find_comment_in_tree(comments: &[TreeComment], comment_id: Uuid) -> Option<&TreeComment> {
     for comment in comments {
         if comment.id == comment_id {
             return Some(comment);

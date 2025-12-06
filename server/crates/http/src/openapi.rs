@@ -249,6 +249,7 @@ Single-letter keys for efficiency:
         admin::get_moderators,
         admin::add_moderator,
         admin::remove_moderator,
+        admin::get_site_comments,
         admin::get_posting_status,
         admin::set_site_posting,
         admin::get_page_posting_status,
@@ -319,6 +320,8 @@ Single-letter keys for efficiency:
             // Admin types
             admin::RoleListResponse,
             admin::AddUserRequest,
+            admin::SiteCommentsResponse,
+            admin::SiteCommentItem,
             admin::PostingStatusResponse,
             admin::SetPostingRequest,
         )
