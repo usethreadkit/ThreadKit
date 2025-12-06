@@ -472,73 +472,107 @@ pub async fn create_comment(
     // Update ETag cache with new timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
-    // Update indexes (only for authenticated users)
-    if let Some(user_id) = auth.user_id {
-        let _ = state
-            .redis
-            .add_user_comment_index(user_id, page_id, comment_id)
-            .await;
-        let _ = state
-            .redis
-            .add_user_site_comment_index(user_id, api_key.0.site_id, page_id, comment_id)
-            .await;
-    }
-    let _ = state
-        .redis
-        .add_site_comment_index(api_key.0.site_id, page_id, comment_id)
-        .await;
+    // Fire-and-forget: update indexes, usage, notifications, and publish in background
+    // These don't block the response - the comment is already saved
+    {
+        let redis = state.redis.clone();
+        let site_id = api_key.0.site_id;
+        let is_pending = status == Some(CommentStatus::Pending);
+        let parent_path = req.parent_path.clone();
 
-    // Add to modqueue if pending
-    if status == Some(CommentStatus::Pending) {
-        let _ = state
-            .redis
-            .add_to_modqueue(api_key.0.site_id, page_id, comment_id)
-            .await;
-    }
+        // Find parent author for notification (if this is a reply)
+        let notify_user_id = if !parent_path.is_empty() {
+            tree.find_by_path(&parent_path)
+                .filter(|parent| {
+                    parent.author_id != author_id
+                        && parent.author_id != DELETED_USER_ID
+                        && parent.author_id != ANONYMOUS_USER_ID
+                })
+                .map(|parent| parent.author_id)
+        } else {
+            None
+        };
 
-    // Update usage
-    let _ = state
-        .redis
-        .increment_usage(api_key.0.site_id, "comments", 1)
-        .await;
+        tokio::spawn(async move {
+            // Run all index updates concurrently
+            let mut futures: Vec<std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>> =
+                Vec::with_capacity(6);
 
-    // Send notification if this is a reply
-    if !req.parent_path.is_empty() {
-        if let Some(parent) = tree.find_by_path(&req.parent_path) {
-            // Don't notify anonymous users, deleted users, or self-replies
-            let should_notify = parent.author_id != author_id
-                && parent.author_id != DELETED_USER_ID
-                && parent.author_id != ANONYMOUS_USER_ID;
-
-            if should_notify {
-                let notification = Notification {
-                    id: Uuid::now_v7(),
-                    notification_type: NotificationType::Reply,
-                    comment_id,
-                    from_user_id: author_id,
-                    read: false,
-                    created_at: now,
-                };
-                let _ = state
-                    .redis
-                    .add_notification(parent.author_id, &notification)
-                    .await;
+            // User comment indexes (if authenticated)
+            if let Some(user_id) = auth.user_id {
+                let redis1 = redis.clone();
+                let redis2 = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis1.add_user_comment_index(user_id, page_id, comment_id).await;
+                }));
+                futures.push(Box::pin(async move {
+                    let _ = redis2
+                        .add_user_site_comment_index(user_id, site_id, page_id, comment_id)
+                        .await;
+                }));
             }
-        }
-    }
 
-    // Publish for WebSocket subscribers
-    let _ = state
-        .redis
-        .publish(
-            &format!("page:{}", page_id),
-            &serde_json::json!({
-                "type": "new_comment",
-                "comment_id": comment_id,
-            })
-            .to_string(),
-        )
-        .await;
+            // Site comment index
+            {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis.add_site_comment_index(site_id, page_id, comment_id).await;
+                }));
+            }
+
+            // Modqueue (if pending)
+            if is_pending {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis.add_to_modqueue(site_id, page_id, comment_id).await;
+                }));
+            }
+
+            // Usage increment
+            {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis.increment_usage(site_id, "comments", 1).await;
+                }));
+            }
+
+            // Notification (if reply to another user)
+            if let Some(parent_author_id) = notify_user_id {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let notification = Notification {
+                        id: Uuid::now_v7(),
+                        notification_type: NotificationType::Reply,
+                        comment_id,
+                        from_user_id: author_id,
+                        read: false,
+                        created_at: now,
+                    };
+                    let _ = redis.add_notification(parent_author_id, &notification).await;
+                }));
+            }
+
+            // Publish for WebSocket subscribers
+            {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis
+                        .publish(
+                            &format!("page:{}", page_id),
+                            &serde_json::json!({
+                                "type": "new_comment",
+                                "comment_id": comment_id,
+                            })
+                            .to_string(),
+                        )
+                        .await;
+                }));
+            }
+
+            // Execute all concurrently
+            futures::future::join_all(futures).await;
+        });
+    }
 
     Ok(Json(CreateCommentResponse {
         comment: tree_comment,
@@ -793,41 +827,47 @@ pub async fn vote_comment(
     // Update ETag cache with new timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
-    // Update user vote index
-    if new_vote.is_some() {
-        let _ = state
-            .redis
-            .add_user_vote_index(auth.user_id, page_id, comment_id)
-            .await;
-    } else {
-        let _ = state
-            .redis
-            .remove_user_vote_index(auth.user_id, page_id, comment_id)
-            .await;
-    }
-
-    // Update author karma (only if voting on someone else's comment)
-    if author_id != auth.user_id && author_id != DELETED_USER_ID {
+    // Fire-and-forget: vote index, karma update, and WebSocket publish
+    {
+        let redis = state.redis.clone();
+        let user_id = auth.user_id;
         let karma_delta = upvote_delta - downvote_delta;
-        if karma_delta != 0 {
-            let _ = state.redis.update_user_karma(author_id, karma_delta).await;
-        }
-    }
 
-    // Publish vote update
-    let _ = state
-        .redis
-        .publish(
-            &format!("page:{}", page_id),
-            &serde_json::json!({
-                "type": "vote_update",
-                "comment_id": comment_id,
-                "upvotes": new_upvotes,
-                "downvotes": new_downvotes,
-            })
-            .to_string(),
-        )
-        .await;
+        tokio::spawn(async move {
+            // Run all updates concurrently
+            tokio::join!(
+                // Update user vote index
+                async {
+                    if new_vote.is_some() {
+                        let _ = redis.add_user_vote_index(user_id, page_id, comment_id).await;
+                    } else {
+                        let _ = redis.remove_user_vote_index(user_id, page_id, comment_id).await;
+                    }
+                },
+                // Update author karma (only if voting on someone else's comment)
+                async {
+                    if author_id != user_id && author_id != DELETED_USER_ID && karma_delta != 0 {
+                        let _ = redis.update_user_karma(author_id, karma_delta).await;
+                    }
+                },
+                // Publish vote update for WebSocket subscribers
+                async {
+                    let _ = redis
+                        .publish(
+                            &format!("page:{}", page_id),
+                            &serde_json::json!({
+                                "type": "vote_update",
+                                "comment_id": comment_id,
+                                "upvotes": new_upvotes,
+                                "downvotes": new_downvotes,
+                            })
+                            .to_string(),
+                        )
+                        .await;
+                }
+            );
+        });
+    }
 
     Ok(Json(VoteResponse {
         upvotes: new_upvotes,
