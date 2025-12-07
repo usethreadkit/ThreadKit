@@ -34,7 +34,7 @@ export function SettingsPanel({
   apiUrl = DEFAULT_API_URL,
   onLogin,
   onLogout,
-  onUpdateAvatar,
+  onUpdateAvatar: _onUpdateAvatar,
   onUpdateName,
   onUnblock,
   onThemeChange,

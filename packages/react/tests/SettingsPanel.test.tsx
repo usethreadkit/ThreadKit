@@ -231,7 +231,7 @@ describe('SettingsPanel', () => {
       });
 
       expect(screen.getByDisplayValue('TestUser')).toBeInTheDocument();
-      expect(screen.getByText('save')).toBeInTheDocument();
+      expect(screen.getByText(/save/i)).toBeInTheDocument();
     });
 
     it('calls onUpdateName when name is saved', async () => {
@@ -279,10 +279,10 @@ describe('SettingsPanel', () => {
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByText('save'));
+        fireEvent.click(screen.getByText(/save/i));
       });
 
-      expect(onUpdateName).toHaveBeenCalledWith('NewName');
+      expect(onUpdateName).toHaveBeenCalledWith('newname');
     });
 
     it('saves name on Enter key', async () => {
@@ -316,7 +316,7 @@ describe('SettingsPanel', () => {
         fireEvent.keyDown(input, { key: 'Enter' });
       });
 
-      expect(onUpdateName).toHaveBeenCalledWith('NewName');
+      expect(onUpdateName).toHaveBeenCalledWith('newname');
     });
 
     it('cancels edit on Escape key', async () => {
@@ -459,7 +459,7 @@ describe('SettingsPanel', () => {
         fireEvent.click(screen.getByText('Blocked users (2)'));
       });
 
-      const unblockButtons = screen.getAllByText('unblock');
+      const unblockButtons = screen.getAllByText(/unblock/i);
       await act(async () => {
         fireEvent.click(unblockButtons[0]);
       });

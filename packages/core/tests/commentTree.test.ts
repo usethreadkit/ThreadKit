@@ -17,8 +17,8 @@ const createComment = (overrides: Partial<Comment> = {}): Comment => ({
   userName: 'User',
   text: 'Test comment',
   timestamp: Date.now(),
-  upvotes: [],
-  downvotes: [],
+  upvotes: 0,
+  downvotes: 0,
   children: [],
   edited: false,
   pinned: false,
@@ -29,9 +29,9 @@ describe('commentTree', () => {
   describe('sortComments', () => {
     it('sorts by votes (highest first)', () => {
       const comments = [
-        createComment({ id: '1', upvotes: ['a'], downvotes: [] }),
-        createComment({ id: '2', upvotes: ['a', 'b', 'c'], downvotes: [] }),
-        createComment({ id: '3', upvotes: ['a', 'b'], downvotes: ['c'] }),
+        createComment({ id: '1', upvotes: 1, downvotes: 0 }),
+        createComment({ id: '2', upvotes: 3, downvotes: 0 }),
+        createComment({ id: '3', upvotes: 2, downvotes: 1 }),
       ];
 
       const sorted = sortComments(comments, 'votes');
@@ -71,9 +71,9 @@ describe('commentTree', () => {
 
     it('sorts by controversial (high votes, close split)', () => {
       const comments = [
-        createComment({ id: '1', upvotes: ['a'], downvotes: [] }), // 1 vote, 0% controversy
-        createComment({ id: '2', upvotes: ['a', 'b'], downvotes: ['c', 'd'] }), // 4 votes, 50% split
-        createComment({ id: '3', upvotes: ['a', 'b', 'c'], downvotes: [] }), // 3 votes, 0% controversy
+        createComment({ id: '1', upvotes: 1, downvotes: 0 }), // 1 vote, 0% controversy
+        createComment({ id: '2', upvotes: 2, downvotes: 2 }), // 4 votes, 50% split
+        createComment({ id: '3', upvotes: 3, downvotes: 0 }), // 3 votes, 0% controversy
       ];
 
       const sorted = sortComments(comments, 'controversial');
@@ -254,7 +254,7 @@ describe('commentTree', () => {
     it('updates a root comment', () => {
       const comments = [createComment({ id: '1', text: 'old' })];
 
-      const result = updateInTree(comments, '1', { text: 'new' }, 'oldest');
+      const result = updateInTree(comments, '1', { text: 'new' });
 
       expect(result[0].text).toBe('new');
     });
@@ -267,7 +267,7 @@ describe('commentTree', () => {
         }),
       ];
 
-      const result = updateInTree(comments, '2', { text: 'new' }, 'oldest');
+      const result = updateInTree(comments, '2', { text: 'new' });
 
       expect(result[0].children[0].text).toBe('new');
     });
@@ -275,10 +275,25 @@ describe('commentTree', () => {
     it('preserves other properties', () => {
       const comments = [createComment({ id: '1', text: 'original', edited: false })];
 
-      const result = updateInTree(comments, '1', { edited: true }, 'oldest');
+      const result = updateInTree(comments, '1', { edited: true });
 
       expect(result[0].text).toBe('original');
       expect(result[0].edited).toBe(true);
+    });
+
+    it('does not reorder comments when updating', () => {
+      const comments = [
+        createComment({ id: '1', upvotes: 10 }),
+        createComment({ id: '2', upvotes: 5 }),
+      ];
+
+      // Even if we update comment 2 to have more upvotes (which would change order if sorted by votes),
+      // it should stay in same position
+      const result = updateInTree(comments, '2', { upvotes: 20 });
+
+      expect(result[0].id).toBe('1');
+      expect(result[1].id).toBe('2');
+      expect(result[1].upvotes).toBe(20);
     });
   });
 

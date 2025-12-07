@@ -160,8 +160,7 @@ export function removeFromTree(comments: Comment[], commentId: string): Comment[
 export function updateInTree(
   comments: Comment[],
   commentId: string,
-  updates: Partial<Comment>,
-  sortBy: SortBy
+  updates: Partial<Comment>
 ): Comment[] {
   const update = (nodes: Comment[]): Comment[] => {
     return nodes.map((c) => {
@@ -171,7 +170,7 @@ export function updateInTree(
       return { ...c, children: update(c.children) };
     });
   };
-  return sortComments(update(comments), sortBy);
+  return update(comments);
 }
 
 /**

@@ -7,7 +7,7 @@ interface AvatarProps {
   seed?: string; // fallback seed (usually username)
 }
 
-export function Avatar({ src, alt, className, seed }: AvatarProps) {
+export function Avatar({ src, alt, className }: AvatarProps) {
   const [error, setError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
 

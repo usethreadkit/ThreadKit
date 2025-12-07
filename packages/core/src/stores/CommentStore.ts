@@ -427,7 +427,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    */
   updateComment(commentId: string, updates: Partial<Comment>): void {
     this.setState({
-      comments: updateInTree(this.state.comments, commentId, updates, this.sortBy),
+      comments: updateInTree(this.state.comments, commentId, updates),
     });
   }
 
