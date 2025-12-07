@@ -49,9 +49,30 @@ impl TestContext {
             Uuid::now_v7().to_string().replace('-', "")[..32].to_lowercase()
         );
 
+        let redis_url = format!("redis://{}:{}", host, port);
+        let redis_client = threadkit_common::redis::RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to create Redis client");
+
+        // Create SiteConfig and save it to Redis
+        let site_config = threadkit_common::types::SiteConfig {
+            id: site_id,
+            name: "Test Site".to_string(), // Matches site_name in Config
+            domain: "localhost".to_string(), // Matches site_domain in Config
+            api_key_public: api_key.clone(),
+            api_key_secret: secret_key.clone(),
+            settings: Default::default(),
+        };
+        redis_client
+            .set_site_config(&site_config)
+            .await
+            .expect("Failed to set site config in Redis");
+
         let config = Config {
-            redis_url: format!("redis://{}:{}", host, port),
+            redis_url,
+            http_host: "127.0.0.1".to_string(),
             http_port: 8080,
+            ws_host: "127.0.0.1".to_string(),
             ws_port: 8081,
             jwt_secret: "test_jwt_secret_for_testing".to_string(),
             jwt_expiry_hours: 24,
@@ -74,6 +95,7 @@ impl TestContext {
                 user_writes_per_minute: 5,
                 user_reads_per_minute: 30,
                 auth_attempts_per_hour: 10,
+                ws_messages_per_sec: 10,
                 otp_per_target_per_hour: 3,
                 otp_per_ip_per_hour: 10,
                 trusted_proxies: vec!["127.0.0.1".to_string()],
@@ -83,6 +105,7 @@ impl TestContext {
             sms: SmsConfig::default(),
             turnstile: TurnstileConfig::default(),
             max_comment_length: 10_000,
+            allow_localhost_origin: true,
         };
 
         // Create app state (this also initializes site config in Redis)
