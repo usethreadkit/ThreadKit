@@ -150,14 +150,14 @@
   padding-top: 2px;
 }
 
-.threadkit-vote-btn {
+.threadkit-root .threadkit-vote-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
-  height: 20px;
-  font-size: 18px;
-  color: var(--threadkit-text-muted);
+  height: 24px;
+  font-size: 22px;
+  color: var(--threadkit-border);
   border-radius: 2px;
   transition: color 0.1s;
   line-height: 1;
