@@ -35,6 +35,7 @@ urlencoding = "2.1"
 sha2.workspace = true
 utoipa.workspace = true
 utoipa-scalar.workspace = true
+rand.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true

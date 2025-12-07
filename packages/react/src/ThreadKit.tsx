@@ -9,7 +9,7 @@ import { NotificationsPanel, type Notification } from './components/Notification
 import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
 import type { User as AuthUser } from './auth/types';
 
-const DEFAULT_API_URL = 'https://api.usethreadkit.com';
+const DEFAULT_API_URL = 'https://api.usethreadkit.com/v1';
 
 // Track injected plugin styles to avoid duplicates
 const injectedStyles = new Set<string>();
@@ -127,25 +127,7 @@ function ThreadKitInner({
       }
     });
   }, [plugins]);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    // Demo notifications
-    {
-      id: '1',
-      type: 'reply',
-      message: 'Someone replied to your comment',
-      fromUser: 'user123',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5),
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'mention',
-      message: 'You were mentioned in a comment',
-      fromUser: 'user456',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60),
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const {
     comments,
@@ -613,7 +595,8 @@ function ThreadKitInner({
     );
   }
 
-  const toolbarIcons = (
+  // Only show toolbar icons (notifications, settings) when logged in
+  const toolbarIcons = currentUser ? (
     <div className="threadkit-toolbar-icons">
       <NotificationsPanel
         notifications={notifications}
@@ -634,7 +617,7 @@ function ThreadKitInner({
         onDeleteAccount={handleDeleteAccount}
       />
     </div>
-  );
+  ) : null;
 
   return (
     <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
@@ -666,6 +649,7 @@ function ThreadKitInner({
           sortBy={currentSort}
           highlightedCommentId={highlightedCommentId}
           collapsedThreads={collapsedThreads}
+          apiUrl={apiUrl}
           onSortChange={setCurrentSort}
           onPost={handlePost}
           onVote={handleVote}

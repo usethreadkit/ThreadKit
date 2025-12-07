@@ -143,6 +143,12 @@ pub struct OAuthCallbackQuery {
     pub state: Option<String>,
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct OAuthStartQuery {
+    /// API key (required since OAuth is initiated via navigation, not fetch)
+    pub api_key: String,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AuthMethodsResponse {
     /// Available authentication methods for this site
@@ -1019,19 +1025,25 @@ pub async fn logout(
     path = "/auth/{provider}",
     tag = "auth",
     params(
-        ("provider" = String, Path, description = "OAuth provider (google, github)")
+        ("provider" = String, Path, description = "OAuth provider (google, github)"),
+        OAuthStartQuery
     ),
     responses(
         (status = 302, description = "Redirect to OAuth provider"),
+        (status = 400, description = "Invalid API key"),
         (status = 404, description = "Provider not configured")
-    ),
-    security(("api_key" = []))
+    )
 )]
 pub async fn oauth_start(
     State(state): State<AppState>,
-    api_key: ApiKey,
     Path(provider): Path<String>,
+    Query(query): Query<OAuthStartQuery>,
 ) -> Result<axum::response::Redirect, (StatusCode, String)> {
+    // Look up site by API key (passed as query param since this is a navigation, not fetch)
+    let (site_id, _site_config) = state.redis.get_site_by_api_key(&query.api_key).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::BAD_REQUEST, "Invalid API key".into()))?;
+
     let oauth_config = match provider.as_str() {
         "google" => state.config.oauth.google.as_ref(),
         "github" => state.config.oauth.github.as_ref(),
@@ -1045,13 +1057,13 @@ pub async fn oauth_start(
             "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope=openid%20email%20profile&state={}",
             oauth.client_id,
             urlencoding::encode(&oauth.redirect_url),
-            api_key.0.site_id
+            site_id
         ),
         "github" => format!(
             "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&scope=read:user%20user:email&state={}",
             oauth.client_id,
             urlencoding::encode(&oauth.redirect_url),
-            api_key.0.site_id
+            site_id
         ),
         _ => return Err((StatusCode::NOT_FOUND, "Provider not supported".into())),
     };

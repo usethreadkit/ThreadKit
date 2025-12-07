@@ -101,7 +101,7 @@ pub struct ReportRequest {
 // Handlers
 // ============================================================================
 
-/// Get comments for a page (single Redis GET - fast!)
+/// Get comments for a page
 #[utoipa::path(
     get,
     path = "/comments",
@@ -485,6 +485,9 @@ pub async fn create_comment(
     // Update ETag cache with new timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
+    // Clone for response before background tasks
+    let response_comment = tree_comment.clone();
+
     // Fire-and-forget: update indexes, usage, notifications, and publish in background
     // These don't block the response - the comment is already saved
     {
@@ -571,10 +574,13 @@ pub async fn create_comment(
                 futures.push(Box::pin(async move {
                     let _ = redis
                         .publish(
-                            &format!("page:{}", page_id),
+                            &format!("threadkit:page:{}:events", page_id),
                             &serde_json::json!({
                                 "type": "new_comment",
-                                "comment_id": comment_id,
+                                "page_id": page_id,
+                                "data": {
+                                    "comment": tree_comment
+                                }
                             })
                             .to_string(),
                         )
@@ -588,7 +594,7 @@ pub async fn create_comment(
     }
 
     Ok(Json(CreateCommentResponse {
-        comment: tree_comment,
+        comment: response_comment,
     }))
 }
 
@@ -656,18 +662,12 @@ pub async fn update_comment(
     // Update ETag cache with new timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
-    // Publish update
-    let _ = state
-        .redis
-        .publish(
-            &format!("page:{}", page_id),
-            &serde_json::json!({
-                "type": "edit_comment",
-                "comment_id": comment_id,
-            })
-            .to_string(),
-        )
-        .await;
+    // Publish update for WebSocket subscribers
+    state.publish_event(page_id, "edit_comment", serde_json::json!({
+        "comment_id": comment_id,
+        "content": updated_comment.text.clone(),
+        "content_html": updated_comment.html.clone()
+    })).await;
 
     Ok(Json(updated_comment))
 }
@@ -731,18 +731,10 @@ pub async fn delete_comment(
     // Update ETag cache with new timestamp
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
-    // Publish deletion
-    let _ = state
-        .redis
-        .publish(
-            &format!("page:{}", page_id),
-            &serde_json::json!({
-                "type": "delete_comment",
-                "comment_id": comment_id,
-            })
-            .to_string(),
-        )
-        .await;
+    // Publish deletion for WebSocket subscribers
+    state.publish_event(page_id, "delete_comment", serde_json::json!({
+        "comment_id": comment_id
+    })).await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -867,12 +859,15 @@ pub async fn vote_comment(
                 async {
                     let _ = redis
                         .publish(
-                            &format!("page:{}", page_id),
+                            &format!("threadkit:page:{}:events", page_id),
                             &serde_json::json!({
                                 "type": "vote_update",
-                                "comment_id": comment_id,
-                                "upvotes": new_upvotes,
-                                "downvotes": new_downvotes,
+                                "page_id": page_id,
+                                "data": {
+                                    "comment_id": comment_id,
+                                    "upvotes": new_upvotes,
+                                    "downvotes": new_downvotes,
+                                }
                             })
                             .to_string(),
                         )

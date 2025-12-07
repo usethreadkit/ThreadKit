@@ -1,19 +1,21 @@
 use anyhow::Result;
 use axum::{
     extract::{ws::WebSocketUpgrade, Query, State},
-    response::Response,
+    response::{Json, Response},
     routing::get,
     Router,
 };
 use clap::Parser;
 use serde::Deserialize;
 use std::net::SocketAddr;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use threadkit_common::Config;
-use threadkit_websocket::{handler::handle_socket, state::WsState};
+use threadkit_websocket::{handler::handle_socket, pubsub::PubSubSubscriber, state::WsState};
 
 #[derive(Parser)]
 #[command(name = "threadkit-websocket")]
@@ -44,6 +46,9 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+
+    // Raise file descriptor limit for high connection counts
+    raise_fd_limit();
 
     // Initialize tracing (CLI --log takes precedence over RUST_LOG env var)
     let log_filter = args
@@ -82,10 +87,52 @@ async fn main() -> Result<()> {
     // Initialize state
     let state = WsState::new(config.clone()).await?;
 
+    // Start the batcher flush loop
+    let batcher_handle = state.batcher.start();
+    tracing::info!("Redis batcher started (20ms flush interval)");
+
+    // Start the pub/sub subscriber
+    let pubsub_subscriber = PubSubSubscriber::new(
+        state.redis.clone(),
+        state.page_channels.clone(),
+    );
+    let _pubsub_handle = pubsub_subscriber.start();
+    tracing::info!("Redis pub/sub subscriber started");
+
+    // Start metrics logging task
+    let metrics_state = state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            let metrics = metrics_state.get_metrics();
+            tracing::info!(
+                active_connections = metrics.active_connections,
+                total_connections = metrics.total_connections,
+                messages_received = metrics.total_messages_received,
+                messages_sent = metrics.total_messages_sent,
+                batcher_flushes = metrics.batcher_flushes,
+                page_channels = metrics.page_channels_count,
+                "WebSocket server metrics"
+            );
+        }
+    });
+
+    // Start connection snapshot task for analytics
+    let snapshot_state = state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            snapshot_connections(&snapshot_state).await;
+        }
+    });
+
     // Build router
     let app = Router::new()
         .route("/ws", get(ws_handler))
         .route("/health", get(|| async { "ok" }))
+        .route("/metrics", get(metrics_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
@@ -101,6 +148,10 @@ async fn main() -> Result<()> {
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    // Cleanup
+    batcher_handle.abort();
+    tracing::info!("WebSocket server shut down");
 
     Ok(())
 }
@@ -119,9 +170,95 @@ async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, state, query.api_key, query.token))
 }
 
+async fn metrics_handler(State(state): State<WsState>) -> Json<serde_json::Value> {
+    let metrics = state.get_metrics();
+    Json(serde_json::json!({
+        "active_connections": metrics.active_connections,
+        "total_connections": metrics.total_connections,
+        "messages_received": metrics.total_messages_received,
+        "messages_sent": metrics.total_messages_sent,
+        "batcher_flushes": metrics.batcher_flushes,
+        "batcher_writes_batched": metrics.batcher_writes_batched,
+        "batcher_reads_batched": metrics.batcher_reads_batched,
+        "page_channels": metrics.page_channels_count,
+    }))
+}
+
 async fn shutdown_signal() {
     tokio::signal::ctrl_c()
         .await
         .expect("Failed to install CTRL+C handler");
-    tracing::info!("Shutting down WebSocket server...");
+    tracing::info!("Shutdown signal received, draining connections...");
+
+    // Grace period for connections to close
+    tokio::time::sleep(Duration::from_secs(10)).await;
+}
+
+/// Snapshot current connection counts to Redis for analytics
+async fn snapshot_connections(state: &WsState) {
+    let hour_key = chrono::Utc::now().format("%Y%m%d%H").to_string();
+    let minute = chrono::Utc::now().format("%M").to_string().parse::<u32>().unwrap_or(0);
+
+    for entry in state.connections_per_site.iter() {
+        let site_id = *entry.key();
+        let count = entry.value().load(Ordering::Relaxed);
+
+        if count > 0 {
+            // Store in Redis: ZADD threadkit:stats:{site_id}:connections:{hour} minute count
+            let key = format!("threadkit:stats:{}:connections:{}", site_id, hour_key);
+            if let Err(e) = state.redis.set_with_expiry(
+                &format!("{}:{}", key, minute),
+                &count.to_string(),
+                7 * 24 * 3600, // 7 days TTL
+            ).await {
+                tracing::warn!("Failed to snapshot connections: {}", e);
+            }
+        }
+    }
+}
+
+/// Raise the file descriptor limit for handling many connections
+fn raise_fd_limit() {
+    #[cfg(unix)]
+    {
+        use std::io;
+
+        // Get current limits
+        let mut rlim = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+
+        unsafe {
+            if libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) != 0 {
+                tracing::warn!("Failed to get file descriptor limit: {:?}", io::Error::last_os_error());
+                return;
+            }
+        }
+
+        let current = rlim.rlim_cur;
+        let max = rlim.rlim_max;
+
+        // Try to raise to 65536 or max, whichever is lower
+        let target = 65536.min(max);
+
+        if current < target {
+            rlim.rlim_cur = target;
+
+            unsafe {
+                if libc::setrlimit(libc::RLIMIT_NOFILE, &rlim) != 0 {
+                    tracing::warn!(
+                        "Failed to raise file descriptor limit from {} to {}: {:?}",
+                        current,
+                        target,
+                        io::Error::last_os_error()
+                    );
+                } else {
+                    tracing::info!("Raised file descriptor limit from {} to {}", current, target);
+                }
+            }
+        } else {
+            tracing::debug!("File descriptor limit already at {} (max: {})", current, max);
+        }
+    }
 }

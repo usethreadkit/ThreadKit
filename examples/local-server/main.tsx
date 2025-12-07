@@ -9,7 +9,7 @@ type Theme = 'light' | 'dark';
 // Configuration for local development
 // Make sure your server is running at localhost:8080
 // Set these values to match your server/.env file
-const LOCAL_API_KEY = 'tk_pub_47kpw07a487okgcssit93fe05bxs69r7';
+const LOCAL_API_KEY = 'tk_pub_o7ho3wt97dv7aat5jnou5yh3pml0i16p';
 const API_URL = 'http://localhost:8080/v1';
 
 function App() {

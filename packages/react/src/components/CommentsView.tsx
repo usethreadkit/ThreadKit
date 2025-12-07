@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin } from '../types';
 import { Comment } from './Comment';
 import { CommentForm } from './CommentForm';
+import { SignInPrompt } from './SignInPrompt';
 
 interface CommentsViewProps {
   comments: CommentType[];
@@ -11,6 +12,7 @@ interface CommentsViewProps {
   sortBy?: SortBy;
   highlightedCommentId?: string | null;
   collapsedThreads?: Set<string>;
+  apiUrl: string;
   onSortChange?: (sort: SortBy) => void;
   onPost: (text: string, parentId?: string) => Promise<void>;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -43,6 +45,7 @@ export function CommentsView({
   sortBy = 'votes',
   highlightedCommentId,
   collapsedThreads,
+  apiUrl,
   onSortChange,
   onPost,
   onVote,
@@ -86,10 +89,14 @@ export function CommentsView({
         {toolbarEnd}
       </div>
       <div className="threadkit-comments-header">
-        <CommentForm
-          placeholder={currentUser ? 'Write a comment...' : 'Sign in to comment'}
-          onSubmit={onPost}
-        />
+        {currentUser ? (
+          <CommentForm
+            placeholder="Write a comment..."
+            onSubmit={onPost}
+          />
+        ) : (
+          <SignInPrompt apiUrl={apiUrl} />
+        )}
       </div>
 
       {comments.length === 0 ? (

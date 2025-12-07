@@ -72,7 +72,7 @@ export function AuthProvider({
       }));
 
       // Validate token and get user info
-      fetch(`${apiUrl}/v1/users/me`, {
+      fetch(`${apiUrl}/users/me`, {
         headers: {
           'X-API-Key': apiKey,
           Authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@ export function AuthProvider({
   const refreshTokens = useCallback(
     async (refreshToken: string) => {
       try {
-        const res = await fetch(`${apiUrl}/v1/auth/refresh`, {
+        const res = await fetch(`${apiUrl}/auth/refresh`, {
           method: 'POST',
           headers: {
             'X-API-Key': apiKey,
@@ -150,7 +150,7 @@ export function AuthProvider({
 
     try {
       // Fetch available auth methods from server
-      const res = await fetch(`${apiUrl}/v1/auth/methods`, {
+      const res = await fetch(`${apiUrl}/auth/methods`, {
         headers: { 'X-API-Key': apiKey },
       });
 
@@ -215,7 +215,7 @@ export function AuthProvider({
       const isEmail = target.includes('@');
       const body = isEmail ? { email: target } : { phone: target };
 
-      const res = await fetch(`${apiUrl}/v1/auth/send-otp`, {
+      const res = await fetch(`${apiUrl}/auth/send-otp`, {
         method: 'POST',
         headers: {
           'X-API-Key': apiKey,
@@ -251,7 +251,7 @@ export function AuthProvider({
           ...(name ? { name } : {}),
         };
 
-        const res = await fetch(`${apiUrl}/v1/auth/verify-otp`, {
+        const res = await fetch(`${apiUrl}/auth/verify-otp`, {
           method: 'POST',
           headers: {
             'X-API-Key': apiKey,

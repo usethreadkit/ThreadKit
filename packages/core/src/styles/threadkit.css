@@ -1347,6 +1347,193 @@
   margin-left: auto;
 }
 
+/* ===== Sign In Prompt (Inline Auth) ===== */
+
+.threadkit-signin-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--threadkit-bg-secondary);
+  border: 1px solid var(--threadkit-border-light);
+  border-radius: var(--threadkit-radius);
+}
+
+.threadkit-signin-prompt.threadkit-signin-form {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.threadkit-signin-label {
+  font-size: 13px;
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-signin-methods {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.threadkit-signin-method-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.threadkit-signin-method-btn:hover {
+  background: var(--threadkit-bg-hover);
+  border-color: var(--threadkit-text-muted);
+}
+
+.threadkit-signin-method-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.threadkit-signin-otp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.threadkit-signin-back {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--threadkit-link);
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.threadkit-signin-back:hover {
+  text-decoration: underline;
+}
+
+.threadkit-signin-hint {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  margin-bottom: 4px;
+}
+
+.threadkit-signin-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  background: var(--threadkit-bg);
+  color: var(--threadkit-text);
+}
+
+.threadkit-signin-input:focus {
+  border-color: var(--threadkit-link);
+  outline: none;
+}
+
+.threadkit-signin-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.threadkit-signin-submit {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: var(--threadkit-primary);
+  border: none;
+  border-radius: var(--threadkit-radius);
+  transition: background 0.15s;
+}
+
+.threadkit-signin-submit:hover:not(:disabled) {
+  background: var(--threadkit-primary-hover);
+}
+
+.threadkit-signin-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.threadkit-signin-error {
+  font-size: 12px;
+  color: var(--threadkit-danger);
+  margin-top: 4px;
+}
+
+.threadkit-signin-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-signin-spinner {
+  width: 20px;
+  height: 20px;
+  color: var(--threadkit-primary);
+  animation: threadkit-spin 1s linear infinite;
+}
+
+@keyframes threadkit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.threadkit-signin-cancel {
+  align-self: center;
+  font-size: 12px;
+  color: var(--threadkit-link);
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  margin-top: 8px;
+}
+
+.threadkit-signin-cancel:hover {
+  text-decoration: underline;
+}
+
+/* Inline sign-in methods (shown in form actions) */
+.threadkit-signin-methods-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.threadkit-signin-label-inline {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  margin-right: 4px;
+}
+
+.threadkit-signin-loading-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+}
+
+.threadkit-signin-spinner-small {
+  width: 16px;
+  height: 16px;
+  color: var(--threadkit-primary);
+  animation: threadkit-spin 1s linear infinite;
+}
+
 /* ===== Mention Input ===== */
 
 .threadkit-mention-input-wrapper {

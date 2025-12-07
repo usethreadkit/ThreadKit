@@ -20,6 +20,22 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// Publish an event to Redis Pub/Sub for WebSocket servers to relay
+    ///
+    /// Events are published to `threadkit:page:{page_id}:events`
+    pub async fn publish_event(&self, page_id: uuid::Uuid, event_type: &str, data: serde_json::Value) {
+        let channel = format!("threadkit:page:{}:events", page_id);
+        let message = serde_json::json!({
+            "type": event_type,
+            "page_id": page_id,
+            "data": data
+        });
+
+        if let Err(e) = self.redis.publish(&channel, &message.to_string()).await {
+            tracing::warn!("Failed to publish event to Redis: {}", e);
+        }
+    }
+
     pub async fn new(config: Config) -> Result<Self> {
         let redis = RedisClient::new(&config.redis_url).await?;
         tracing::info!("Connected to Redis");
@@ -30,13 +46,71 @@ impl AppState {
             tracing::info!("Content moderation enabled");
         }
 
-        // In standalone mode, ensure site config exists in Redis
+        // In standalone mode, verify site exists in Redis and update settings
         if let Some(standalone) = config.standalone() {
-            use threadkit_common::types::{SiteConfig, SiteSettings, AuthSettings, DisplaySettings, ModerationMode, ContentModerationSettings, TurnstileSettings};
+            use threadkit_common::types::{AuthSettings, ModerationMode, ContentModerationSettings};
             use threadkit_common::config::ModerationMode as ConfigModerationMode;
 
-            // Content moderation settings for standalone site
-            let content_moderation_settings = if config.content_moderation.enabled {
+            // Check if site exists in Redis
+            let existing_site = redis.get_site_config(standalone.site_id).await?;
+
+            if existing_site.is_none() {
+                // Site not found - this could be:
+                // 1. First run without using --create-site
+                // 2. Redis was cleared
+                // 3. Wrong SITE_ID in .env
+                anyhow::bail!(
+                    "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
+                     Site not found in Redis.\n\n\
+                     Site ID: {}\n\n\
+                     This can happen if:\n\
+                       1. This is a fresh installation (create a site first)\n\
+                       2. Redis was cleared and needs re-initialization\n\
+                       3. The SITE_ID in your .env is incorrect\n\n\
+                     To create a new site, run:\n\
+                       threadkit-http --create-site NAME DOMAIN\n\n\
+                     Then update your .env with the generated site ID.\n\
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+                    standalone.site_id
+                );
+            }
+
+            let mut existing = existing_site.unwrap();
+
+            // Verify API keys match what's in Redis
+            if existing.api_key_public != standalone.api_key_public {
+                anyhow::bail!(
+                    "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
+                     API key mismatch!\n\n\
+                     The API_KEY_PUBLIC in your .env doesn't match the one stored in Redis.\n\n\
+                     .env:   {}\n\
+                     Redis:  {}\n\n\
+                     Please update your .env with the correct API key.\n\
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
+                    standalone.api_key_public,
+                    existing.api_key_public
+                );
+            }
+
+            // Update settings that can change at runtime (OAuth providers, moderation, etc.)
+            // but never touch the keys - those are immutable
+            existing.name = standalone.site_name.clone();
+            existing.domain = standalone.site_domain.clone();
+            existing.settings.moderation_mode = match standalone.moderation_mode {
+                ConfigModerationMode::None => ModerationMode::None,
+                ConfigModerationMode::Pre => ModerationMode::Pre,
+                ConfigModerationMode::Post => ModerationMode::Post,
+            };
+            existing.settings.auth = AuthSettings {
+                google: config.oauth.google.is_some(),
+                github: config.oauth.github.is_some(),
+                email: true,
+                phone: false,
+                anonymous: false,
+                ethereum: false,
+                solana: false,
+            };
+            existing.settings.content_moderation = if config.content_moderation.enabled {
                 ContentModerationSettings {
                     enabled: true,
                     ..Default::default()
@@ -44,41 +118,10 @@ impl AppState {
             } else {
                 ContentModerationSettings::default()
             };
+            existing.settings.allowed_origins = standalone.allowed_origins.clone();
 
-            let site_config = SiteConfig {
-                id: standalone.site_id,
-                name: standalone.site_name.clone(),
-                domain: standalone.site_domain.clone(),
-                api_key_public: standalone.api_key_public.clone(),
-                api_key_secret: standalone.api_key_secret.clone(),
-                settings: SiteSettings {
-                    moderation_mode: match standalone.moderation_mode {
-                        ConfigModerationMode::None => ModerationMode::None,
-                        ConfigModerationMode::Pre => ModerationMode::Pre,
-                        ConfigModerationMode::Post => ModerationMode::Post,
-                    },
-                    auth: AuthSettings {
-                        google: config.oauth.google.is_some(),
-                        github: config.oauth.github.is_some(),
-                        email: true,
-                        phone: false,
-                        anonymous: false,
-                        ethereum: false,
-                        solana: false,
-                    },
-                    display: DisplaySettings::default(),
-                    require_verification: false,
-                    auto_approve_verified: true,
-                    rate_limits: Default::default(),
-                    content_moderation: content_moderation_settings,
-                    turnstile: TurnstileSettings::default(),
-                    allowed_origins: standalone.allowed_origins.clone(),
-                    posting_disabled: false,
-                },
-            };
-
-            redis.set_site_config(&site_config).await?;
-            tracing::info!("Initialized site config in Redis");
+            redis.set_site_config(&existing).await?;
+            tracing::info!("Updated site config in Redis");
         }
 
         // Build ETag cache: 1M entries max, 5 min TTI

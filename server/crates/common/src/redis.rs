@@ -1274,6 +1274,15 @@ impl RedisClient {
         Ok(value.and_then(|v| serde_json::from_str(&v).ok()))
     }
 
+    /// Count how many site configs exist in Redis
+    /// Note: Uses custom to execute KEYS - only use for admin operations
+    pub async fn count_sites(&self) -> Result<usize> {
+        let result: Vec<String> = self.client
+            .custom(fred::cmd!("KEYS"), vec!["site:*:config"])
+            .await?;
+        Ok(result.len())
+    }
+
     pub async fn set_site_config(&self, config: &SiteConfig) -> Result<()> {
         let json = serde_json::to_string(config)?;
         self.client

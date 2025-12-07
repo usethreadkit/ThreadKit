@@ -14,7 +14,7 @@ interface LoginModalProps {
   apiKey: string;
 }
 
-export function LoginModal({ onClose, apiUrl, apiKey: _apiKey }: LoginModalProps) {
+export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
   const { state, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
   const [inputValue, setInputValue] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -61,21 +61,25 @@ export function LoginModal({ onClose, apiUrl, apiKey: _apiKey }: LoginModalProps
         const top = window.screenY + (window.outerHeight - height) / 2;
 
         oauthWindowRef.current = window.open(
-          `${apiUrl}/v1/auth/${method.id}`,
+          `${apiUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );
 
-        // Poll for popup close
+        // Poll for popup close - reset state if user closes without completing
         const pollTimer = setInterval(() => {
           if (oauthWindowRef.current?.closed) {
             clearInterval(pollTimer);
+            // Reset to method selection if popup closed without auth completing
+            if (state.step === 'oauth-pending') {
+              selectMethod(state.availableMethods[0]);
+            }
           }
         }, 500);
       }
       selectMethod(method);
     },
-    [apiUrl, selectMethod]
+    [apiUrl, selectMethod, state.step, state.availableMethods]
   );
 
   const handleOtpSubmit = useCallback(

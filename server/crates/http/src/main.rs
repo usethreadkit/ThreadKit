@@ -3,7 +3,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     middleware,
-    response::IntoResponse,
+    response::{Html, IntoResponse},
     routing::get,
     Json, Router,
 };
@@ -21,7 +21,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-use threadkit_common::{Config, Mode, ModerationMode};
+use threadkit_common::Config;
 use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::AppState};
 
 #[derive(Parser)]
@@ -29,6 +29,11 @@ use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::App
 #[command(about = "ThreadKit HTTP API server")]
 #[command(version)]
 struct Args {
+    /// Create a new site: --create-site NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY]
+    /// Outputs the site ID on success, or an error message on failure.
+    #[arg(long, value_names = ["NAME", "DOMAIN", "MODERATION_MODE", "PUBLIC_KEY", "SECRET_KEY"], num_args = 2..=5)]
+    create_site: Option<Vec<String>>,
+
     /// Path to .env file (e.g., .env.loadtest)
     #[arg(short, long)]
     env: Option<String>,
@@ -57,29 +62,10 @@ struct Args {
     #[arg(long)]
     allow_localhost_origin: bool,
 
-    /// Site ID (standalone mode, overrides SITE_ID)
-    #[arg(long)]
-    site_id: Option<String>,
-
-    /// Site name (standalone mode, overrides SITE_NAME)
-    #[arg(long)]
-    site_name: Option<String>,
-
-    /// Site domain (standalone mode, overrides SITE_DOMAIN)
-    #[arg(long)]
-    site_domain: Option<String>,
-
-    /// Public API key (standalone mode, overrides API_KEY_PUBLIC)
-    #[arg(long)]
-    api_key_public: Option<String>,
-
-    /// Secret API key (standalone mode, overrides API_KEY_SECRET)
-    #[arg(long)]
-    api_key_secret: Option<String>,
-
-    /// Moderation mode: none, pre, or post (standalone mode)
-    #[arg(long)]
-    moderation_mode: Option<String>,
+    /// Edit a site config: --edit-site SITE_ID KEY VALUE
+    /// Keys: name, domain, moderation_mode, api_key_public, api_key_secret
+    #[arg(long, value_names = ["SITE_ID", "KEY", "VALUE"], num_args = 3)]
+    edit_site: Option<Vec<String>>,
 }
 
 #[tokio::main]
@@ -98,6 +84,16 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // Handle --create-site mode - generate new site and exit
+    if let Some(ref site_args) = args.create_site {
+        return create_site(&args, site_args).await;
+    }
+
+    // Handle --edit-site mode - edit site config and exit
+    if let Some(ref edit_args) = args.edit_site {
+        return edit_site(&args, edit_args).await;
+    }
+
     // Load config
     let mut config = match &args.env {
         Some(path) => {
@@ -108,13 +104,13 @@ async fn main() -> Result<()> {
     };
 
     // Apply CLI arg overrides
-    if let Some(host) = args.host {
+    if let Some(host) = args.host.clone() {
         config.http_host = host;
     }
     if let Some(port) = args.port {
         config.http_port = port;
     }
-    if let Some(redis_url) = args.redis_url {
+    if let Some(redis_url) = args.redis_url.clone() {
         config.redis_url = redis_url;
     }
     if args.no_rate_limit {
@@ -122,36 +118,6 @@ async fn main() -> Result<()> {
     }
     if args.allow_localhost_origin {
         config.allow_localhost_origin = true;
-    }
-
-    // Standalone mode overrides
-    if let Mode::Standalone(ref mut standalone) = config.mode {
-        if let Some(site_id) = args.site_id {
-            if let Ok(id) = site_id.parse() {
-                standalone.site_id = id;
-            } else {
-                tracing::warn!("Invalid --site-id '{}', ignoring", site_id);
-            }
-        }
-        if let Some(name) = args.site_name {
-            standalone.site_name = name;
-        }
-        if let Some(domain) = args.site_domain {
-            standalone.site_domain = domain;
-        }
-        if let Some(key) = args.api_key_public {
-            standalone.api_key_public = key;
-        }
-        if let Some(key) = args.api_key_secret {
-            standalone.api_key_secret = key;
-        }
-        if let Some(mode) = args.moderation_mode {
-            standalone.moderation_mode = match mode.to_lowercase().as_str() {
-                "pre" => ModerationMode::Pre,
-                "post" => ModerationMode::Post,
-                _ => ModerationMode::None,
-            };
-        }
     }
 
     tracing::info!("Starting ThreadKit HTTP server");
@@ -172,6 +138,8 @@ async fn main() -> Result<()> {
 
     // Build router
     let app = Router::new()
+        // Easter egg
+        .route("/", get(spider_easter_egg))
         // Health check (no rate limiting)
         .route("/health", get(health_check))
         // Prometheus metrics (no rate limiting)
@@ -262,4 +230,374 @@ async fn shutdown_signal() {
         .await
         .expect("Failed to install CTRL+C handler");
     tracing::info!("Shutting down...");
+}
+
+async fn spider_easter_egg() -> Html<&'static str> {
+    Html(r##"<!DOCTYPE html>
+<html>
+<head>
+    <title>ThreadKit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            cursor: default;
+        }
+        .spider {
+            position: absolute;
+            font-size: 24px;
+            user-select: none;
+            transition: opacity 8s ease-in;
+            opacity: 0;
+        }
+        .spider.visible { opacity: 1; }
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #000;
+            opacity: 0;
+            transition: opacity 3s ease-in;
+            pointer-events: none;
+        }
+        .message.visible { opacity: 1; pointer-events: auto; }
+        .message h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+        .message a {
+            color: #000;
+            font-size: 14px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="message" id="message">
+        <h1>COME HACK WITH US</h1>
+        <a href="https://github.com/usethreadkit/threadkit">https://github.com/usethreadkit/threadkit</a>
+    </div>
+    <script>
+        const spiders = [];
+        const maxSpiders = 8;
+
+        function createSpider() {
+            const spider = document.createElement('div');
+            spider.className = 'spider';
+            spider.innerHTML = '🕷️';
+            spider.style.left = Math.random() * (window.innerWidth - 40) + 'px';
+            spider.style.top = Math.random() * (window.innerHeight - 40) + 'px';
+            spider.style.filter = 'grayscale(100%) brightness(100)'; // Start white
+            spider.style.transform = `rotate(${Math.random() * 360}deg)`;
+            document.body.appendChild(spider);
+
+            // Fade in after a moment
+            setTimeout(() => spider.classList.add('visible'), 100);
+
+            // Slowly become visible (darken over time)
+            let brightness = 100;
+            const darkenInterval = setInterval(() => {
+                brightness -= 2;
+                if (brightness <= 0) {
+                    clearInterval(darkenInterval);
+                    spider.style.filter = 'grayscale(0%)';
+                    // Start stalking the cursor
+                    spider.dataset.stalking = 'true';
+                }
+                spider.style.filter = `grayscale(${Math.max(0, 100 - (100 - brightness))}%) brightness(${brightness / 100 + 0.05})`;
+            }, 400);
+
+            spiders.push({ el: spider, vx: 0, vy: 0 });
+            return spider;
+        }
+
+        // Show the message after a delay
+        setTimeout(() => {
+            document.getElementById('message').classList.add('visible');
+        }, 8000);
+
+        // Spawn first spider after a delay
+        setTimeout(createSpider, 2000 + Math.random() * 3000);
+
+        // Spawn more spiders over time
+        setInterval(() => {
+            if (spiders.length < maxSpiders) {
+                createSpider();
+            }
+        }, 8000 + Math.random() * 7000);
+
+        // Track mouse
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Animate spiders toward cursor
+        function animate() {
+            spiders.forEach(spider => {
+                if (spider.el.dataset.stalking !== 'true') return;
+
+                const rect = spider.el.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+
+                const dx = mouseX - x;
+                const dy = mouseY - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 5) {
+                    // Slow, creepy movement
+                    const speed = 0.3 + Math.random() * 0.2;
+                    spider.vx += (dx / dist) * speed * 0.1;
+                    spider.vy += (dy / dist) * speed * 0.1;
+
+                    // Damping
+                    spider.vx *= 0.95;
+                    spider.vy *= 0.95;
+
+                    const newX = parseFloat(spider.el.style.left) + spider.vx;
+                    const newY = parseFloat(spider.el.style.top) + spider.vy;
+
+                    spider.el.style.left = newX + 'px';
+                    spider.el.style.top = newY + 'px';
+
+                    // Rotate toward movement direction
+                    const angle = Math.atan2(spider.vy, spider.vx) * 180 / Math.PI + 90;
+                    spider.el.style.transform = `rotate(${angle}deg)`;
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Jump scare if you stay too long
+        setTimeout(() => {
+            if (spiders.length > 0) {
+                const spider = spiders[0].el;
+                spider.style.transition = 'none';
+                spider.style.fontSize = '120px';
+                spider.style.left = (mouseX - 60) + 'px';
+                spider.style.top = (mouseY - 60) + 'px';
+                spider.style.filter = 'none';
+                spider.style.zIndex = '9999';
+            }
+        }, 45000 + Math.random() * 15000);
+    </script>
+</body>
+</html>
+"##)
+}
+
+/// Create a new site in Redis
+/// Args: NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY]
+/// Outputs site_id on success, error message on failure
+async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
+    use threadkit_common::redis::RedisClient;
+    use threadkit_common::types::{
+        SiteConfig, SiteSettings, AuthSettings, DisplaySettings,
+        ModerationMode as TypeModerationMode, ContentModerationSettings, TurnstileSettings,
+    };
+    use uuid::Uuid;
+
+    // Parse positional args
+    let site_name = &site_args[0];
+    let site_domain = &site_args[1];
+    let moderation_mode = site_args.get(2).map(|s| s.as_str()).unwrap_or("none");
+    let api_key_public = site_args.get(3)
+        .cloned()
+        .unwrap_or_else(|| format!("tk_pub_{}", generate_key()));
+    let api_key_secret = site_args.get(4)
+        .cloned()
+        .unwrap_or_else(|| format!("tk_sec_{}", generate_key()));
+
+    // Validate moderation mode
+    let moderation = match moderation_mode.to_lowercase().as_str() {
+        "none" => TypeModerationMode::None,
+        "pre" => TypeModerationMode::Pre,
+        "post" => TypeModerationMode::Post,
+        _ => {
+            eprintln!("error: invalid moderation mode '{}' (must be: none, pre, post)", moderation_mode);
+            std::process::exit(1);
+        }
+    };
+
+    // Validate key prefixes
+    if !api_key_public.starts_with("tk_pub_") {
+        eprintln!("error: public key must start with 'tk_pub_'");
+        std::process::exit(1);
+    }
+    if !api_key_secret.starts_with("tk_sec_") {
+        eprintln!("error: secret key must start with 'tk_sec_'");
+        std::process::exit(1);
+    }
+
+    // Get Redis URL
+    let redis_url = args.redis_url.clone()
+        .or_else(|| std::env::var("REDIS_URL").ok())
+        .unwrap_or_else(|| "redis://localhost:6379".to_string());
+
+    // Connect to Redis
+    let redis = match RedisClient::new(&redis_url).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: failed to connect to redis: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Generate site ID
+    let site_id = Uuid::now_v7();
+
+    // Create site config
+    let site_config = SiteConfig {
+        id: site_id,
+        name: site_name.clone(),
+        domain: site_domain.clone(),
+        api_key_public,
+        api_key_secret,
+        settings: SiteSettings {
+            moderation_mode: moderation,
+            auth: AuthSettings {
+                google: false,
+                github: false,
+                email: true,
+                phone: false,
+                anonymous: false,
+                ethereum: false,
+                solana: false,
+            },
+            display: DisplaySettings::default(),
+            require_verification: false,
+            auto_approve_verified: true,
+            rate_limits: Default::default(),
+            content_moderation: ContentModerationSettings::default(),
+            turnstile: TurnstileSettings::default(),
+            allowed_origins: vec![],
+            posting_disabled: false,
+        },
+    };
+
+    // Store in Redis
+    if let Err(e) = redis.set_site_config(&site_config).await {
+        eprintln!("error: failed to save site config: {}", e);
+        std::process::exit(1);
+    }
+
+    // Output just the site ID
+    println!("{}", site_id);
+    Ok(())
+}
+
+/// Edit a site config in Redis
+/// Args: SITE_ID KEY VALUE
+async fn edit_site(args: &Args, edit_args: &[String]) -> Result<()> {
+    use threadkit_common::redis::RedisClient;
+    use threadkit_common::types::ModerationMode;
+    use uuid::Uuid;
+
+    let site_id_str = &edit_args[0];
+    let key = &edit_args[1];
+    let value = &edit_args[2];
+
+    // Parse site ID
+    let site_id: Uuid = match site_id_str.parse() {
+        Ok(id) => id,
+        Err(_) => {
+            eprintln!("error: invalid site ID '{}'", site_id_str);
+            std::process::exit(1);
+        }
+    };
+
+    // Get Redis URL
+    let redis_url = args.redis_url.clone()
+        .or_else(|| std::env::var("REDIS_URL").ok())
+        .unwrap_or_else(|| "redis://localhost:6379".to_string());
+
+    // Connect to Redis
+    let redis = match RedisClient::new(&redis_url).await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: failed to connect to redis: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Get existing config
+    let mut config = match redis.get_site_config(site_id).await {
+        Ok(Some(c)) => c,
+        Ok(None) => {
+            eprintln!("error: site '{}' not found", site_id);
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("error: failed to get site config: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Update the specified field
+    match key.as_str() {
+        "name" => config.name = value.clone(),
+        "domain" => config.domain = value.clone(),
+        "moderation_mode" => {
+            config.settings.moderation_mode = match value.to_lowercase().as_str() {
+                "none" => ModerationMode::None,
+                "pre" => ModerationMode::Pre,
+                "post" => ModerationMode::Post,
+                _ => {
+                    eprintln!("error: invalid moderation mode '{}' (must be: none, pre, post)", value);
+                    std::process::exit(1);
+                }
+            };
+        }
+        "api_key_public" => {
+            if !value.starts_with("tk_pub_") {
+                eprintln!("error: public key must start with 'tk_pub_'");
+                std::process::exit(1);
+            }
+            config.api_key_public = value.clone();
+        }
+        "api_key_secret" => {
+            if !value.starts_with("tk_sec_") {
+                eprintln!("error: secret key must start with 'tk_sec_'");
+                std::process::exit(1);
+            }
+            config.api_key_secret = value.clone();
+        }
+        _ => {
+            eprintln!("error: unknown key '{}' (valid keys: name, domain, moderation_mode, api_key_public, api_key_secret)", key);
+            std::process::exit(1);
+        }
+    }
+
+    // Save updated config
+    if let Err(e) = redis.set_site_config(&config).await {
+        eprintln!("error: failed to save site config: {}", e);
+        std::process::exit(1);
+    }
+
+    // Output nothing on success (Unix convention)
+    Ok(())
+}
+
+/// Generate a cryptographically secure random alphanumeric key
+fn generate_key() -> String {
+    use rand::{Rng, rngs::OsRng};
+    const CHARSET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    (0..32)
+        .map(|_| {
+            let idx = OsRng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
 }

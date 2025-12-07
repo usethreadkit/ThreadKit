@@ -58,7 +58,7 @@ describe('AuthContext', () => {
 
   it('provides initial state', () => {
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -91,7 +91,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -117,7 +117,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -138,7 +138,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -165,7 +165,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -215,7 +215,7 @@ describe('AuthContext', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -251,7 +251,7 @@ describe('AuthContext', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -284,7 +284,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -316,7 +316,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -356,7 +356,7 @@ describe('AuthContext', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
         <TestComponent />
       </AuthProvider>
     );
@@ -388,7 +388,7 @@ describe('AuthContext', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key" onUserChange={onUserChange}>
+      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key" onUserChange={onUserChange}>
         <TestComponent />
       </AuthProvider>
     );

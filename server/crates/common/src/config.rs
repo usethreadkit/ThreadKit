@@ -185,29 +185,55 @@ impl Config {
 
         let mode = match env::var("MODE").unwrap_or_else(|_| "standalone".to_string()).as_str() {
             "saas" => Mode::Saas,
-            _ => Mode::Standalone(StandaloneConfig {
-                site_id: env::var("SITE_ID")
+            _ => {
+                // In standalone mode, require SITE_ID and API keys
+                let site_id = env::var("SITE_ID")
                     .ok()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or_else(Uuid::now_v7),
-                api_key_public: env::var("API_KEY_PUBLIC")
-                    .unwrap_or_else(|_| format!("tk_pub_{}", generate_key())),
-                api_key_secret: env::var("API_KEY_SECRET")
-                    .unwrap_or_else(|_| format!("tk_sec_{}", generate_key())),
-                site_name: env::var("SITE_NAME").unwrap_or_else(|_| "My Site".to_string()),
-                site_domain: env::var("SITE_DOMAIN").unwrap_or_else(|_| "localhost".to_string()),
-                moderation_mode: match env::var("MODERATION_MODE")
-                    .unwrap_or_default()
-                    .as_str()
-                {
-                    "pre" => ModerationMode::Pre,
-                    "post" => ModerationMode::Post,
-                    _ => ModerationMode::None,
-                },
-                allowed_origins: env::var("ALLOWED_ORIGINS")
-                    .map(|s| s.split(',').map(|o| o.trim().to_string()).filter(|o| !o.is_empty()).collect())
-                    .unwrap_or_default(),
-            }),
+                    .and_then(|s| if s.is_empty() { None } else { s.parse().ok() });
+
+                let api_key_public = env::var("API_KEY_PUBLIC")
+                    .ok()
+                    .filter(|s| !s.is_empty() && s != "tk_pub_your_public_key");
+
+                let api_key_secret = env::var("API_KEY_SECRET")
+                    .ok()
+                    .filter(|s| !s.is_empty() && s != "tk_sec_your_secret_key");
+
+                // Check if required config is missing
+                if site_id.is_none() || api_key_public.is_none() || api_key_secret.is_none() {
+                    anyhow::bail!(
+                        "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
+                         Missing required configuration for standalone mode.\n\n\
+                         Required environment variables:\n\
+                           SITE_ID         - Your site's unique identifier (UUID)\n\
+                           API_KEY_PUBLIC  - Public API key (tk_pub_...)\n\
+                           API_KEY_SECRET  - Secret API key (tk_sec_...)\n\n\
+                         To create a new site, run:\n\
+                           threadkit-http --create-site NAME DOMAIN\n\n\
+                         Then add the site ID and keys to your .env file.\n\
+                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    );
+                }
+
+                Mode::Standalone(StandaloneConfig {
+                    site_id: site_id.unwrap(),
+                    api_key_public: api_key_public.unwrap(),
+                    api_key_secret: api_key_secret.unwrap(),
+                    site_name: env::var("SITE_NAME").unwrap_or_else(|_| "My Site".to_string()),
+                    site_domain: env::var("SITE_DOMAIN").unwrap_or_else(|_| "localhost".to_string()),
+                    moderation_mode: match env::var("MODERATION_MODE")
+                        .unwrap_or_default()
+                        .as_str()
+                    {
+                        "pre" => ModerationMode::Pre,
+                        "post" => ModerationMode::Post,
+                        _ => ModerationMode::None,
+                    },
+                    allowed_origins: env::var("ALLOWED_ORIGINS")
+                        .map(|s| s.split(',').map(|o| o.trim().to_string()).filter(|o| !o.is_empty()).collect())
+                        .unwrap_or_default(),
+                })
+            },
         };
 
         let oauth = OAuthConfig {
@@ -298,10 +324,18 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(8081),
-            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| {
-                tracing::warn!("JWT_SECRET not set, using random secret (tokens won't persist across restarts)");
-                generate_key()
-            }),
+            jwt_secret: env::var("JWT_SECRET")
+                .ok()
+                .filter(|s| !s.is_empty() && s != "your-secret-key-here")
+                .ok_or_else(|| anyhow::anyhow!(
+                    "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
+                     JWT_SECRET is not configured.\n\n\
+                     This is required for signing authentication tokens.\n\n\
+                     To generate a new site configuration with JWT secret, run:\n\
+                       threadkit-http --create-site NAME DOMAIN\n\n\
+                     Then copy the output to your .env file.\n\
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                ))?,
             jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -381,19 +415,4 @@ impl Config {
             _ => None,
         }
     }
-}
-
-fn generate_key() -> String {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    (0..32)
-        .map(|_| {
-            let idx = rng.gen_range(0..36);
-            if idx < 10 {
-                (b'0' + idx) as char
-            } else {
-                (b'a' + idx - 10) as char
-            }
-        })
-        .collect()
 }
