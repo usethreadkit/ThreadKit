@@ -15,9 +15,20 @@
   let { userName, userId, getUserProfile, children }: Props = $props();
 
   let isVisible = $state(false);
-  let position = $state<{ top: number; left: number } | null>(null);
+  let position = $state<{ bottom: number; left: number } | null>(null);
   let triggerEl: HTMLSpanElement | undefined = $state();
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      }
+    };
+  }
 
   function formatDate(timestamp: number): string {
     const date = new Date(timestamp);
@@ -39,10 +50,10 @@
     timeoutId = setTimeout(() => {
       if (triggerEl) {
         const rect = triggerEl.getBoundingClientRect();
-        const cardHeight = 100;
+        // Fixed positioning relative to viewport
         position = {
-          top: rect.top + window.scrollY - cardHeight - 8,
-          left: rect.left + window.scrollX,
+          bottom: window.innerHeight - rect.top + 8,
+          left: rect.left,
         };
         isVisible = true;
       }
@@ -80,6 +91,8 @@
 
 <span
   bind:this={triggerEl}
+  role="button"
+  tabindex="0"
   onmouseenter={showCard}
   onmouseleave={hideCard}
   class="threadkit-username-trigger"
@@ -89,8 +102,10 @@
 
 {#if isVisible && position}
   <div
-    class="threadkit-hover-card"
-    style="position: absolute; top: {position.top}px; left: {position.left}px; z-index: 1000;"
+    use:portal
+    role="tooltip"
+    class="threadkit-root threadkit-hover-card"
+    style="position: fixed; bottom: {position.bottom}px; left: {position.left}px; z-index: 1000;"
     onmouseenter={keepCardVisible}
     onmouseleave={hideCard}
   >
