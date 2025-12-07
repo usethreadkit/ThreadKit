@@ -25,6 +25,7 @@ interface UseCommentsReturn {
   error: Error | null;
   postComment: (text: string, parentId?: string) => Promise<Comment>;
   deleteComment: (commentId: string) => Promise<void>;
+  editComment: (commentId: string, newText: string) => Promise<void>;
   vote: (commentId: string, voteType: 'up' | 'down') => Promise<{ upvotes: number; downvotes: number; user_vote?: 'up' | 'down' | null }>;
   refresh: () => Promise<void>;
   addComment: (comment: Comment) => void;
@@ -98,6 +99,7 @@ export function useComments({
     error: state.error,
     postComment: store.post.bind(store),
     deleteComment: store.delete.bind(store),
+    editComment: store.edit.bind(store),
     vote: store.vote.bind(store),
     refresh: store.fetch.bind(store),
     addComment: store.addComment.bind(store),

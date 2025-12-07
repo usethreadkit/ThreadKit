@@ -138,6 +138,7 @@ function ThreadKitInner({
     error,
     postComment,
     deleteComment,
+    editComment,
     vote,
     addComment,
     removeComment,
@@ -317,27 +318,14 @@ function ThreadKitInner({
   const handleEdit = useCallback(
     async (commentId: string, newText: string) => {
       try {
-        const token = localStorage.getItem('threadkit_token');
-        const response = await fetch(`${apiUrl}/comments/${commentId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ text: newText }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to edit comment');
-        }
-
+        await editComment(commentId, newText);
         updateComment(commentId, { text: newText, edited: true });
         onCommentEdited?.(commentId, newText);
       } catch (err) {
         onError?.(err instanceof Error ? err : new Error('Failed to edit'));
       }
     },
-    [apiUrl, updateComment, onCommentEdited, onError]
+    [editComment, updateComment, onCommentEdited, onError]
   );
 
   const handleBan = useCallback(
