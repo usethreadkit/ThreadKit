@@ -369,6 +369,16 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.19.1)(jsdom@25.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.44.1)
 
+  packages/i18n:
+    dependencies:
+      '@threadkit/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   packages/plugin-auth-ethereum:
     dependencies:
       '@tanstack/react-query':

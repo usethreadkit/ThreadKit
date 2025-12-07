@@ -41,6 +41,10 @@ struct Args {
     /// Redis URL (overrides REDIS_URL env var)
     #[arg(long)]
     redis_url: Option<String>,
+
+    /// Disable rate limiting (for load testing)
+    #[arg(long)]
+    no_rate_limit: bool,
 }
 
 #[tokio::main]
@@ -81,8 +85,14 @@ async fn main() -> Result<()> {
     if let Some(redis_url) = args.redis_url {
         config.redis_url = redis_url;
     }
+    if args.no_rate_limit {
+        config.rate_limit.enabled = false;
+    }
 
     tracing::info!("Starting ThreadKit WebSocket server");
+    if !config.rate_limit.enabled {
+        tracing::warn!("Rate limiting is DISABLED");
+    }
 
     // Initialize state
     let state = WsState::new(config.clone()).await?;

@@ -8,6 +8,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { NotificationsPanel, type Notification } from './components/NotificationsPanel';
 import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
 import type { User as AuthUser } from './auth/types';
+import { TranslationProvider, useTranslation } from './i18n';
 
 const DEFAULT_API_URL = 'https://api.usethreadkit.com/v1';
 
@@ -90,6 +91,7 @@ function ThreadKitInner({
   innerRef,
 }: ThreadKitInnerProps) {
   const { state: authState, login, registerPlugin } = useAuth();
+  const t = useTranslation();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Register auth plugins on mount
@@ -528,7 +530,7 @@ function ThreadKitInner({
   if (loading) {
     return (
       <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
-        <div className="threadkit-loading">Loading comments...</div>
+        <div className="threadkit-loading">{t('loadingComments')}</div>
       </div>
     );
   }
@@ -543,13 +545,13 @@ function ThreadKitInner({
       case 'SITE_NOT_FOUND':
         errorContent = (
           <>
-            <strong>Site not configured</strong>
+            <strong>{t('siteNotConfigured')}</strong>
             <p>
-              This API key is not associated with a configured site. Visit{' '}
+              {t('siteNotConfiguredMessage').split('usethreadkit.com/dashboard')[0]}
               <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
                 usethreadkit.com/dashboard
-              </a>{' '}
-              to complete your setup.
+              </a>
+              {t('siteNotConfiguredMessage').split('usethreadkit.com/dashboard')[1]}
             </p>
           </>
         );
@@ -557,13 +559,13 @@ function ThreadKitInner({
       case 'INVALID_API_KEY':
         errorContent = (
           <>
-            <strong>Invalid API key</strong>
+            <strong>{t('invalidApiKey')}</strong>
             <p>
-              The API key provided is invalid or has been revoked. Check your{' '}
+              {t('invalidApiKeyMessage').split('dashboard')[0]}
               <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
                 dashboard
-              </a>{' '}
-              for the correct key.
+              </a>
+              {t('invalidApiKeyMessage').split('dashboard')[1]}
             </p>
           </>
         );
@@ -571,16 +573,16 @@ function ThreadKitInner({
       case 'RATE_LIMITED':
         errorContent = (
           <>
-            <strong>Rate limited</strong>
-            <p>Too many requests. Please wait a moment and try again.</p>
+            <strong>{t('rateLimited')}</strong>
+            <p>{t('rateLimitedMessage')}</p>
           </>
         );
         break;
       default:
         errorContent = (
           <>
-            <strong>Failed to load comments</strong>
-            <p>Please try again later.</p>
+            <strong>{t('failedToLoadComments')}</strong>
+            <p>{t('tryAgainLater')}</p>
             {error.message && <code className="threadkit-error-code">{error.message}</code>}
           </>
         );
@@ -650,6 +652,7 @@ function ThreadKitInner({
           highlightedCommentId={highlightedCommentId}
           collapsedThreads={collapsedThreads}
           apiUrl={apiUrl}
+          apiKey={apiKey}
           onSortChange={setCurrentSort}
           onPost={handlePost}
           onVote={handleVote}
@@ -680,7 +683,7 @@ function ThreadKitInner({
       {!hideBranding && (
         <div className="threadkit-branding">
           <a href="https://usethreadkit.com" target="_blank" rel="noopener noreferrer">
-            Powered by ThreadKit
+            {t('poweredByThreadKit')}
           </a>
         </div>
       )}
@@ -696,9 +699,9 @@ function ThreadKitInner({
   );
 }
 
-// Main exported component that wraps with AuthProvider
+// Main exported component that wraps with AuthProvider and TranslationProvider
 export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
-  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut } = props;
+  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut, translations } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -721,8 +724,10 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   );
 
   return (
-    <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
-      <ThreadKitInner {...props} innerRef={ref} />
-    </AuthProvider>
+    <TranslationProvider translations={translations}>
+      <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
+        <ThreadKitInner {...props} innerRef={ref} />
+      </AuthProvider>
+    </TranslationProvider>
   );
 });

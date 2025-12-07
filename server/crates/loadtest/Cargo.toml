@@ -21,3 +21,5 @@ rand.workspace = true
 fred.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 urlencoding = "2.1"
+rlimit = "0.10"
+url = "2.5"

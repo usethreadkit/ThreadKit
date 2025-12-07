@@ -13,6 +13,7 @@ interface CommentsViewProps {
   highlightedCommentId?: string | null;
   collapsedThreads?: Set<string>;
   apiUrl: string;
+  apiKey: string;
   onSortChange?: (sort: SortBy) => void;
   onPost: (text: string, parentId?: string) => Promise<void>;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -46,6 +47,7 @@ export function CommentsView({
   highlightedCommentId,
   collapsedThreads,
   apiUrl,
+  apiKey,
   onSortChange,
   onPost,
   onVote,
@@ -95,7 +97,7 @@ export function CommentsView({
             onSubmit={onPost}
           />
         ) : (
-          <SignInPrompt apiUrl={apiUrl} />
+          <SignInPrompt apiUrl={apiUrl} apiKey={apiKey} />
         )}
       </div>
 

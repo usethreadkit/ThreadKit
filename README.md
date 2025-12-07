@@ -275,6 +275,10 @@ Visit [usethreadkit.com/docs](https://usethreadkit.com/docs) for full documentat
 - [Moderation](https://usethreadkit.com/docs/moderation)
 - [Plugins](https://usethreadkit.com/docs/plugins)
 
+## Security
+
+If you discover a security vulnerability, please email [security@usethreadkit.com](mailto:security@usethreadkit.com). Do not open a public issue.
+
 ## Contributing
 
 We welcome contributions! Please see our [contributing guidelines](CONTRIBUTING.md) for details.

@@ -46,7 +46,8 @@ pub enum EmailProvider {
 #[derive(Debug, Clone)]
 pub struct ResendConfig {
     pub api_key: String,
-    pub from_email: String,
+    /// Domain for sending emails (e.g., mail.usethreadkit.com)
+    pub from_domain: String,
 }
 
 /// Configuration for SMS sending
@@ -101,6 +102,8 @@ pub struct RateLimitConfig {
     pub user_reads_per_minute: u32,
     /// Auth attempts (login/register) per IP per hour
     pub auth_attempts_per_hour: u32,
+    /// WebSocket messages per second per connection
+    pub ws_messages_per_sec: u32,
     /// OTP sends per email/phone per hour (to prevent abuse of paid services)
     pub otp_per_target_per_hour: u32,
     /// OTP sends per IP per hour (to prevent mass enumeration)
@@ -120,6 +123,7 @@ impl Default for RateLimitConfig {
             user_writes_per_minute: 5,
             user_reads_per_minute: 30,
             auth_attempts_per_hour: 10,
+            ws_messages_per_sec: 10,
             otp_per_target_per_hour: 3,  // Max 3 OTPs per email/phone per hour
             otp_per_ip_per_hour: 10,     // Max 10 OTPs per IP per hour
             trusted_proxies: vec!["127.0.0.1".to_string(), "::1".to_string()],
@@ -273,6 +277,10 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(10),
+            ws_messages_per_sec: env::var("RATE_LIMIT_WS_MSG_PER_SEC")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10),
             otp_per_target_per_hour: env::var("RATE_LIMIT_OTP_PER_TARGET")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -373,13 +381,12 @@ impl Config {
 
         match provider.to_lowercase().as_str() {
             "resend" => {
-                let api_key = env::var("RESEND_API_KEY").ok()?;
-                let from_email = env::var("RESEND_FROM_EMAIL")
-                    .unwrap_or_else(|_| "noreply@usethreadkit.com".to_string());
+                let api_key = env::var("RESEND_API_KEY").ok().filter(|s| !s.is_empty())?;
+                let from_domain = env::var("EMAIL_FROM_DOMAIN").ok().filter(|s| !s.is_empty())?;
 
                 Some(EmailProvider::Resend(ResendConfig {
                     api_key,
-                    from_email,
+                    from_domain,
                 }))
             }
             _ => None,

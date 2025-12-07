@@ -1,7 +1,7 @@
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
-    response::Html,
+    http::{header, StatusCode},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -95,9 +95,14 @@ pub async fn get_config(
 pub async fn challenge_page(
     State(_state): State<AppState>,
     Query(query): Query<ChallengeQuery>,
-) -> Result<Html<String>, (StatusCode, String)> {
-    let site_key = query.site_key
-        .ok_or((StatusCode::BAD_REQUEST, "site_key query parameter required".into()))?;
+) -> Response {
+    let site_key = match query.site_key {
+        Some(key) => key,
+        None => return (
+            StatusCode::BAD_REQUEST,
+            "site_key query parameter required",
+        ).into_response(),
+    };
 
     // Return HTML page with Turnstile widget
     let html = format!(r#"<!DOCTYPE html>
@@ -235,7 +240,14 @@ pub async fn challenge_page(
 </body>
 </html>"#);
 
-    Ok(Html(html))
+    // Return with COOP header to allow postMessage communication with opener
+    (
+        [
+            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+            (header::HeaderName::from_static("cross-origin-opener-policy"), "unsafe-none"),
+        ],
+        html,
+    ).into_response()
 }
 
 /// Verify a Turnstile token server-side

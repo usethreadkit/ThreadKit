@@ -119,6 +119,18 @@ export {
   escapeHtml,
 } from './utils/format';
 
+// Internationalization (i18n)
+export type {
+  TranslationStrings,
+  PartialTranslations,
+  LocaleCode,
+} from './i18n/types';
+
+export { defaultTranslations } from './i18n/defaults';
+
+export { createTranslator, interpolate } from './i18n/translator';
+export type { TranslatorFunction } from './i18n/translator';
+
 // ============================================================================
 // Generated API Types (from OpenAPI spec)
 // ============================================================================

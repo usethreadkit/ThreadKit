@@ -12,6 +12,7 @@ import type {
   PluginRenderInstruction,
   PluginSegment as CorePluginSegment,
   ThreadKitPlugin,
+  PartialTranslations,
 } from '@threadkit/core';
 
 // Re-export with original names for backwards compatibility
@@ -155,6 +156,18 @@ export interface ThreadKitProps {
   authPlugins?: import('./auth/types').AuthPlugin[];
   /** Function to get additional headers before posting (e.g., for bot protection plugins like Turnstile) */
   getPostHeaders?: () => Promise<Record<string, string>>;
+  /**
+   * Custom translations to override default English strings.
+   * Use with @threadkit/i18n for pre-made translations:
+   * @example
+   * import { es } from '@threadkit/i18n';
+   * <ThreadKit translations={es} ... />
+   *
+   * Or provide partial overrides:
+   * @example
+   * <ThreadKit translations={{ post: 'Submit', cancel: 'Nevermind' }} ... />
+   */
+  translations?: PartialTranslations;
   /** Callback to get users for @mention autocomplete */
   getMentionSuggestions?: (query: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
 

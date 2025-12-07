@@ -1,0 +1,52 @@
+{
+  "name": "@threadkit/i18n",
+  "version": "0.0.1",
+  "description": "Translation files for ThreadKit commenting system",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./locales/*": {
+      "types": "./dist/locales/*.d.ts",
+      "import": "./dist/locales/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/validate-translations.js",
+    "dev:watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "validate": "node scripts/validate-translations.js"
+  },
+  "dependencies": {
+    "@threadkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "threadkit",
+    "i18n",
+    "internationalization",
+    "translations",
+    "localization"
+  ],
+  "license": "MIT",
+  "author": "fantauma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usethreadkit/threadkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/usethreadkit/threadkit/issues"
+  },
+  "homepage": "https://usethreadkit.com"
+}

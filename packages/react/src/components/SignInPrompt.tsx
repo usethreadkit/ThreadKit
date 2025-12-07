@@ -4,10 +4,11 @@ import type { AuthMethod } from '../auth/types';
 
 interface SignInPromptProps {
   apiUrl: string;
+  apiKey: string;
   placeholder?: string;
 }
 
-export function SignInPrompt({ apiUrl, placeholder = 'Write a comment...' }: SignInPromptProps) {
+export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...' }: SignInPromptProps) {
   const { state, login, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
   const [text, setText] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -37,7 +38,9 @@ export function SignInPrompt({ apiUrl, placeholder = 'Write a comment...' }: Sig
   // Handle OAuth popup message
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (!event.origin.includes(new URL(apiUrl).host)) {
+      // Verify origin (use base URL without /v1)
+      const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
+      if (!event.origin.includes(new URL(baseUrl).host)) {
         return;
       }
 
@@ -67,8 +70,10 @@ export function SignInPrompt({ apiUrl, placeholder = 'Write a comment...' }: Sig
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
+        // OAuth routes are at root level (not under /v1)
+        const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${apiUrl}/auth/${method.id}`,
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );

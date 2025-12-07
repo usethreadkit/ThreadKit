@@ -68,6 +68,19 @@ export type {
   WebSocketMessage,
 } from './types';
 
+// i18n - Translation utilities
+export {
+  TranslationProvider,
+  useTranslation,
+  defaultTranslations,
+} from './i18n';
+export type {
+  TranslationProviderProps,
+  TranslationStrings,
+  PartialTranslations,
+  TranslatorFunction,
+} from './i18n';
+
 // Plugin renderers (for custom plugins)
 export {
   pluginRenderers,

@@ -30,8 +30,9 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
   // Handle OAuth popup message
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Verify origin
-      if (!event.origin.includes(new URL(apiUrl).host)) {
+      // Verify origin (use base URL without /v1)
+      const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
+      if (!event.origin.includes(new URL(baseUrl).host)) {
         return;
       }
 
@@ -60,8 +61,10 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
+        // OAuth routes are at root level (not under /v1)
+        const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${apiUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );

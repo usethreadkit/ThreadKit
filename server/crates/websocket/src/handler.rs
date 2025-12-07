@@ -20,6 +20,8 @@ use crate::{
 
 /// Configuration for connection handling
 struct ConnectionConfig {
+    /// Whether rate limiting is enabled
+    rate_limit_enabled: bool,
     /// Max messages per second per connection
     rate_limit_per_sec: u32,
     /// Idle timeout in seconds
@@ -30,10 +32,11 @@ struct ConnectionConfig {
     max_subscriptions: usize,
 }
 
-impl Default for ConnectionConfig {
-    fn default() -> Self {
+impl ConnectionConfig {
+    fn from_state(state: &WsState) -> Self {
         Self {
-            rate_limit_per_sec: 10,
+            rate_limit_enabled: state.config.rate_limit.enabled,
+            rate_limit_per_sec: state.config.rate_limit.ws_messages_per_sec,
             idle_timeout_secs: 300, // 5 minutes
             typing_debounce_ms: 500,
             max_subscriptions: 10,
@@ -93,7 +96,7 @@ async fn run_connection(
     user_id: Option<Uuid>,
     user_public: Option<UserPublic>,
 ) {
-    let config = ConnectionConfig::default();
+    let config = ConnectionConfig::from_state(&state);
     let (mut sender, mut receiver) = socket.split();
 
     // Send connected message
@@ -126,19 +129,21 @@ async fn run_connection(
                     Some(Ok(Message::Text(text))) => {
                         state.message_received();
 
-                        // Rate limit check
-                        if second_start.elapsed() >= Duration::from_secs(1) {
-                            messages_this_second = 0;
-                            second_start = Instant::now();
-                        }
-                        messages_this_second += 1;
-
-                        if messages_this_second > config.rate_limit_per_sec {
-                            if let Ok(json) = ServerMessage::error("rate_limit", "Too many messages").to_json() {
-                                let _ = sender.send(Message::Text(json.into())).await;
-                                state.message_sent();
+                        // Rate limit check (if enabled)
+                        if config.rate_limit_enabled {
+                            if second_start.elapsed() >= Duration::from_secs(1) {
+                                messages_this_second = 0;
+                                second_start = Instant::now();
                             }
-                            continue;
+                            messages_this_second += 1;
+
+                            if messages_this_second > config.rate_limit_per_sec {
+                                if let Ok(json) = ServerMessage::error("rate_limit", "Too many messages").to_json() {
+                                    let _ = sender.send(Message::Text(json.into())).await;
+                                    state.message_sent();
+                                }
+                                continue;
+                            }
                         }
 
                         last_activity = Instant::now();

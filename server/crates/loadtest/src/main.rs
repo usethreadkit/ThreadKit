@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use fred::interfaces::ClientLike;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use rlimit::{Resource, getrlimit, setrlimit};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -15,6 +16,97 @@ use uuid::Uuid;
 use threadkit_common::types::{
     AuthResponse, CreateCommentRequest, CreateCommentResponse, RegisterRequest,
 };
+
+// ============================================================================
+// System Limit Helpers
+// ============================================================================
+
+/// Raise the file descriptor limit for high connection counts.
+/// Returns the new soft limit.
+fn raise_fd_limit() -> u64 {
+    const DESIRED_LIMIT: u64 = 65536;
+
+    match getrlimit(Resource::NOFILE) {
+        Ok((soft, hard)) => {
+            let new_soft = soft.max(DESIRED_LIMIT.min(hard));
+            if new_soft > soft {
+                match setrlimit(Resource::NOFILE, new_soft, hard) {
+                    Ok(()) => {
+                        tracing::info!("Raised file descriptor limit from {} to {} (hard: {})", soft, new_soft, hard);
+                        new_soft
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to raise FD limit: {} (current: {}, hard: {})", e, soft, hard);
+                        soft
+                    }
+                }
+            } else {
+                tracing::info!("File descriptor limit: {} (hard: {})", soft, hard);
+                soft
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Failed to get FD limit: {}", e);
+            256
+        }
+    }
+}
+
+/// Print macOS-specific system limits that affect high-connection workloads.
+#[cfg(target_os = "macos")]
+fn print_system_limits() {
+    use std::process::Command;
+
+    // kern.ipc.somaxconn - TCP listen backlog
+    if let Ok(output) = Command::new("sysctl").args(["-n", "kern.ipc.somaxconn"]).output() {
+        if output.status.success() {
+            if let Ok(val) = String::from_utf8_lossy(&output.stdout).trim().parse::<u32>() {
+                if val < 1024 {
+                    tracing::warn!("⚠ TCP backlog (kern.ipc.somaxconn) is {} - limits concurrent connections!", val);
+                    tracing::warn!("  Fix: sudo sysctl -w kern.ipc.somaxconn=8192");
+                } else {
+                    tracing::info!("TCP backlog (kern.ipc.somaxconn): {}", val);
+                }
+            }
+        }
+    }
+
+    // kern.maxfilesperproc - max open files per process
+    if let Ok(output) = Command::new("sysctl").args(["-n", "kern.maxfilesperproc"]).output() {
+        if output.status.success() {
+            if let Ok(val) = String::from_utf8_lossy(&output.stdout).trim().parse::<u64>() {
+                if val < 10000 {
+                    tracing::warn!("⚠ Max files per process (kern.maxfilesperproc) is {} - may limit connections!", val);
+                    tracing::warn!("  Fix: sudo sysctl -w kern.maxfilesperproc=65536");
+                } else {
+                    tracing::info!("Max files per process (kern.maxfilesperproc): {}", val);
+                }
+            }
+        }
+    }
+
+    // Ephemeral port range
+    let first = Command::new("sysctl")
+        .args(["-n", "net.inet.ip.portrange.first"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse::<u32>().ok());
+    let last = Command::new("sysctl")
+        .args(["-n", "net.inet.ip.portrange.last"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse::<u32>().ok());
+
+    if let (Some(first), Some(last)) = (first, last) {
+        let range = last.saturating_sub(first) + 1;
+        tracing::info!("Ephemeral port range: {}-{} ({} ports available)", first, last, range);
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn print_system_limits() {
+    // Linux/other: could add similar checks for /proc/sys/net/core/somaxconn etc.
+}
 
 #[derive(Parser)]
 #[command(name = "threadkit-loadtest")]
@@ -166,6 +258,41 @@ enum Commands {
         /// Typing interval in milliseconds (how often each client sends typing)
         #[arg(long, default_value = "1000")]
         typing_interval: u64,
+    },
+
+    /// WebSocket stress test with gradual ramp-up
+    WsStress {
+        /// Target URL (e.g., ws://localhost:8081)
+        #[arg(short, long, default_value = "ws://localhost:8081")]
+        url: String,
+
+        /// API key
+        #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
+        api_key: String,
+
+        /// Target number of connections
+        #[arg(short, long, default_value = "1000")]
+        connections: usize,
+
+        /// Connections to add per second during ramp-up
+        #[arg(long, default_value = "100")]
+        ramp_rate: usize,
+
+        /// Hold duration in seconds after reaching target connections
+        #[arg(long, default_value = "60")]
+        hold_duration: u64,
+
+        /// Messages per second per connection (0 = subscribe only, no messages)
+        #[arg(long, default_value = "2")]
+        msg_rate: u64,
+
+        /// Number of pages to distribute connections across
+        #[arg(long, default_value = "100")]
+        pages: usize,
+
+        /// Stagger each connection by N milliseconds (0 = no stagger, spawn all at once in batch)
+        #[arg(long, default_value = "5")]
+        stagger_ms: u64,
     },
 
     /// Build a thread: N users each post M comments, randomly replying or starting new threads
@@ -383,6 +510,21 @@ async fn main() -> Result<()> {
             typing_interval,
         } => {
             run_ws_test(&url, &api_key, connections, duration, users_file.as_deref(), typing, typing_interval).await?;
+        }
+        Commands::WsStress {
+            url,
+            api_key,
+            connections,
+            ramp_rate,
+            hold_duration,
+            msg_rate,
+            pages,
+            stagger_ms,
+        } => {
+            // Raise limits and print system info for stress tests
+            raise_fd_limit();
+            print_system_limits();
+            run_ws_stress_test(&url, &api_key, connections, ramp_rate, hold_duration, msg_rate, pages, stagger_ms).await?;
         }
         Commands::Thread {
             url,
@@ -2165,6 +2307,367 @@ async fn run_bench_test(
             "Success rate: {:.2}%",
             success_count as f64 / total_requests as f64 * 100.0
         );
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// WebSocket Stress Test - Gradual ramp-up to find breaking point
+// ============================================================================
+
+/// Stress test stats with atomic counters
+struct StressStats {
+    connections_attempted: AtomicU64,
+    connections_active: AtomicU64,
+    connections_failed: AtomicU64,
+    connections_dropped: AtomicU64,
+    messages_sent: AtomicU64,
+    messages_received: AtomicU64,
+    errors: AtomicU64,
+}
+
+impl Default for StressStats {
+    fn default() -> Self {
+        Self {
+            connections_attempted: AtomicU64::new(0),
+            connections_active: AtomicU64::new(0),
+            connections_failed: AtomicU64::new(0),
+            connections_dropped: AtomicU64::new(0),
+            messages_sent: AtomicU64::new(0),
+            messages_received: AtomicU64::new(0),
+            errors: AtomicU64::new(0),
+        }
+    }
+}
+
+async fn run_ws_stress_test(
+    url: &str,
+    api_key: &str,
+    target_connections: usize,
+    ramp_rate: usize,
+    hold_duration: u64,
+    msg_rate: u64,
+    num_pages: usize,
+    stagger_ms: u64,
+) -> Result<()> {
+    tracing::info!("Starting WebSocket STRESS test");
+    tracing::info!("  URL: {}", url);
+    tracing::info!("  Target connections: {}", target_connections);
+    tracing::info!("  Ramp rate: {} connections/sec", ramp_rate);
+    tracing::info!("  Hold duration: {}s", hold_duration);
+    tracing::info!("  Message rate: {} msg/sec/conn", msg_rate);
+    tracing::info!("  Pages: {}", num_pages);
+    tracing::info!("  Stagger: {}ms between connections", stagger_ms);
+
+    let stats = Arc::new(StressStats::default());
+    let start = Instant::now();
+
+    // Pre-generate page IDs
+    let page_ids: Vec<Uuid> = (0..num_pages).map(|_| Uuid::new_v4()).collect();
+    let page_ids = Arc::new(page_ids);
+
+    // Channel to signal shutdown
+    let (shutdown_tx, _) = tokio::sync::broadcast::channel::<()>(1);
+
+    // Spawn connection handles
+    let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
+
+    // Calculate ramp-up phases
+    let ramp_duration_secs = (target_connections + ramp_rate - 1) / ramp_rate;
+    let connections_per_batch = ramp_rate;
+    let batch_interval = Duration::from_secs(1);
+
+    // Stagger delay between connections within a batch
+    let stagger_delay = Duration::from_millis(stagger_ms);
+
+    tracing::info!("Ramp-up will take ~{}s to reach {} connections", ramp_duration_secs, target_connections);
+
+    let mut connections_spawned = 0;
+
+    // Ramp-up phase
+    while connections_spawned < target_connections {
+        let batch_size = (target_connections - connections_spawned).min(connections_per_batch);
+        let batch_start = Instant::now();
+
+        for i in 0..batch_size {
+            let conn_id = connections_spawned + i;
+            let stats = stats.clone();
+            let page_ids = page_ids.clone();
+            let mut shutdown_rx = shutdown_tx.subscribe();
+            let ws_url = format!("{}/ws?api_key={}", url, api_key);
+            let msg_interval = if msg_rate > 0 {
+                Some(Duration::from_millis(1000 / msg_rate))
+            } else {
+                None
+            };
+
+            // Stagger connection establishment to avoid overwhelming the server
+            if stagger_ms > 0 && i > 0 {
+                tokio::time::sleep(stagger_delay).await;
+            }
+
+            handles.push(tokio::spawn(async move {
+                use futures_util::{SinkExt, StreamExt};
+                use tokio::net::TcpSocket;
+                use tokio_tungstenite::client_async;
+
+                stats.connections_attempted.fetch_add(1, Ordering::Relaxed);
+
+                // Parse the WebSocket URL to get host:port
+                let url = url::Url::parse(&ws_url).unwrap();
+                let host = url.host_str().unwrap_or("localhost");
+                let port = url.port().unwrap_or(8081);
+
+                // Resolve address - handle "localhost" specially
+                let sock_addr: std::net::SocketAddr = if host == "localhost" {
+                    format!("127.0.0.1:{}", port).parse().unwrap()
+                } else {
+                    use std::net::ToSocketAddrs;
+                    match format!("{}:{}", host, port).to_socket_addrs() {
+                        Ok(mut addrs) => match addrs.next() {
+                            Some(addr) => addr,
+                            None => {
+                                tracing::debug!("Connection {} failed: DNS lookup returned no addresses", conn_id);
+                                stats.connections_failed.fetch_add(1, Ordering::Relaxed);
+                                return;
+                            }
+                        },
+                        Err(e) => {
+                            tracing::debug!("Connection {} failed: DNS lookup error: {}", conn_id, e);
+                            stats.connections_failed.fetch_add(1, Ordering::Relaxed);
+                            return;
+                        }
+                    }
+                };
+
+                // Create TCP socket with SO_REUSEADDR for faster port recycling
+                let connect_result = tokio::time::timeout(Duration::from_secs(30), async {
+                    let socket = TcpSocket::new_v4()?;
+                    socket.set_reuseaddr(true)?;
+                    let tcp_stream = socket.connect(sock_addr).await?;
+                    client_async(&ws_url, tcp_stream).await
+                        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+                }).await;
+
+                let (mut ws, _) = match connect_result {
+                    Ok(Ok(conn)) => conn,
+                    Ok(Err(e)) => {
+                        tracing::debug!("Connection {} failed: {}", conn_id, e);
+                        stats.connections_failed.fetch_add(1, Ordering::Relaxed);
+                        return;
+                    }
+                    Err(_) => {
+                        tracing::debug!("Connection {} timed out", conn_id);
+                        stats.connections_failed.fetch_add(1, Ordering::Relaxed);
+                        return;
+                    }
+                };
+
+                stats.connections_active.fetch_add(1, Ordering::Relaxed);
+
+                // Pick a page to subscribe to (distribute across pages)
+                let page_id = page_ids[conn_id % page_ids.len()];
+
+                // Subscribe
+                let subscribe_msg = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "method": "subscribe",
+                    "params": { "page_id": page_id.to_string() }
+                });
+                if ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                    subscribe_msg.to_string().into(),
+                )).await.is_ok() {
+                    stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                }
+
+                // Message loop
+                let mut msg_timer = msg_interval.map(tokio::time::interval);
+                let mut ping_timer = tokio::time::interval(Duration::from_secs(30));
+
+                loop {
+                    tokio::select! {
+                        // Check for shutdown
+                        _ = shutdown_rx.recv() => {
+                            break;
+                        }
+
+                        // Send ping periodically
+                        _ = ping_timer.tick() => {
+                            let ping_msg = serde_json::json!({
+                                "jsonrpc": "2.0",
+                                "method": "ping"
+                            });
+                            if ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                                ping_msg.to_string().into(),
+                            )).await.is_err() {
+                                stats.connections_dropped.fetch_add(1, Ordering::Relaxed);
+                                stats.connections_active.fetch_sub(1, Ordering::Relaxed);
+                                return;
+                            }
+                            stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                        }
+
+                        // Send typing indicators at msg_rate
+                        _ = async {
+                            if let Some(ref mut timer) = msg_timer {
+                                timer.tick().await
+                            } else {
+                                std::future::pending::<tokio::time::Instant>().await
+                            }
+                        } => {
+                            let typing_msg = serde_json::json!({
+                                "jsonrpc": "2.0",
+                                "method": "typing",
+                                "params": {
+                                    "page_id": page_id.to_string(),
+                                    "reply_to": null
+                                }
+                            });
+                            if ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                                typing_msg.to_string().into(),
+                            )).await.is_err() {
+                                stats.connections_dropped.fetch_add(1, Ordering::Relaxed);
+                                stats.connections_active.fetch_sub(1, Ordering::Relaxed);
+                                return;
+                            }
+                            stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                        }
+
+                        // Receive messages
+                        msg = ws.next() => {
+                            match msg {
+                                Some(Ok(tokio_tungstenite::tungstenite::Message::Text(_))) => {
+                                    stats.messages_received.fetch_add(1, Ordering::Relaxed);
+                                }
+                                Some(Ok(tokio_tungstenite::tungstenite::Message::Ping(data))) => {
+                                    let _ = ws.send(tokio_tungstenite::tungstenite::Message::Pong(data)).await;
+                                }
+                                Some(Ok(_)) => {}
+                                Some(Err(e)) => {
+                                    tracing::debug!("Connection {} error: {}", conn_id, e);
+                                    stats.errors.fetch_add(1, Ordering::Relaxed);
+                                    stats.connections_dropped.fetch_add(1, Ordering::Relaxed);
+                                    stats.connections_active.fetch_sub(1, Ordering::Relaxed);
+                                    return;
+                                }
+                                None => {
+                                    stats.connections_dropped.fetch_add(1, Ordering::Relaxed);
+                                    stats.connections_active.fetch_sub(1, Ordering::Relaxed);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Clean shutdown
+                let _ = ws.close(None).await;
+                stats.connections_active.fetch_sub(1, Ordering::Relaxed);
+            }));
+        }
+
+        connections_spawned += batch_size;
+
+        // Print progress
+        let active = stats.connections_active.load(Ordering::Relaxed);
+        let failed = stats.connections_failed.load(Ordering::Relaxed);
+        let dropped = stats.connections_dropped.load(Ordering::Relaxed);
+        let sent = stats.messages_sent.load(Ordering::Relaxed);
+        let recv = stats.messages_received.load(Ordering::Relaxed);
+
+        tracing::info!(
+            "RAMP: {} spawned | {} active | {} failed | {} dropped | sent/recv: {}/{}",
+            connections_spawned, active, failed, dropped, sent, recv
+        );
+
+        // Wait for remaining time in batch interval (accounting for stagger time spent)
+        if connections_spawned < target_connections {
+            let batch_elapsed = batch_start.elapsed();
+            if batch_elapsed < batch_interval {
+                tokio::time::sleep(batch_interval - batch_elapsed).await;
+            }
+        }
+    }
+
+    tracing::info!("Ramp-up complete! Holding {} connections for {}s...",
+        stats.connections_active.load(Ordering::Relaxed), hold_duration);
+
+    // Hold phase - monitor stats every second
+    for sec in 0..hold_duration {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        let active = stats.connections_active.load(Ordering::Relaxed);
+        let failed = stats.connections_failed.load(Ordering::Relaxed);
+        let dropped = stats.connections_dropped.load(Ordering::Relaxed);
+        let sent = stats.messages_sent.load(Ordering::Relaxed);
+        let recv = stats.messages_received.load(Ordering::Relaxed);
+        let errors = stats.errors.load(Ordering::Relaxed);
+
+        tracing::info!(
+            "HOLD [{}/{}s]: {} active | {} failed | {} dropped | {} errors | sent/recv: {}/{}",
+            sec + 1, hold_duration, active, failed, dropped, errors, sent, recv
+        );
+
+        // Early exit if too many connections dropped
+        if active == 0 && (failed + dropped) > 0 {
+            tracing::error!("All connections lost! Stopping early.");
+            break;
+        }
+    }
+
+    // Shutdown all connections
+    tracing::info!("Shutting down connections...");
+    let _ = shutdown_tx.send(());
+
+    // Wait for all handles with timeout
+    let shutdown_timeout = Duration::from_secs(10);
+    let _ = tokio::time::timeout(shutdown_timeout, async {
+        for handle in handles {
+            let _ = handle.await;
+        }
+    }).await;
+
+    // Final stats
+    let elapsed = start.elapsed();
+    let attempted = stats.connections_attempted.load(Ordering::Relaxed);
+    let active = stats.connections_active.load(Ordering::Relaxed);
+    let failed = stats.connections_failed.load(Ordering::Relaxed);
+    let dropped = stats.connections_dropped.load(Ordering::Relaxed);
+    let sent = stats.messages_sent.load(Ordering::Relaxed);
+    let recv = stats.messages_received.load(Ordering::Relaxed);
+    let errors = stats.errors.load(Ordering::Relaxed);
+
+    println!("\n========== WebSocket Stress Test Results ==========");
+    println!("Duration: {:.2}s", elapsed.as_secs_f64());
+    println!("Target connections: {}", target_connections);
+    println!();
+    println!("Connections:");
+    println!("  Attempted: {}", attempted);
+    println!("  Peak active: {}", attempted - failed); // Approximate peak
+    println!("  Final active: {}", active);
+    println!("  Failed to connect: {}", failed);
+    println!("  Dropped during test: {}", dropped);
+    println!("  Connect success rate: {:.2}%",
+        if attempted > 0 { (attempted - failed) as f64 / attempted as f64 * 100.0 } else { 0.0 });
+    println!();
+    println!("Messages:");
+    println!("  Total sent: {}", sent);
+    println!("  Total received: {}", recv);
+    println!("  Avg sent/sec: {:.2}", sent as f64 / elapsed.as_secs_f64());
+    println!("  Avg recv/sec: {:.2}", recv as f64 / elapsed.as_secs_f64());
+    println!();
+    println!("Errors: {}", errors);
+
+    // Verdict
+    if failed == 0 && dropped == 0 {
+        println!("\n✓ SUCCESS: All {} connections maintained throughout test", target_connections);
+    } else if failed > attempted / 2 {
+        println!("\n✗ FAILURE: Most connections failed to establish ({}/{})", failed, attempted);
+    } else if dropped > 0 {
+        println!("\n⚠ WARNING: {} connections dropped during test", dropped);
+    } else {
+        println!("\n⚠ WARNING: {} connections failed to establish", failed);
     }
 
     Ok(())

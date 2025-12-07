@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{header, StatusCode},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -17,6 +18,7 @@ use threadkit_common::{
 
 use crate::{extractors::ApiKey, state::AppState};
 
+/// API routes for auth (goes under /v1)
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/auth/methods", get(auth_methods))
@@ -29,13 +31,18 @@ pub fn router() -> Router<AppState> {
         .route("/auth/reset", post(reset_password))
         .route("/auth/refresh", post(refresh_token))
         .route("/auth/logout", post(logout))
-        .route("/auth/{provider}", get(oauth_start))
-        .route("/auth/{provider}/callback", get(oauth_callback))
         // Web3 authentication
         .route("/auth/ethereum/nonce", get(ethereum_nonce))
         .route("/auth/ethereum/verify", post(ethereum_verify))
         .route("/auth/solana/nonce", get(solana_nonce))
         .route("/auth/solana/verify", post(solana_verify))
+}
+
+/// Browser-facing OAuth routes (goes at root level, not under /v1)
+pub fn oauth_router() -> Router<AppState> {
+    Router::new()
+        .route("/auth/{provider}", get(oauth_start))
+        .route("/auth/{provider}/callback", get(oauth_callback))
 }
 
 // ============================================================================
@@ -532,9 +539,10 @@ pub async fn verify_otp(
 /// Helper to send OTP via Resend
 async fn send_otp_email_resend(config: &threadkit_common::config::ResendConfig, email: &str, code: &str) -> Result<(), String> {
     let client = reqwest::Client::new();
+    let from_email = format!("ThreadKit <noreply@{}>", config.from_domain);
 
     let body = serde_json::json!({
-        "from": config.from_email,
+        "from": from_email,
         "to": [email],
         "subject": "Your login code",
         "html": format!(
@@ -1071,7 +1079,70 @@ pub async fn oauth_start(
     Ok(axum::response::Redirect::temporary(&auth_url))
 }
 
+/// Helper to generate error HTML page for OAuth with proper COOP headers
+fn oauth_error_response(error: &str) -> Response {
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html>
+<head><title>Authentication Error</title></head>
+<body>
+<script>
+  window.opener.postMessage({{ type: 'threadkit:oauth:error', error: {} }}, '*');
+  setTimeout(function() {{ window.close(); }}, 100);
+</script>
+<p>Authentication failed: {}</p>
+<p>This window will close automatically...</p>
+</body>
+</html>"#,
+        serde_json::to_string(error).unwrap_or_else(|_| "\"Unknown error\"".to_string()),
+        error
+    );
+
+    (
+        [
+            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+            (header::HeaderName::from_static("cross-origin-opener-policy"), "unsafe-none"),
+        ],
+        html,
+    ).into_response()
+}
+
+/// Helper to generate success HTML page for OAuth with proper COOP headers
+fn oauth_success_response(token: &str, refresh_token: &str, user_json: &str) -> Response {
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html>
+<head><title>Authentication Successful</title></head>
+<body>
+<script>
+  window.opener.postMessage({{
+    type: 'threadkit:oauth:success',
+    token: {},
+    refresh_token: {},
+    user: {}
+  }}, '*');
+  setTimeout(function() {{ window.close(); }}, 100);
+</script>
+<p>Authentication successful!</p>
+<p>This window will close automatically...</p>
+</body>
+</html>"#,
+        serde_json::to_string(token).unwrap(),
+        serde_json::to_string(refresh_token).unwrap(),
+        user_json
+    );
+
+    (
+        [
+            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+            (header::HeaderName::from_static("cross-origin-opener-policy"), "unsafe-none"),
+        ],
+        html,
+    ).into_response()
+}
+
 /// OAuth callback (exchanges code for tokens)
+/// Returns an HTML page that posts credentials to the parent window
 #[utoipa::path(
     get,
     path = "/auth/{provider}/callback",
@@ -1081,7 +1152,7 @@ pub async fn oauth_start(
         OAuthCallbackQuery
     ),
     responses(
-        (status = 200, description = "OAuth successful", body = AuthResponse),
+        (status = 200, description = "OAuth successful - returns HTML that posts to parent window"),
         (status = 400, description = "Invalid OAuth response"),
         (status = 404, description = "Provider not supported")
     )
@@ -1090,14 +1161,25 @@ pub async fn oauth_callback(
     State(state): State<AppState>,
     Path(provider): Path<String>,
     Query(query): Query<OAuthCallbackQuery>,
-) -> Result<Json<AuthResponse>, (StatusCode, String)> {
+) -> Response {
+    match oauth_callback_inner(state, provider, query).await {
+        Ok(response) => response,
+        Err(error) => oauth_error_response(&error),
+    }
+}
+
+async fn oauth_callback_inner(
+    state: AppState,
+    provider: String,
+    query: OAuthCallbackQuery,
+) -> Result<Response, String> {
     let oauth_config = match provider.as_str() {
         "google" => state.config.oauth.google.as_ref(),
         "github" => state.config.oauth.github.as_ref(),
         _ => None,
     };
 
-    let oauth = oauth_config.ok_or((StatusCode::NOT_FOUND, "Provider not configured".into()))?;
+    let oauth = oauth_config.ok_or("Provider not configured")?;
 
     let client = reqwest::Client::new();
 
@@ -1112,7 +1194,7 @@ pub async fn oauth_callback(
             "https://api.github.com/user",
             AuthProvider::Github,
         ),
-        _ => return Err((StatusCode::NOT_FOUND, "Provider not supported".into())),
+        _ => return Err("Provider not supported".into()),
     };
 
     let token_response = client
@@ -1127,14 +1209,14 @@ pub async fn oauth_callback(
         ])
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let token_data: serde_json::Value = token_response.json().await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let access_token = token_data["access_token"]
         .as_str()
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "No access token in response".into()))?;
+        .ok_or("No access token in response")?;
 
     let user_response = client
         .get(user_url)
@@ -1142,10 +1224,10 @@ pub async fn oauth_callback(
         .header("User-Agent", "ThreadKit")
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let user_data: serde_json::Value = user_response.json().await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let (provider_id, name, email, avatar_url) = match provider.as_str() {
         "google" => (
@@ -1160,22 +1242,22 @@ pub async fn oauth_callback(
             user_data["email"].as_str().map(|s| s.to_string()),
             user_data["avatar_url"].as_str().map(|s| s.to_string()),
         ),
-        _ => return Err((StatusCode::NOT_FOUND, "Provider not supported".into())),
+        _ => return Err("Provider not supported".into()),
     };
 
     let existing_user_id = state.redis.get_user_by_provider(&provider, &provider_id).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let site_id: Uuid = query.state
         .as_ref()
         .and_then(|s| s.parse().ok())
         .or_else(|| state.config.standalone().map(|s| s.site_id))
-        .ok_or((StatusCode::BAD_REQUEST, "Invalid state".into()))?;
+        .ok_or("Invalid state")?;
 
     let user = if let Some(user_id) = existing_user_id {
         state.redis.get_user(user_id).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-            .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?
+            .map_err(|e| e.to_string())?
+            .ok_or("User not found")?
     } else {
         let user_id = Uuid::now_v7();
         let now = Utc::now();
@@ -1197,7 +1279,7 @@ pub async fn oauth_callback(
         };
 
         state.redis.set_user(&user).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            .map_err(|e| e.to_string())?;
 
         let final_name = if state.redis.is_username_available(&user.name, None).await.unwrap_or(false) {
             user.name.clone()
@@ -1205,10 +1287,10 @@ pub async fn oauth_callback(
             format!("{}_{}", user.name, &user_id.to_string()[..8])
         };
         state.redis.set_user_username_index(&final_name, user_id).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            .map_err(|e| e.to_string())?;
 
         state.redis.set_user_provider_index(&provider, &provider_id, user_id).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            .map_err(|e| e.to_string())?;
 
         if let Some(ref email) = email {
             let _ = state.redis.set_user_email_index(email, user_id).await;
@@ -1219,7 +1301,7 @@ pub async fn oauth_callback(
 
     let session_id = Uuid::now_v7();
     state.redis.create_session(session_id, user.id, "", "").await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| e.to_string())?;
 
     let token = auth::create_token(
         user.id,
@@ -1228,7 +1310,7 @@ pub async fn oauth_callback(
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
     )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .map_err(|e| e.to_string())?;
 
     let refresh_token = auth::create_token(
         user.id,
@@ -1237,13 +1319,14 @@ pub async fn oauth_callback(
         &state.config.jwt_secret,
         24 * 365 * 100, // ~100 years - refresh tokens never expire
     )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .map_err(|e| e.to_string())?;
 
-    Ok(Json(AuthResponse {
-        token,
-        refresh_token,
-        user: UserResponse::from(user),
-    }))
+    // Build user JSON for postMessage
+    let user_response = UserResponse::from(user);
+    let user_json = serde_json::to_string(&user_response).map_err(|e| e.to_string())?;
+
+    // Return HTML that posts credentials to parent window with COOP headers
+    Ok(oauth_success_response(&token, &refresh_token, &user_json))
 }
 
 // ============================================================================
