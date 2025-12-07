@@ -60,7 +60,7 @@
   --threadkit-text-secondary: #787c7e;
   --threadkit-text-muted: #878a8c;
   --threadkit-radius: 4px;
-  --threadkit-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --threadkit-font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
   --threadkit-font-size: 13px;
   --threadkit-line-height: 1.5;
 

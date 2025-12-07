@@ -137,7 +137,7 @@ describe('LoginModal', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://test.com/v1/auth/send-otp',
+      'http://test.com/auth/send-otp',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ email: 'test@example.com' }),

@@ -142,7 +142,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
 
     try {
       // Validate token and get user info
-      const res = await fetch(`${apiUrl}/v1/users/me`, {
+      const res = await fetch(`${apiUrl}/users/me`, {
         headers: {
           'X-API-Key': apiKey,
           Authorization: `Bearer ${token}`,
@@ -178,7 +178,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     this.setStep('loading');
 
     try {
-      const res = await fetch(`${apiUrl}/v1/auth/methods`, {
+      const res = await fetch(`${apiUrl}/auth/methods`, {
         headers: { 'X-API-Key': apiKey },
       });
 
@@ -244,7 +244,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       const isEmail = target.includes('@');
       const body = isEmail ? { email: target } : { phone: target };
 
-      const res = await fetch(`${apiUrl}/v1/auth/send-otp`, {
+      const res = await fetch(`${apiUrl}/auth/send-otp`, {
         method: 'POST',
         headers: {
           'X-API-Key': apiKey,
@@ -284,7 +284,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
         ...(name ? { name } : {}),
       };
 
-      const res = await fetch(`${apiUrl}/v1/auth/verify-otp`, {
+      const res = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'X-API-Key': apiKey,
@@ -474,7 +474,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     const { apiUrl, apiKey, storage, onUserChange } = this.config;
 
     try {
-      const res = await fetch(`${apiUrl}/v1/auth/refresh`, {
+      const res = await fetch(`${apiUrl}/auth/refresh`, {
         method: 'POST',
         headers: {
           'X-API-Key': apiKey,

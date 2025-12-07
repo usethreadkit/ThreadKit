@@ -104,7 +104,7 @@ describe('AuthContext', () => {
 
     expect(screen.getByTestId('methods')).toHaveTextContent('email,google');
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://test.com/v1/auth/methods',
+      'http://test.com/auth/methods',
       expect.objectContaining({
         headers: expect.objectContaining({ 'X-API-Key': 'test-key' }),
       })
@@ -181,7 +181,7 @@ describe('AuthContext', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://test.com/v1/auth/send-otp',
+      'http://test.com/auth/send-otp',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ email: 'test@example.com' }),
@@ -326,7 +326,7 @@ describe('AuthContext', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://test.com/v1/users/me',
+      'http://test.com/users/me',
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: 'Bearer stored-token',
