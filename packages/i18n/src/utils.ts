@@ -22,6 +22,22 @@ import { uk } from './locales/uk';
 import { ar } from './locales/ar';
 import { sv } from './locales/sv';
 import { ro } from './locales/ro';
+import { el } from './locales/el';
+import { da } from './locales/da';
+import { fi } from './locales/fi';
+import { he } from './locales/he';
+import { sk } from './locales/sk';
+import { th } from './locales/th';
+import { bg } from './locales/bg';
+import { hr } from './locales/hr';
+import { no } from './locales/no';
+import { lt } from './locales/lt';
+import { sr } from './locales/sr';
+import { sl } from './locales/sl';
+import { ca } from './locales/ca';
+import { et } from './locales/et';
+import { lv } from './locales/lv';
+import { my } from './locales/my';
 
 /**
  * Map of locale codes to translation objects
@@ -60,7 +76,23 @@ export const locales: LocaleMap = {
   ar,
   sv,
   ro,
-} as any;
+  el,
+  da,
+  fi,
+  he,
+  sk,
+  th,
+  bg,
+  hr,
+  no,
+  lt,
+  sr,
+  sl,
+  ca,
+  et,
+  lv,
+  my,
+};
 
 /**
  * List of supported locale codes.

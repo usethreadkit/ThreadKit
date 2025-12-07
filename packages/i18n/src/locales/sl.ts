@@ -1,0 +1,189 @@
+import type { TranslationStrings } from '@threadkit/core';
+
+/**
+ * Slovenian translations
+ */
+export const sl: TranslationStrings = {
+  // Common actions
+  post: 'Objavi',
+  cancel: 'Prekliči',
+  save: 'Shrani',
+  edit: 'Uredi',
+  delete: 'Izbriši',
+  reply: 'Odgovori',
+  report: 'Prijavi',
+  share: 'Deli',
+  block: 'Blokiraj',
+  unblock: 'Odblokiraj',
+  ban: 'Prepovej',
+  send: 'Pošlji',
+  verify: 'Preveri',
+  continue: 'Nadaljuj',
+  close: 'Zapri',
+  submit: 'Pošlji',
+  yes: 'Da',
+  no: 'Ne',
+  prev: 'Prejšnja',
+  next: 'Naslednja',
+  back: 'Nazaj',
+
+  // Loading states
+  loading: 'Nalaganje...',
+  loadingComments: 'Nalaganje komentarjev...',
+  posting: 'Objavljanje...',
+  signingInWith: 'Prijava z',
+
+  // Empty states
+  noComments: 'Še ni komentarjev. Bodite prvi, ki bo komentiral!',
+  noNotifications: 'Ni obvestil',
+  noBlockedUsers: 'Ni blokiranih uporabnikov',
+
+  // Sorting
+  sortedBy: 'Razvrščeno po:',
+  sortTop: 'Top',
+  sortNew: 'Novo',
+  sortControversial: 'Kontroverzno',
+  sortOld: 'Najstarejše',
+
+  // Comment form
+  writeComment: 'Napiši komentar...',
+  writeReply: 'Napiši odgovor...',
+  formattingHelp: 'Pomoč pri oblikovanju',
+  markdownSupported: 'Markdown oblikovanje je podprto',
+  youType: 'Tipkate:',
+  youSee: 'Vidite:',
+
+  // Voting
+  upvote: 'Glasuj za',
+  downvote: 'Glasuj proti',
+  point: 'točka',
+  points: 'točke',
+
+  // Threading
+  expandComment: 'Razširi komentar',
+  collapseComment: 'Strni komentar',
+  child: 'odgovor',
+  children: 'odgovori',
+
+  // Badges
+  pinned: 'Pripeto',
+
+  // Confirmations
+  deleteConfirm: 'Izbriši?',
+  blockConfirm: 'Blokiraj uporabnika?',
+  banConfirm: 'Prepovej uporabnika?',
+
+  // Report reasons
+  reportSpam: 'Neželena pošta',
+  reportHarassment: 'Napadalno vedenje',
+  reportHateSpeech: 'Sovražni govor',
+  reportMisinformation: 'Dezinformacije',
+  reportOther: 'Drugo',
+  selectReason: 'Izberite razlog...',
+  reportSubmitted: 'Hvala!',
+
+  // Chat
+  typeMessage: 'Vnesite sporočilo...',
+  signInToChat: 'Prijavite se za klepet',
+  personOnline: 'oseba na spletu',
+  peopleOnline: 'oseb na spletu',
+  personTyping: 'oseba tipka...',
+  peopleTyping: 'osebe tipkajo...',
+
+  // Settings
+  settings: 'Nastavitve',
+  signIn: 'Prijava',
+  signOut: 'Odjava',
+  changeAvatar: 'Spremeni avatar',
+  theme: 'Tema',
+  blockedUsers: 'Blokirani uporabniki',
+  notifications: 'Obvestila',
+  emailOnReplies: 'E-pošta ob odgovorih',
+  emailOnMentions: 'E-pošta ob omembah',
+  weeklyDigest: 'Tedenski povzetek',
+  deleteAccount: 'Izbriši račun',
+  accountDeleted: 'Račun izbrisan',
+  holdToDelete: 'Držite za izbris računa (15s)',
+  holdForSeconds: 'Držite še {seconds} sekund...',
+
+  // Username
+  usernameTaken: 'Zasedeno',
+  usernameAvailable: 'Na voljo',
+  checking: 'Preverjam...',
+
+  // Auth - general
+  signInToPost: 'Prijavite se za objavo',
+  signInLabel: 'Prijava:',
+  continueWith: 'Nadaljuj z',
+  chooseSignInMethod: 'Izberite način prijave',
+
+  // Auth - OTP (email/phone)
+  enterEmail: 'Vnesite svoj e-poštni naslov',
+  enterPhone: 'Vnesite svojo telefonsko številko',
+  sendCode: 'Pošlji kodo',
+  checkEmail: 'Preverite svojo e-pošto',
+  checkPhone: 'Preverite svoj telefon',
+  enterCode: 'Vnesite 6-mestno kodo, ki smo jo poslali na',
+  codeSentTo: 'Koda poslana na',
+  invalidCode: 'Neveljavna koda',
+  verificationFailed: 'Preverjanje ni uspelo',
+  weWillSendCode: 'Poslali vam bomo kodo za prijavo',
+  emailPlaceholder: 'vi@example.com',
+  phonePlaceholder: '+386 4x xxx xxx',
+  otpPlaceholder: '000000',
+
+  // Auth - name input
+  welcome: 'Dobrodošli!',
+  chooseDisplayName: 'Izberite prikazno ime za svoj račun',
+  yourName: 'Vaše ime',
+
+  // Auth - OAuth
+  popupShouldOpen: 'Pojavno okno bi se moralo odpreti',
+  completingSignIn: 'Dokončujem prijavo z',
+
+  // Auth - Web3
+  connectingTo: 'Povezujem se z',
+
+  // User profile
+  karma: 'Karma',
+  comments: 'Komentarji',
+  joined: 'Pridružen',
+
+  // Time formatting
+  justNow: 'ravnokar',
+  minutesAgo: 'pred {n} min',
+  hoursAgo: 'pred {n} ur',
+  daysAgo: 'pred {n} d',
+
+  // Notifications
+  markAllRead: 'Označi vse kot prebrano',
+
+  // Errors
+  failedToPost: 'Objavljanje komentarja ni uspelo',
+  failedToVote: 'Glasovanje ni uspelo',
+  failedToDelete: 'Brisanje ni uspelo',
+  failedToEdit: 'Urejanje ni uspelo',
+  failedToBan: 'Prepoved uporabnika ni uspela',
+  failedToBlock: 'Blokiranje uporabnika ni uspelo',
+  failedToUnblock: 'Odblokiranje uporabnika ni uspelo',
+  failedToReport: 'Poročanje ni uspelo',
+  failedToPin: 'Pripinjanje ni uspelo',
+  failedToFetchAuthMethods: 'Pridobivanje metod preverjanja pristnosti ni uspelo',
+  failedToStartLogin: 'Zagon prijave ni uspel',
+  failedToSendOtp: 'Pošiljanje OTP ni uspelo',
+
+  // Error pages
+  siteNotConfigured: 'Mesto ni konfigurirano',
+  siteNotConfiguredMessage:
+    'Ta ključ API ni povezan s konfiguriranim mestom. Obiščite usethreadkit.com/dashboard, da dokončate namestitev.',
+  invalidApiKey: 'Neveljaven ključ API',
+  invalidApiKeyMessage:
+    'Posredovani ključ API je neveljaven ali je bil preklican. Preverite nadzorno ploščo za pravi ključ.',
+  rateLimited: 'Prekoračena omejitev hitrosti',
+  rateLimitedMessage: 'Preveč zahtev. Prosimo, počakajte trenutek in poskusite znova.',
+  failedToLoadComments: 'Nalaganje komentarjev ni uspelo',
+  tryAgainLater: 'Poskusite znova pozneje.',
+
+  // Branding
+  poweredByThreadKit: 'Poganja ThreadKit',
+};
