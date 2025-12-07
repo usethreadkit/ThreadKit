@@ -14,6 +14,7 @@ const FORMATTING_HELP = [
 export function CommentForm({
   parentId,
   placeholder,
+  autoFocus,
   onSubmit,
   onCancel,
 }: CommentFormProps) {
@@ -56,6 +57,7 @@ export function CommentForm({
         placeholder={placeholderText}
         disabled={isSubmitting}
         rows={3}
+        autoFocus={autoFocus}
       />
 
       {error && <div className="threadkit-error">{error}</div>}

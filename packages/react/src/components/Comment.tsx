@@ -455,6 +455,7 @@ export function Comment({
               <CommentForm
                 parentId={comment.id}
                 placeholder={t('writeReply')}
+                autoFocus
                 onSubmit={handleReply}
                 onCancel={() => setShowReplyForm(false)}
               />

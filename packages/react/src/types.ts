@@ -231,6 +231,7 @@ export interface ThreadKitRef {
 export interface CommentFormProps {
   parentId?: string;
   placeholder?: string;
+  autoFocus?: boolean;
   onSubmit: (text: string, parentId?: string) => Promise<void>;
   onCancel?: () => void;
 }
