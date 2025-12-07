@@ -58,6 +58,8 @@ export function Comment({
   const hasDownvoted = currentUser && comment.downvotes.includes(currentUser.id);
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
   const isOwnComment = currentUser && comment.userId === currentUser.id;
+  // Deleted comments have a special userId starting with 'd' and all zeros
+  const isDeleted = comment.status === 'deleted' || comment.userId === 'd0000000-0000-0000-0000-000000000000';
 
   const handleReply = async (text: string, parentId?: string) => {
     if (onPost) {
@@ -84,7 +86,7 @@ export function Comment({
     setIsEditing(false);
   };
 
-  const commentClassName = `threadkit-comment${highlighted ? ' threadkit-highlighted' : ''}`;
+  const commentClassName = `threadkit-comment${highlighted ? ' threadkit-highlighted' : ''}${isDeleted ? ' threadkit-deleted' : ''}`;
 
   if (collapsed) {
     return (
@@ -114,8 +116,8 @@ export function Comment({
   return (
     <div className={commentClassName} data-comment-id={comment.id} id={`threadkit-${comment.id}`}>
       <div className="threadkit-comment-wrapper">
-        {/* Vote column */}
-        {onVote && (
+        {/* Vote column - hidden for deleted comments */}
+        {onVote && !isDeleted && (
           <div className="threadkit-vote-column">
             <button
               className={`threadkit-vote-btn threadkit-vote-up ${hasUpvoted ? 'active' : ''}`}
@@ -222,8 +224,8 @@ export function Comment({
             )}
           </div>
 
-          {/* Action row */}
-          {!isEditing && (
+          {/* Action row - hidden for deleted comments */}
+          {!isEditing && !isDeleted && (
             <div className="threadkit-comment-actions">
               {/* Share button - uses Web Share API when available, falls back to copy link */}
               <button

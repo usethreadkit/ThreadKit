@@ -122,13 +122,36 @@ export function addToTree(
   return sortComments([...comments, { ...newComment, children: [] }], sortBy);
 }
 
+/** Special user ID that indicates a deleted comment */
+const DELETED_USER_ID = 'd0000000-0000-0000-0000-000000000000';
+
 /**
  * Remove a comment from the tree by ID.
+ * If the comment has children, it's marked as deleted instead of removed.
  */
 export function removeFromTree(comments: Comment[], commentId: string): Comment[] {
   return comments
-    .filter((c) => c.id !== commentId)
-    .map((c) => ({ ...c, children: removeFromTree(c.children, commentId) }));
+    .map((c) => {
+      if (c.id === commentId) {
+        // If this comment has children, mark it as deleted instead of removing
+        if (c.children.length > 0) {
+          return {
+            ...c,
+            text: '[deleted]',
+            html: '<p>[deleted]</p>',
+            userName: '[deleted]',
+            userId: DELETED_USER_ID,
+            userAvatar: undefined,
+            status: 'deleted' as const,
+          };
+        }
+        // No children, will be filtered out below
+        return null;
+      }
+      // Recursively process children
+      return { ...c, children: removeFromTree(c.children, commentId) };
+    })
+    .filter((c): c is Comment => c !== null);
 }
 
 /**
