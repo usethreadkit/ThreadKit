@@ -1079,7 +1079,8 @@ pub async fn oauth_start(
     Ok(axum::response::Redirect::temporary(&auth_url))
 }
 
-/// Helper to generate error HTML page for OAuth with proper COOP headers
+/// Helper to generate error HTML page for OAuth
+/// Uses BroadcastChannel for cross-window communication to avoid COOP issues
 fn oauth_error_response(error: &str) -> Response {
     let html = format!(
         r#"<!DOCTYPE html>
@@ -1087,7 +1088,18 @@ fn oauth_error_response(error: &str) -> Response {
 <head><title>Authentication Error</title></head>
 <body>
 <script>
-  window.opener.postMessage({{ type: 'threadkit:oauth:error', error: {} }}, '*');
+  // Use BroadcastChannel for reliable cross-window communication
+  const channel = new BroadcastChannel('threadkit-auth');
+  channel.postMessage({{ type: 'threadkit:oauth:error', error: {} }});
+  channel.close();
+
+  // Also try postMessage as fallback
+  if (window.opener) {{
+    try {{
+      window.opener.postMessage({{ type: 'threadkit:oauth:error', error: {} }}, '*');
+    }} catch (e) {{}}
+  }}
+
   setTimeout(function() {{ window.close(); }}, 100);
 </script>
 <p>Authentication failed: {}</p>
@@ -1095,19 +1107,18 @@ fn oauth_error_response(error: &str) -> Response {
 </body>
 </html>"#,
         serde_json::to_string(error).unwrap_or_else(|_| "\"Unknown error\"".to_string()),
+        serde_json::to_string(error).unwrap_or_else(|_| "\"Unknown error\"".to_string()),
         error
     );
 
     (
-        [
-            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
-            (header::HeaderName::from_static("cross-origin-opener-policy"), "unsafe-none"),
-        ],
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
         html,
     ).into_response()
 }
 
-/// Helper to generate success HTML page for OAuth with proper COOP headers
+/// Helper to generate success HTML page for OAuth
+/// Uses BroadcastChannel for cross-window communication to avoid COOP issues
 fn oauth_success_response(token: &str, refresh_token: &str, user_json: &str) -> Response {
     let html = format!(
         r#"<!DOCTYPE html>
@@ -1115,28 +1126,69 @@ fn oauth_success_response(token: &str, refresh_token: &str, user_json: &str) -> 
 <head><title>Authentication Successful</title></head>
 <body>
 <script>
-  window.opener.postMessage({{
-    type: 'threadkit:oauth:success',
-    token: {},
-    refresh_token: {},
-    user: {}
-  }}, '*');
-  setTimeout(function() {{ window.close(); }}, 100);
+  console.log('[ThreadKit OAuth] Success callback loaded');
+  console.log('[ThreadKit OAuth] Token:', {});
+  console.log('[ThreadKit OAuth] User:', {});
+
+  // Use BroadcastChannel for reliable cross-window communication (avoids COOP issues)
+  try {{
+    const channel = new BroadcastChannel('threadkit-auth');
+    const message = {{
+      type: 'threadkit:oauth:success',
+      token: {},
+      refresh_token: {},
+      user: {}
+    }};
+    console.log('[ThreadKit OAuth] Sending via BroadcastChannel:', message);
+    channel.postMessage(message);
+    channel.close();
+    console.log('[ThreadKit OAuth] BroadcastChannel message sent');
+  }} catch (e) {{
+    console.error('[ThreadKit OAuth] BroadcastChannel error:', e);
+  }}
+
+  // Also try postMessage as fallback for older browsers
+  if (window.opener) {{
+    try {{
+      console.log('[ThreadKit OAuth] Trying postMessage fallback');
+      window.opener.postMessage({{
+        type: 'threadkit:oauth:success',
+        token: {},
+        refresh_token: {},
+        user: {}
+      }}, '*');
+      console.log('[ThreadKit OAuth] postMessage sent');
+    }} catch (e) {{
+      console.error('[ThreadKit OAuth] postMessage error:', e);
+    }}
+  }} else {{
+    console.log('[ThreadKit OAuth] No window.opener available');
+  }}
+
+  // Delay close so user can see result and check console
+  console.log('[ThreadKit OAuth] Window will close in 2 seconds...');
+  setTimeout(function() {{
+    console.log('[ThreadKit OAuth] Closing window now');
+    window.close();
+  }}, 2000);
 </script>
 <p>Authentication successful!</p>
-<p>This window will close automatically...</p>
+<p>Token received. Check browser console for details.</p>
+<p>This window will close in 2 seconds...</p>
 </body>
 </html>"#,
+        serde_json::to_string(token).unwrap(),
+        user_json,
+        serde_json::to_string(token).unwrap(),
+        serde_json::to_string(refresh_token).unwrap(),
+        user_json,
         serde_json::to_string(token).unwrap(),
         serde_json::to_string(refresh_token).unwrap(),
         user_json
     );
 
     (
-        [
-            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
-            (header::HeaderName::from_static("cross-origin-opener-policy"), "unsafe-none"),
-        ],
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
         html,
     ).into_response()
 }
@@ -1229,15 +1281,31 @@ async fn oauth_callback_inner(
     let user_data: serde_json::Value = user_response.json().await
         .map_err(|e| e.to_string())?;
 
+    // Helper to extract ID whether it's a string or number
+    fn extract_id(value: &serde_json::Value) -> String {
+        if let Some(s) = value.as_str() {
+            s.to_string()
+        } else if let Some(n) = value.as_u64() {
+            n.to_string()
+        } else if let Some(n) = value.as_i64() {
+            n.to_string()
+        } else if let Some(n) = value.as_f64() {
+            // Handle large numbers that may be represented as floats
+            format!("{:.0}", n)
+        } else {
+            String::new()
+        }
+    }
+
     let (provider_id, name, email, avatar_url) = match provider.as_str() {
         "google" => (
-            user_data["id"].as_str().unwrap_or_default().to_string(),
+            extract_id(&user_data["id"]),
             user_data["name"].as_str().unwrap_or("User").to_string(),
             user_data["email"].as_str().map(|s| s.to_string()),
             user_data["picture"].as_str().map(|s| s.to_string()),
         ),
         "github" => (
-            user_data["id"].as_i64().map(|i| i.to_string()).unwrap_or_default(),
+            extract_id(&user_data["id"]),
             user_data["name"].as_str().or(user_data["login"].as_str()).unwrap_or("User").to_string(),
             user_data["email"].as_str().map(|s| s.to_string()),
             user_data["avatar_url"].as_str().map(|s| s.to_string()),

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
 import { useTranslation } from '../i18n';
+import { useDebug, debugLog } from '../debug';
 
 interface SignInPromptProps {
   apiUrl: string;
@@ -11,6 +12,7 @@ interface SignInPromptProps {
 
 export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps) {
   const t = useTranslation();
+  const debug = useDebug();
   const { state, login, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
   const placeholderText = placeholder ?? t('writeComment');
   const [text, setText] = useState('');
@@ -40,30 +42,30 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
 
   // Handle OAuth popup message via BroadcastChannel (avoids COOP issues)
   useEffect(() => {
-    console.log('[ThreadKit SignInPrompt] Setting up BroadcastChannel listener');
+    debugLog(debug, '[ThreadKit SignInPrompt] Setting up BroadcastChannel listener');
     const channel = new BroadcastChannel('threadkit-auth');
 
     const handleMessage = (event: MessageEvent) => {
-      console.log('[ThreadKit SignInPrompt] BroadcastChannel message received:', event.data);
+      debugLog(debug, '[ThreadKit SignInPrompt] BroadcastChannel message received:', event.data);
       if (event.data?.type === 'threadkit:oauth:success') {
-        console.log('[ThreadKit SignInPrompt] OAuth success received!');
+        debugLog(debug, '[ThreadKit SignInPrompt] OAuth success received!');
         const { token, refresh_token, user } = event.data;
-        try { oauthWindowRef.current?.close(); } catch (e) { console.log('[ThreadKit SignInPrompt] Could not close popup:', e); }
-        console.log('[ThreadKit SignInPrompt] Posting auth success to window');
+        try { oauthWindowRef.current?.close(); } catch (e) { debugLog(debug, '[ThreadKit SignInPrompt] Could not close popup:', e); }
+        debugLog(debug, '[ThreadKit SignInPrompt] Posting auth success to window');
         window.postMessage({ type: 'threadkit:auth:success', token, refresh_token, user }, '*');
       } else if (event.data?.type === 'threadkit:oauth:error') {
-        console.log('[ThreadKit SignInPrompt] OAuth error received:', event.data.error);
+        debugLog(debug, '[ThreadKit SignInPrompt] OAuth error received:', event.data.error);
         try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
       }
     };
 
     channel.addEventListener('message', handleMessage);
     return () => {
-      console.log('[ThreadKit SignInPrompt] Cleaning up BroadcastChannel listener');
+      debugLog(debug, '[ThreadKit SignInPrompt] Cleaning up BroadcastChannel listener');
       channel.removeEventListener('message', handleMessage);
       channel.close();
     };
-  }, []);
+  }, [debug]);
 
   const handleBack = useCallback(() => {
     setShowAuthMethods(true);

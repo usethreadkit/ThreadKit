@@ -171,6 +171,10 @@ export interface ThreadKitProps {
   /** Callback to get users for @mention autocomplete */
   getMentionSuggestions?: (query: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
 
+  // Development
+  /** Enable debug mode to log internal events to console (default: false) */
+  debug?: boolean;
+
   // Callbacks
   /** Called when user successfully signs in */
   onSignIn?: (user: User) => void;

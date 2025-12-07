@@ -9,6 +9,7 @@ import { NotificationsPanel, type Notification } from './components/Notification
 import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
 import type { User as AuthUser } from './auth/types';
 import { TranslationProvider, useTranslation } from './i18n';
+import { DebugProvider } from './debug';
 
 const DEFAULT_API_URL = 'https://api.usethreadkit.com/v1';
 
@@ -701,7 +702,7 @@ function ThreadKitInner({
 
 // Main exported component that wraps with AuthProvider and TranslationProvider
 export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
-  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut, translations } = props;
+  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut, translations, debug = false } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -724,10 +725,12 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   );
 
   return (
-    <TranslationProvider translations={translations}>
-      <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
-        <ThreadKitInner {...props} innerRef={ref} />
-      </AuthProvider>
-    </TranslationProvider>
+    <DebugProvider value={debug}>
+      <TranslationProvider translations={translations}>
+        <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
+          <ThreadKitInner {...props} innerRef={ref} />
+        </AuthProvider>
+      </TranslationProvider>
+    </DebugProvider>
   );
 });

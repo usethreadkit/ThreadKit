@@ -16,6 +16,7 @@ import type {
   AuthMethodsResponse,
   AuthResponse,
 } from './types';
+import { useDebug, debugLog } from '../debug';
 
 const TOKEN_KEY = 'threadkit_token';
 const REFRESH_TOKEN_KEY = 'threadkit_refresh_token';
@@ -55,6 +56,7 @@ export function AuthProvider({
   apiKey,
   onUserChange,
 }: AuthProviderProps) {
+  const debug = useDebug();
   const [state, setState] = useState<AuthState>(initialState);
   const [plugins, setPlugins] = useState<AuthPlugin[]>([]);
 
@@ -296,6 +298,7 @@ export function AuthProvider({
 
   const handlePluginSuccess = useCallback(
     (token: string, refreshToken: string, user: User) => {
+      debugLog(debug, '[ThreadKit AuthContext] handlePluginSuccess called with user:', user);
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
       setState({
@@ -306,8 +309,50 @@ export function AuthProvider({
       });
       onUserChange?.(user);
     },
-    [onUserChange]
+    [debug, onUserChange]
   );
+
+  // Listen for OAuth success messages via BroadcastChannel (primary) and window.postMessage (fallback)
+  useEffect(() => {
+    const processOAuthSuccess = (data: { token: string; refresh_token: string; user: User }) => {
+      const { token, refresh_token, user } = data;
+      if (token && user) {
+        debugLog(debug, '[ThreadKit AuthContext] Processing OAuth success for user:', user);
+        handlePluginSuccess(token, refresh_token, user);
+      } else {
+        debugLog(debug, '[ThreadKit AuthContext] Missing token or user in message');
+      }
+    };
+
+    // BroadcastChannel listener (primary method)
+    debugLog(debug, '[ThreadKit AuthContext] Setting up BroadcastChannel listener');
+    const channel = new BroadcastChannel('threadkit-auth');
+    const handleBroadcast = (event: MessageEvent) => {
+      debugLog(debug, '[ThreadKit AuthContext] BroadcastChannel message received:', event.data);
+      if (event.data?.type === 'threadkit:oauth:success') {
+        debugLog(debug, '[ThreadKit AuthContext] OAuth success via BroadcastChannel!');
+        processOAuthSuccess(event.data);
+      }
+    };
+    channel.addEventListener('message', handleBroadcast);
+
+    // Window postMessage listener (fallback for older browsers or cross-origin scenarios)
+    const handleWindowMessage = (event: MessageEvent) => {
+      debugLog(debug, '[ThreadKit AuthContext] Window message received:', event.data);
+      if (event.data?.type === 'threadkit:auth:success' || event.data?.type === 'threadkit:oauth:success') {
+        debugLog(debug, '[ThreadKit AuthContext] OAuth success via postMessage!');
+        processOAuthSuccess(event.data);
+      }
+    };
+    window.addEventListener('message', handleWindowMessage);
+
+    return () => {
+      debugLog(debug, '[ThreadKit AuthContext] Cleaning up auth listeners');
+      channel.removeEventListener('message', handleBroadcast);
+      channel.close();
+      window.removeEventListener('message', handleWindowMessage);
+    };
+  }, [debug, handlePluginSuccess]);
 
   const handlePluginError = useCallback((error: string) => {
     setState((s) => ({

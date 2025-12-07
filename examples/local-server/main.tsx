@@ -104,6 +104,7 @@ function App() {
           showPresence={mode === 'chat'}
           showTyping={mode === 'chat'}
           apiUrl={API_URL}
+          debug={true}
           onError={(error) => console.error('ThreadKit error:', error)}
         />
       </main>

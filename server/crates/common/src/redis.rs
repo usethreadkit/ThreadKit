@@ -1709,11 +1709,20 @@ impl RedisClient {
             return Ok(None);
         }
 
+        // Fields that should always remain as strings even if they look like numbers
+        // (e.g., OAuth provider IDs can be very large numeric strings)
+        let string_fields = ["provider_id", "phone"];
+
         // Convert HashMap<String, String> to JSON object, parsing values appropriately
         let mut json_map = serde_json::Map::new();
         for (k, v) in data {
-            // Try to parse as JSON value (handles booleans, numbers, null, objects, arrays)
-            let json_val = serde_json::from_str(&v).unwrap_or_else(|_| serde_json::Value::String(v));
+            // For certain fields, always keep as string to avoid numeric parsing issues
+            let json_val = if string_fields.contains(&k.as_str()) {
+                serde_json::Value::String(v)
+            } else {
+                // Try to parse as JSON value (handles booleans, numbers, null, objects, arrays)
+                serde_json::from_str(&v).unwrap_or_else(|_| serde_json::Value::String(v))
+            };
             json_map.insert(k, json_val);
         }
 
