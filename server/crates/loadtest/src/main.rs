@@ -293,6 +293,10 @@ enum Commands {
         /// Stagger each connection by N milliseconds (0 = no stagger, spawn all at once in batch)
         #[arg(long, default_value = "5")]
         stagger_ms: u64,
+
+        /// Maximum concurrent connection attempts (limits in-flight TCP handshakes)
+        #[arg(long, default_value = "500")]
+        max_concurrent_connects: usize,
     },
 
     /// Build a thread: N users each post M comments, randomly replying or starting new threads
@@ -520,11 +524,12 @@ async fn main() -> Result<()> {
             msg_rate,
             pages,
             stagger_ms,
+            max_concurrent_connects,
         } => {
             // Raise limits and print system info for stress tests
             raise_fd_limit();
             print_system_limits();
-            run_ws_stress_test(&url, &api_key, connections, ramp_rate, hold_duration, msg_rate, pages, stagger_ms).await?;
+            run_ws_stress_test(&url, &api_key, connections, ramp_rate, hold_duration, msg_rate, pages, stagger_ms, max_concurrent_connects).await?;
         }
         Commands::Thread {
             url,
@@ -2350,6 +2355,7 @@ async fn run_ws_stress_test(
     msg_rate: u64,
     num_pages: usize,
     stagger_ms: u64,
+    max_concurrent_connects: usize,
 ) -> Result<()> {
     tracing::info!("Starting WebSocket STRESS test");
     tracing::info!("  URL: {}", url);
@@ -2359,9 +2365,13 @@ async fn run_ws_stress_test(
     tracing::info!("  Message rate: {} msg/sec/conn", msg_rate);
     tracing::info!("  Pages: {}", num_pages);
     tracing::info!("  Stagger: {}ms between connections", stagger_ms);
+    tracing::info!("  Max concurrent connects: {}", max_concurrent_connects);
 
     let stats = Arc::new(StressStats::default());
     let start = Instant::now();
+
+    // Semaphore to limit concurrent in-flight connection attempts
+    let connect_semaphore = Arc::new(Semaphore::new(max_concurrent_connects));
 
     // Pre-generate page IDs
     let page_ids: Vec<Uuid> = (0..num_pages).map(|_| Uuid::new_v4()).collect();
@@ -2401,6 +2411,7 @@ async fn run_ws_stress_test(
             } else {
                 None
             };
+            let semaphore = connect_semaphore.clone();
 
             // Stagger connection establishment to avoid overwhelming the server
             if stagger_ms > 0 && i > 0 {
@@ -2441,6 +2452,9 @@ async fn run_ws_stress_test(
                     }
                 };
 
+                // Acquire semaphore permit to limit concurrent connection attempts
+                let _permit = semaphore.acquire().await.unwrap();
+
                 // Create TCP socket with SO_REUSEADDR for faster port recycling
                 let connect_result = tokio::time::timeout(Duration::from_secs(30), async {
                     let socket = TcpSocket::new_v4()?;
@@ -2449,6 +2463,9 @@ async fn run_ws_stress_test(
                     client_async(&ws_url, tcp_stream).await
                         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
                 }).await;
+
+                // Release permit after connection established (drop happens automatically)
+                drop(_permit);
 
                 let (mut ws, _) = match connect_result {
                     Ok(Ok(conn)) => conn,
