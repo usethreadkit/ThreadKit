@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { UserProfile } from '../types';
 import { useTranslation } from '../i18n';
 
@@ -32,7 +33,7 @@ export function UserHoverCard({
 }: UserHoverCardProps) {
   const t = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [position, setPosition] = useState<{ bottom: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,11 +45,11 @@ export function UserHoverCard({
     timeoutRef.current = setTimeout(() => {
       if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect();
-        // Position above the trigger (card height is ~100px, add 8px gap)
-        const cardHeight = 100;
+        // Position above the trigger using fixed positioning
+        // Calculate bottom to avoid needing the card's height
         setPosition({
-          top: rect.top + window.scrollY - cardHeight - 8,
-          left: rect.left + window.scrollX,
+          bottom: window.innerHeight - rect.top + 8,
+          left: rect.left,
         });
         setIsVisible(true);
       }
@@ -88,13 +89,13 @@ export function UserHoverCard({
       >
         {children}
       </span>
-      {isVisible && position && (
+      {isVisible && position && createPortal(
         <div
           ref={cardRef}
-          className="threadkit-hover-card"
+          className="threadkit-root threadkit-hover-card"
           style={{
-            position: 'absolute',
-            top: position.top,
+            position: 'fixed',
+            bottom: position.bottom,
             left: position.left,
             zIndex: 1000,
           }}
@@ -131,7 +132,8 @@ export function UserHoverCard({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

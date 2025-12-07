@@ -237,8 +237,8 @@ describe('UserHoverCard', () => {
       });
 
       expect(screen.getByText('testuser')).toBeInTheDocument();
-      expect(screen.getByText('karma')).toBeInTheDocument();
-      expect(screen.getByText('comments')).toBeInTheDocument();
+      expect(screen.getByText(/karma/i)).toBeInTheDocument();
+      expect(screen.getByText(/comments/i)).toBeInTheDocument();
     });
 
     it('displays default mock profile when getUserProfile returns undefined', async () => {
@@ -399,9 +399,10 @@ describe('UserHoverCard', () => {
       });
 
       const card = document.querySelector('.threadkit-hover-card') as HTMLElement;
-      expect(card.style.position).toBe('absolute');
-      // top = 200 (rect.top) + 0 (scrollY) - 100 (cardHeight) - 8 (gap) = 92
-      expect(card.style.top).toBe('92px');
+      expect(card.style.position).toBe('fixed');
+      // bottom = window.innerHeight - 200 (rect.top) + 8
+      const expectedBottom = window.innerHeight - 200 + 8;
+      expect(card.style.bottom).toBe(`${expectedBottom}px`);
       expect(card.style.left).toBe('100px');
     });
   });
