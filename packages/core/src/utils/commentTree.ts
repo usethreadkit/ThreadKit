@@ -9,8 +9,8 @@ export function sortComments(comments: Comment[], sortBy: SortBy): Comment[] {
   switch (sortBy) {
     case 'votes':
       sorted.sort((a, b) => {
-        const scoreA = a.upvotes.length - a.downvotes.length;
-        const scoreB = b.upvotes.length - b.downvotes.length;
+        const scoreA = a.upvotes - a.downvotes;
+        const scoreB = b.upvotes - b.downvotes;
         return scoreB - scoreA;
       });
       break;
@@ -23,10 +23,10 @@ export function sortComments(comments: Comment[], sortBy: SortBy): Comment[] {
     case 'controversial':
       // Controversial = high total votes but close to 50/50 split
       sorted.sort((a, b) => {
-        const totalA = a.upvotes.length + a.downvotes.length;
-        const totalB = b.upvotes.length + b.downvotes.length;
-        const ratioA = totalA > 0 ? Math.min(a.upvotes.length, a.downvotes.length) / totalA : 0;
-        const ratioB = totalB > 0 ? Math.min(b.upvotes.length, b.downvotes.length) / totalB : 0;
+        const totalA = a.upvotes + a.downvotes;
+        const totalB = b.upvotes + b.downvotes;
+        const ratioA = totalA > 0 ? Math.min(a.upvotes, a.downvotes) / totalA : 0;
+        const ratioB = totalB > 0 ? Math.min(b.upvotes, b.downvotes) / totalB : 0;
         // Weight by total votes and closeness to 50/50
         const scoreA = totalA * ratioA;
         const scoreB = totalB * ratioB;

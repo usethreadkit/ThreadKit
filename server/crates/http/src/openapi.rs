@@ -220,6 +220,7 @@ Single-letter keys for efficiency:
         comments::delete_comment,
         comments::vote_comment,
         comments::report_comment,
+        comments::get_my_votes,
         // Users
         users::get_me,
         users::update_me,
@@ -295,6 +296,7 @@ Single-letter keys for efficiency:
             comments::VoteRequest,
             comments::VoteResponse,
             comments::ReportRequest,
+            comments::GetVotesResponse,
             // User types
             users::MeResponse,
             users::UpdateMeRequest,

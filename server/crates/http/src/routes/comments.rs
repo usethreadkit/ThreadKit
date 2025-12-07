@@ -35,6 +35,7 @@ pub fn router() -> Router<AppState> {
         .route("/comments/{id}", put(update_comment).delete(delete_comment))
         .route("/comments/{id}/vote", post(vote_comment))
         .route("/comments/{id}/report", post(report_comment))
+        .route("/votes", get(get_my_votes))
 }
 
 // ============================================================================
@@ -95,6 +96,19 @@ pub struct ReportRequest {
     pub details: Option<String>,
     /// Path to the comment being reported
     pub path: Vec<Uuid>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct GetVotesQuery {
+    /// URL of the page to get votes for
+    pub page_url: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GetVotesResponse {
+    /// Map of comment ID to vote direction ("up" or "down")
+    pub votes: std::collections::HashMap<String, String>,
 }
 
 // ============================================================================
@@ -445,8 +459,6 @@ pub async fn create_comment(
         downvotes: 0,
         created_at: now_ts,
         modified_at: now_ts,
-        upvoters: Vec::new(),
-        downvoters: Vec::new(),
         replies: Vec::new(),
         status: status.clone(),
     };
@@ -768,6 +780,15 @@ pub async fn vote_comment(
 
     let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
 
+    // Get existing vote from per-page vote structure
+    let existing_vote = state
+        .redis
+        .get_page_votes(auth.user_id, page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .get(&comment_id)
+        .copied();
+
     let mut tree = state
         .redis
         .get_page_tree(page_id)
@@ -778,15 +799,6 @@ pub async fn vote_comment(
     let comment = tree
         .find_by_path_mut(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
-
-    // Check existing vote
-    let existing_vote = if comment.upvoters.contains(&auth.user_id) {
-        Some(VoteDirection::Up)
-    } else if comment.downvoters.contains(&auth.user_id) {
-        Some(VoteDirection::Down)
-    } else {
-        None
-    };
 
     let (new_vote, upvote_delta, downvote_delta): (Option<VoteDirection>, i64, i64) =
         match (existing_vote, req.direction) {
@@ -802,17 +814,6 @@ pub async fn vote_comment(
             (Some(VoteDirection::Up), VoteDirection::Down) => (Some(VoteDirection::Down), -1, 1),
             (Some(VoteDirection::Down), VoteDirection::Up) => (Some(VoteDirection::Up), 1, -1),
         };
-
-    // Update vote arrays
-    comment.upvoters.retain(|&id| id != auth.user_id);
-    comment.downvoters.retain(|&id| id != auth.user_id);
-
-    if let Some(dir) = new_vote {
-        match dir {
-            VoteDirection::Up => comment.upvoters.push(auth.user_id),
-            VoteDirection::Down => comment.downvoters.push(auth.user_id),
-        }
-    }
 
     // Update counts
     comment.upvotes = (comment.upvotes + upvote_delta).max(0);
@@ -841,12 +842,20 @@ pub async fn vote_comment(
         tokio::spawn(async move {
             // Run all updates concurrently
             tokio::join!(
-                // Update user vote index
+                // Update user vote index (legacy)
                 async {
                     if new_vote.is_some() {
                         let _ = redis.add_user_vote_index(user_id, page_id, comment_id).await;
                     } else {
                         let _ = redis.remove_user_vote_index(user_id, page_id, comment_id).await;
+                    }
+                },
+                // Update per-page votes (new structure for efficient loading)
+                async {
+                    if let Some(dir) = new_vote {
+                        let _ = redis.set_page_vote(user_id, page_id, comment_id, dir).await;
+                    } else {
+                        let _ = redis.delete_page_vote(user_id, page_id, comment_id).await;
                     }
                 },
                 // Update author karma (only if voting on someone else's comment)
@@ -939,6 +948,47 @@ pub async fn report_comment(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Get the current user's votes for a page
+#[utoipa::path(
+    get,
+    path = "/votes",
+    tag = "comments",
+    params(GetVotesQuery),
+    responses(
+        (status = 200, description = "User's votes for the page", body = GetVotesResponse),
+        (status = 401, description = "Authentication required")
+    ),
+    security(("api_key" = []), ("bearer" = []))
+)]
+pub async fn get_my_votes(
+    State(state): State<AppState>,
+    api_key: ApiKey,
+    auth: AuthUser,
+    Query(query): Query<GetVotesQuery>,
+) -> Result<Json<GetVotesResponse>, (StatusCode, String)> {
+    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &query.page_url);
+
+    let votes = state
+        .redis
+        .get_page_votes(auth.user_id, page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Convert to string keys and values for JSON
+    let votes_map: std::collections::HashMap<String, String> = votes
+        .into_iter()
+        .map(|(comment_id, direction)| {
+            let dir_str = match direction {
+                VoteDirection::Up => "up".to_string(),
+                VoteDirection::Down => "down".to_string(),
+            };
+            (comment_id.to_string(), dir_str)
+        })
+        .collect();
+
+    Ok(Json(GetVotesResponse { votes: votes_map }))
 }
 
 // ============================================================================

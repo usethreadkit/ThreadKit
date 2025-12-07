@@ -145,12 +145,6 @@ pub struct TreeComment {
     /// modified_at (unix timestamp)
     #[serde(rename = "m")]
     pub modified_at: i64,
-    /// upvoters (array of user IDs)
-    #[serde(rename = "v", default, skip_serializing_if = "Vec::is_empty")]
-    pub upvoters: Vec<Uuid>,
-    /// downvoters (array of user IDs)
-    #[serde(rename = "w", default, skip_serializing_if = "Vec::is_empty")]
-    pub downvoters: Vec<Uuid>,
     /// replies (nested array of child comments)
     #[serde(rename = "r", default, skip_serializing_if = "Vec::is_empty")]
     pub replies: Vec<TreeComment>,
@@ -163,18 +157,6 @@ impl TreeComment {
     /// Check if this comment is deleted
     pub fn is_deleted(&self) -> bool {
         self.author_id == DELETED_USER_ID
-    }
-
-    /// Get the user's vote direction if they voted
-    pub fn user_vote(&self, user_id: Option<Uuid>) -> Option<VoteDirection> {
-        let user_id = user_id?;
-        if self.upvoters.contains(&user_id) {
-            Some(VoteDirection::Up)
-        } else if self.downvoters.contains(&user_id) {
-            Some(VoteDirection::Down)
-        } else {
-            None
-        }
     }
 
     /// Mark this comment as deleted (preserves replies)

@@ -282,24 +282,19 @@ function ThreadKitInner({
   const handleVote = useCallback(
     async (commentId: string, voteType: 'up' | 'down') => {
       try {
-        await vote(commentId, voteType);
-        // Optimistic update
+        const result = await vote(commentId, voteType);
+        // Update with response from server
         updateComment(commentId, {
-          upvotes:
-            voteType === 'up' && currentUser
-              ? [currentUser.id]
-              : [],
-          downvotes:
-            voteType === 'down' && currentUser
-              ? [currentUser.id]
-              : [],
+          upvotes: result.upvotes,
+          downvotes: result.downvotes,
+          userVote: result.user_vote ?? null,
         });
         onVote?.(commentId, voteType);
       } catch (err) {
         onError?.(err instanceof Error ? err : new Error('Failed to vote'));
       }
     },
-    [vote, updateComment, currentUser, onVote, onError]
+    [vote, updateComment, onVote, onError]
   );
 
   const handleDelete = useCallback(

@@ -51,11 +51,11 @@ export function Comment({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
 
-  const upvotes = comment.upvotes.length;
-  const downvotes = comment.downvotes.length;
+  const upvotes = comment.upvotes;
+  const downvotes = comment.downvotes;
   const score = upvotes - downvotes;
-  const hasUpvoted = currentUser && comment.upvotes.includes(currentUser.id);
-  const hasDownvoted = currentUser && comment.downvotes.includes(currentUser.id);
+  const hasUpvoted = comment.userVote === 'up';
+  const hasDownvoted = comment.userVote === 'down';
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
   const isOwnComment = currentUser && comment.userId === currentUser.id;
   // Deleted comments have a special userId starting with 'd' and all zeros

@@ -736,6 +736,61 @@ impl RedisClient {
     }
 
     // ========================================================================
+    // Per-Page Vote Operations (for efficient loading)
+    // Key: votes:{user_id}:{page_id} -> hash of comment_id -> direction (1 or -1)
+    // ========================================================================
+
+    /// Set a user's vote for a comment on a page
+    pub async fn set_page_vote(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid, direction: VoteDirection) -> Result<()> {
+        let value = match direction {
+            VoteDirection::Up => "1",
+            VoteDirection::Down => "-1",
+        };
+        self.client
+            .hset::<(), _, _>(
+                format!("votes:{}:{}", user_id, page_id),
+                (comment_id.to_string(), value),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Remove a user's vote for a comment on a page
+    pub async fn delete_page_vote(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        self.client
+            .hdel::<(), _, _>(
+                format!("votes:{}:{}", user_id, page_id),
+                comment_id.to_string(),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Get all of a user's votes for a page
+    /// Returns a map of comment_id -> direction
+    pub async fn get_page_votes(&self, user_id: Uuid, page_id: Uuid) -> Result<std::collections::HashMap<Uuid, VoteDirection>> {
+        let raw: std::collections::HashMap<String, String> = self
+            .client
+            .hgetall(format!("votes:{}:{}", user_id, page_id))
+            .await?;
+
+        let mut result = std::collections::HashMap::new();
+        for (comment_id_str, direction_str) in raw {
+            if let Ok(comment_id) = comment_id_str.parse::<Uuid>() {
+                let direction = match direction_str.as_str() {
+                    "1" => Some(VoteDirection::Up),
+                    "-1" => Some(VoteDirection::Down),
+                    _ => None,
+                };
+                if let Some(dir) = direction {
+                    result.insert(comment_id, dir);
+                }
+            }
+        }
+        Ok(result)
+    }
+
+    // ========================================================================
     // Role Operations
     // ========================================================================
 

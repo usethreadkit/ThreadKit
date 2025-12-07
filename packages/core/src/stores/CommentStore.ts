@@ -8,7 +8,7 @@ import {
   removeFromTree,
   updateInTree,
 } from '../utils/commentTree';
-import { pageTreeToComments, treeCommentToComment, getCommentPath } from '../utils/treeConvert';
+import { pageTreeToComments, treeCommentToComment, getCommentPath, type VotesMap } from '../utils/treeConvert';
 
 // ============================================================================
 // Configuration
@@ -116,6 +116,8 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       this.setState({ loading: true, error: null });
 
       const { apiUrl, url, apiKey } = this.config;
+      const token = this.config.getToken();
+
       const headers: Record<string, string> = {
         'X-API-Key': apiKey,
       };
@@ -123,18 +125,55 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       // Map our SortBy to server's SortOrder
       const sortParam = this.mapSortByToSortOrder(this.sortBy);
 
-      const response = await fetch(
+      // Fetch comments
+      const commentsPromise = fetch(
         `${apiUrl}/comments?page_url=${encodeURIComponent(url)}&sort=${sortParam}`,
         { headers }
       );
 
-      if (!response.ok) {
-        const error = await this.parseErrorResponse(response);
+      // If authenticated, also fetch user's votes in parallel
+      let votesPromise: Promise<Response> | null = null;
+      if (token) {
+        const votesHeaders: Record<string, string> = {
+          'X-API-Key': apiKey,
+          'Authorization': `Bearer ${token}`,
+        };
+        votesPromise = fetch(
+          `${apiUrl}/votes?page_url=${encodeURIComponent(url)}`,
+          { headers: votesHeaders }
+        );
+      }
+
+      // Wait for both requests
+      const [commentsResponse, votesResponse] = await Promise.all([
+        commentsPromise,
+        votesPromise,
+      ]);
+
+      if (!commentsResponse.ok) {
+        const error = await this.parseErrorResponse(commentsResponse);
         throw error;
       }
 
-      const data: GetCommentsResponse = await response.json();
-      const comments = pageTreeToComments(data.tree);
+      // Parse votes if we got them (ignore errors - votes are optional)
+      let votes: VotesMap | undefined;
+      if (votesResponse?.ok) {
+        try {
+          const votesData: { votes: Record<string, string> } = await votesResponse.json();
+          // Convert the server's format to VotesMap
+          votes = {};
+          for (const [commentId, direction] of Object.entries(votesData.votes)) {
+            if (direction === 'up' || direction === 'down') {
+              votes[commentId] = direction;
+            }
+          }
+        } catch {
+          // Ignore vote parsing errors
+        }
+      }
+
+      const data: GetCommentsResponse = await commentsResponse.json();
+      const comments = pageTreeToComments(data.tree, votes);
 
       this.setState({
         comments: sortComments(comments, this.sortBy),

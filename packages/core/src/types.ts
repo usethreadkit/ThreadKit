@@ -11,14 +11,12 @@ export interface Comment {
   /** Rendered HTML content */
   html?: string;
   timestamp: number;
-  /** Array of user IDs who upvoted (for tracking user's vote) */
-  upvotes: string[];
-  /** Array of user IDs who downvoted (for tracking user's vote) */
-  downvotes: string[];
-  /** Total upvote count (from server) */
-  upvoteCount?: number;
-  /** Total downvote count (from server) */
-  downvoteCount?: number;
+  /** Upvote count */
+  upvotes: number;
+  /** Downvote count */
+  downvotes: number;
+  /** Current user's vote on this comment */
+  userVote?: 'up' | 'down' | null;
   parentId?: string;
   children: Comment[];
   edited?: boolean;
