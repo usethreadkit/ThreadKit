@@ -29,27 +29,6 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
     inputRef.current?.focus();
   }, [state.step]);
 
-  // Handle OAuth popup message via BroadcastChannel (avoids COOP issues)
-  useEffect(() => {
-    const channel = new BroadcastChannel('threadkit-auth');
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'threadkit:oauth:success') {
-        const { token, refresh_token, user } = event.data;
-        try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
-        window.postMessage({ type: 'threadkit:auth:success', token, refresh_token, user }, '*');
-      } else if (event.data?.type === 'threadkit:oauth:error') {
-        try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
-      }
-    };
-
-    channel.addEventListener('message', handleMessage);
-    return () => {
-      channel.removeEventListener('message', handleMessage);
-      channel.close();
-    };
-  }, []);
-
   const handleMethodSelect = useCallback(
     (method: AuthMethod) => {
       if (method.type === 'oauth') {

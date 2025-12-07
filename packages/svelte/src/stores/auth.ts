@@ -4,12 +4,14 @@ import {
   BrowserTokenStorage,
   type AuthState,
   type AuthMethod,
-  type User,
+  type AuthUser,
 } from '@threadkit/core';
 
 export interface AuthStoreConfig {
   apiUrl: string;
   apiKey: string;
+  /** Debug logging function (optional) */
+  debug?: (...args: unknown[]) => void;
 }
 
 export interface AuthStore extends Readable<AuthState> {
@@ -21,7 +23,11 @@ export interface AuthStore extends Readable<AuthState> {
   logout: () => void;
   destroy: () => void;
   getToken: () => string | null;
-  getUser: () => User | null;
+  getUser: () => AuthUser | null;
+  /** Set up OAuth popup listeners (BroadcastChannel + postMessage) */
+  setupOAuthListener: () => void;
+  /** Clean up OAuth popup listeners */
+  destroyOAuthListener: () => void;
 }
 
 /**
@@ -31,8 +37,10 @@ export interface AuthStore extends Readable<AuthState> {
 export function createAuthStore(config: AuthStoreConfig): AuthStore {
   const storage = new BrowserTokenStorage();
   const core = new AuthManager({
-    ...config,
+    apiUrl: config.apiUrl,
+    apiKey: config.apiKey,
     storage,
+    debug: config.debug,
   });
 
   const { subscribe, set } = writable<AuthState>(core.getState());
@@ -51,8 +59,12 @@ export function createAuthStore(config: AuthStoreConfig): AuthStore {
     destroy: () => core.destroy(),
     getToken: () => core.getToken(),
     getUser: () => core.getUser(),
+    setupOAuthListener: () => core.setupOAuthListener(),
+    destroyOAuthListener: () => core.destroyOAuthListener(),
   };
 }
 
 // Re-export types
-export type { AuthState, AuthMethod, User };
+export type { AuthState, AuthMethod, AuthUser };
+// Keep User alias for backwards compatibility
+export type User = AuthUser;

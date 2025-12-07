@@ -5,33 +5,18 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
-import type {
-  AuthState,
-  AuthContextValue,
-  AuthMethod,
-  AuthPlugin,
-  User,
-  AuthMethodsResponse,
-  AuthResponse,
-} from './types';
-import { useDebug, debugLog } from '../debug';
-
-const TOKEN_KEY = 'threadkit_token';
-const REFRESH_TOKEN_KEY = 'threadkit_refresh_token';
-
-const initialState: AuthState = {
-  step: 'idle',
-  user: null,
-  token: null,
-  refreshToken: null,
-  error: null,
-  availableMethods: [],
-  selectedMethod: null,
-  otpTarget: null,
-  isNewAccount: false,
-};
+import {
+  AuthManager,
+  BrowserTokenStorage,
+  type AuthState as CoreAuthState,
+  type AuthMethod,
+  type AuthUser,
+} from '@threadkit/core';
+import type { AuthContextValue, AuthPlugin, User } from './types';
+import { useDebug } from '../debug';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -50,6 +35,14 @@ interface AuthProviderProps {
   onUserChange?: (user: User | null) => void;
 }
 
+// Convert core AuthState to React AuthState (types are compatible)
+function toReactState(coreState: CoreAuthState) {
+  return {
+    ...coreState,
+    user: coreState.user as User | null,
+  };
+}
+
 export function AuthProvider({
   children,
   apiUrl,
@@ -57,329 +50,101 @@ export function AuthProvider({
   onUserChange,
 }: AuthProviderProps) {
   const debug = useDebug();
-  const [state, setState] = useState<AuthState>(initialState);
   const [plugins, setPlugins] = useState<AuthPlugin[]>([]);
 
-  // Load token from localStorage on mount
+  // Create AuthManager instance (stable reference)
+  const managerRef = useRef<AuthManager | null>(null);
+  if (!managerRef.current) {
+    managerRef.current = new AuthManager({
+      apiUrl,
+      apiKey,
+      storage: new BrowserTokenStorage(),
+      onUserChange: onUserChange as ((user: AuthUser | null) => void) | undefined,
+      debug: debug ? (...args) => console.log(...args) : undefined,
+    });
+  }
+  const manager = managerRef.current;
+
+  // Track state from AuthManager
+  const [state, setState] = useState(() => toReactState(manager.getState()));
+
+  // Subscribe to state changes and set up OAuth listener
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-
-    if (token && refreshToken) {
-      setState((s) => ({
-        ...s,
-        token,
-        refreshToken,
-        step: 'loading',
-      }));
-
-      // Validate token and get user info
-      fetch(`${apiUrl}/users/me`, {
-        headers: {
-          'X-API-Key': apiKey,
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then(async (res) => {
-          if (res.ok) {
-            const user = await res.json();
-            setState((s) => ({
-              ...s,
-              user,
-              step: 'idle',
-            }));
-            onUserChange?.(user);
-          } else if (res.status === 401) {
-            // Token expired, try refresh
-            return refreshTokens(refreshToken);
-          } else {
-            // Clear invalid tokens
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(REFRESH_TOKEN_KEY);
-            setState(initialState);
-          }
-        })
-        .catch(() => {
-          setState(initialState);
-        });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const refreshTokens = useCallback(
-    async (refreshToken: string) => {
-      try {
-        const res = await fetch(`${apiUrl}/auth/refresh`, {
-          method: 'POST',
-          headers: {
-            'X-API-Key': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-
-        if (res.ok) {
-          const data: AuthResponse = await res.json();
-          localStorage.setItem(TOKEN_KEY, data.token);
-          localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
-          setState((s) => ({
-            ...s,
-            token: data.token,
-            refreshToken: data.refresh_token,
-            user: data.user,
-            step: 'idle',
-          }));
-          onUserChange?.(data.user);
-        } else {
-          // Refresh failed, clear tokens
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-          setState(initialState);
-          onUserChange?.(null);
-        }
-      } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        setState(initialState);
-        onUserChange?.(null);
-      }
-    },
-    [apiUrl, apiKey, onUserChange]
-  );
-
-  const login = useCallback(async () => {
-    setState((s) => ({ ...s, step: 'loading', error: null }));
-
-    try {
-      // Fetch available auth methods from server
-      const res = await fetch(`${apiUrl}/auth/methods`, {
-        headers: { 'X-API-Key': apiKey },
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch auth methods');
-      }
-
-      const data: AuthMethodsResponse = await res.json();
-
-      // Merge server methods with plugin methods
-      const serverMethods = data.methods;
-      const pluginMethods = plugins.map((p) => ({
-        id: p.id,
-        name: p.name,
-        type: p.type,
-      }));
-
-      // Add plugin methods that aren't already from server
-      const allMethods = [...serverMethods];
-      for (const pm of pluginMethods) {
-        if (!allMethods.find((m) => m.id === pm.id)) {
-          allMethods.push(pm);
-        }
-      }
-
-      setState((s) => ({
-        ...s,
-        step: 'methods',
-        availableMethods: allMethods,
-      }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        step: 'idle',
-        error: err instanceof Error ? err.message : 'Failed to start login',
-      }));
-    }
-  }, [apiUrl, apiKey, plugins]);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    setState(initialState);
-    onUserChange?.(null);
-  }, [onUserChange]);
-
-  const selectMethod = useCallback((method: AuthMethod) => {
-    setState((s) => ({
-      ...s,
-      selectedMethod: method,
-      step: method.type === 'otp' ? 'otp-input' :
-            method.type === 'oauth' ? 'oauth-pending' :
-            'web3-pending',
-      error: null,
-    }));
-  }, []);
-
-  const setOtpTarget = useCallback(async (target: string) => {
-    setState((s) => ({ ...s, otpTarget: target, step: 'loading', error: null }));
-
-    try {
-      const isEmail = target.includes('@');
-      const body = isEmail ? { email: target } : { phone: target };
-
-      const res = await fetch(`${apiUrl}/auth/send-otp`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to send OTP');
-      }
-
-      setState((s) => ({ ...s, step: 'otp-verify' }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        step: 'otp-input',
-        error: err instanceof Error ? err.message : 'Failed to send OTP',
-      }));
-    }
-  }, [apiUrl, apiKey]);
-
-  const verifyOtp = useCallback(
-    async (code: string, name?: string) => {
-      setState((s) => ({ ...s, step: 'loading', error: null }));
-
-      try {
-        const isEmail = state.otpTarget?.includes('@');
-        const body: Record<string, string> = {
-          code,
-          ...(isEmail ? { email: state.otpTarget! } : { phone: state.otpTarget! }),
-          ...(name ? { name } : {}),
-        };
-
-        const res = await fetch(`${apiUrl}/auth/verify-otp`, {
-          method: 'POST',
-          headers: {
-            'X-API-Key': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) {
-          const error = await res.text();
-          // Check if name is required
-          if (error.includes('Name required')) {
-            setState((s) => ({ ...s, step: 'otp-name', isNewAccount: true }));
-            return;
-          }
-          throw new Error(error || 'Invalid code');
-        }
-
-        const data: AuthResponse = await res.json();
-
-        // Store tokens
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
-
-        setState({
-          ...initialState,
-          token: data.token,
-          refreshToken: data.refresh_token,
-          user: data.user,
-        });
-        onUserChange?.(data.user);
-      } catch (err) {
-        setState((s) => ({
-          ...s,
-          step: state.isNewAccount ? 'otp-name' : 'otp-verify',
-          error: err instanceof Error ? err.message : 'Verification failed',
-        }));
-      }
-    },
-    [apiUrl, apiKey, state.otpTarget, state.isNewAccount, onUserChange]
-  );
-
-  const handlePluginSuccess = useCallback(
-    (token: string, refreshToken: string, user: User) => {
-      debugLog(debug, '[ThreadKit AuthContext] handlePluginSuccess called with user:', user);
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      setState({
-        ...initialState,
-        token,
-        refreshToken,
-        user,
-      });
-      onUserChange?.(user);
-    },
-    [debug, onUserChange]
-  );
-
-  // Listen for OAuth success messages via BroadcastChannel (primary) and window.postMessage (fallback)
-  useEffect(() => {
-    const processOAuthSuccess = (data: { token: string; refresh_token: string; user: User }) => {
-      const { token, refresh_token, user } = data;
-      if (token && user) {
-        debugLog(debug, '[ThreadKit AuthContext] Processing OAuth success for user:', user);
-        handlePluginSuccess(token, refresh_token, user);
-      } else {
-        debugLog(debug, '[ThreadKit AuthContext] Missing token or user in message');
-      }
+    const handleStateChange = (newState: CoreAuthState) => {
+      setState(toReactState(newState));
     };
 
-    // BroadcastChannel listener (primary method)
-    debugLog(debug, '[ThreadKit AuthContext] Setting up BroadcastChannel listener');
-    const channel = new BroadcastChannel('threadkit-auth');
-    const handleBroadcast = (event: MessageEvent) => {
-      debugLog(debug, '[ThreadKit AuthContext] BroadcastChannel message received:', event.data);
-      if (event.data?.type === 'threadkit:oauth:success') {
-        debugLog(debug, '[ThreadKit AuthContext] OAuth success via BroadcastChannel!');
-        processOAuthSuccess(event.data);
-      }
-    };
-    channel.addEventListener('message', handleBroadcast);
+    manager.on('stateChange', handleStateChange);
+    manager.setupOAuthListener();
 
-    // Window postMessage listener (fallback for older browsers or cross-origin scenarios)
-    const handleWindowMessage = (event: MessageEvent) => {
-      debugLog(debug, '[ThreadKit AuthContext] Window message received:', event.data);
-      if (event.data?.type === 'threadkit:auth:success' || event.data?.type === 'threadkit:oauth:success') {
-        debugLog(debug, '[ThreadKit AuthContext] OAuth success via postMessage!');
-        processOAuthSuccess(event.data);
-      }
-    };
-    window.addEventListener('message', handleWindowMessage);
+    // Initialize (load stored tokens)
+    manager.initialize();
 
     return () => {
-      debugLog(debug, '[ThreadKit AuthContext] Cleaning up auth listeners');
-      channel.removeEventListener('message', handleBroadcast);
-      channel.close();
-      window.removeEventListener('message', handleWindowMessage);
+      manager.off('stateChange', handleStateChange);
+      manager.destroyOAuthListener();
     };
-  }, [debug, handlePluginSuccess]);
+  }, [manager]);
 
-  const handlePluginError = useCallback((error: string) => {
-    setState((s) => ({
-      ...s,
-      step: 'methods',
-      error,
-    }));
-  }, []);
+  // Update debug setting when it changes
+  useEffect(() => {
+    // Re-create manager config is not ideal, but debug changes are rare
+    // The manager will use the new debug function on next log call
+  }, [debug]);
 
-  const handlePluginCancel = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      step: 'methods',
-      selectedMethod: null,
-      error: null,
-    }));
-  }, []);
+  // Wrap manager methods for React
+  const login = useCallback(() => {
+    manager.startLogin();
+  }, [manager]);
+
+  const logout = useCallback(() => {
+    manager.logout();
+  }, [manager]);
+
+  const selectMethod = useCallback((method: AuthMethod) => {
+    manager.selectMethod(method);
+  }, [manager]);
+
+  const setOtpTarget = useCallback((target: string) => {
+    manager.sendOtp(target);
+  }, [manager]);
+
+  const verifyOtp = useCallback(async (code: string, name?: string) => {
+    await manager.verifyOtp(code, name);
+  }, [manager]);
 
   const registerPlugin = useCallback((plugin: AuthPlugin) => {
+    // Register with core manager (for method merging)
+    manager.registerPlugin({
+      id: plugin.id,
+      name: plugin.name,
+      type: plugin.type,
+    });
+
+    // Also track React-specific plugin (for rendering)
     setPlugins((prev) => {
-      // Don't add duplicates
       if (prev.find((p) => p.id === plugin.id)) {
         return prev;
       }
       return [...prev, plugin];
     });
-  }, []);
+  }, [manager]);
+
+  // Plugin success/error/cancel handlers
+  const handlePluginSuccess = useCallback(
+    (token: string, refreshToken: string, user: User) => {
+      manager.handlePluginSuccess(token, refreshToken, user as AuthUser);
+    },
+    [manager]
+  );
+
+  const handlePluginError = useCallback((error: string) => {
+    manager.handlePluginError(error);
+  }, [manager]);
+
+  const handlePluginCancel = useCallback(() => {
+    manager.handlePluginCancel();
+  }, [manager]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

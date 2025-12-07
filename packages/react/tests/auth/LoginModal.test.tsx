@@ -36,7 +36,7 @@ function renderLoginModal(onClose = vi.fn()) {
   });
 
   return render(
-    <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+    <AuthProvider apiUrl="http://test.com" apiKey="test-key">
       <LoginModalTrigger onClose={onClose} />
     </AuthProvider>
   );
@@ -50,7 +50,7 @@ function LoginModalTrigger({ onClose }: { onClose: () => void }) {
     <>
       <button onClick={login}>Open Login</button>
       {state.step !== 'idle' && (
-        <LoginModal onClose={onClose} apiUrl="http://test.com/v1" apiKey="test-key" />
+        <LoginModal onClose={onClose} apiUrl="http://test.com" apiKey="test-key" />
       )}
     </>
   );
@@ -116,7 +116,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true }); // send-otp response
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -156,7 +156,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -188,7 +188,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -219,7 +219,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -250,7 +250,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -285,7 +285,7 @@ describe('LoginModal', () => {
     await userEvent.click(screen.getByText('Continue with Google'));
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'http://test.com/v1/auth/google',
+      'http://test.com/auth/google?api_key=test-key',
       'threadkit-oauth',
       expect.stringContaining('width=500')
     );
@@ -357,7 +357,7 @@ describe('LoginModal', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -394,7 +394,7 @@ describe('LoginModal', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -427,7 +427,7 @@ describe('LoginModal', () => {
       .mockImplementationOnce(() => otpPromise);
 
     render(
-      <AuthProvider apiUrl="http://test.com/v1" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );

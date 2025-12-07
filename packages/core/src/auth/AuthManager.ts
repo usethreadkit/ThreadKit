@@ -23,6 +23,8 @@ export interface AuthManagerConfig {
   storage: TokenStorage;
   /** Callback when user changes (login/logout) */
   onUserChange?: (user: AuthUser | null) => void;
+  /** Debug logging function (optional) */
+  debug?: (...args: unknown[]) => void;
 }
 
 // ============================================================================
@@ -61,11 +63,21 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   private config: AuthManagerConfig;
   private state: AuthState;
   private plugins: AuthPluginCore[] = [];
+  private oauthChannel: BroadcastChannel | null = null;
+  private oauthWindowHandler: ((event: MessageEvent) => void) | null = null;
 
   constructor(config: AuthManagerConfig) {
     super();
     this.config = config;
     this.state = { ...initialState };
+  }
+
+  // ============================================================================
+  // Debug Logging
+  // ============================================================================
+
+  private log(...args: unknown[]): void {
+    this.config.debug?.(...args);
   }
 
   // ============================================================================
@@ -367,6 +379,77 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   }
 
   // ============================================================================
+  // OAuth Listener
+  // ============================================================================
+
+  /**
+   * Set up listeners for OAuth popup success messages.
+   * Uses BroadcastChannel (primary) and window.postMessage (fallback).
+   * Call this when mounting your auth component.
+   */
+  setupOAuthListener(): void {
+    // Skip if already set up or not in browser
+    if (this.oauthChannel || typeof window === 'undefined') {
+      return;
+    }
+
+    this.log('[ThreadKit AuthManager] Setting up OAuth listeners');
+
+    // Process OAuth success data
+    const processOAuthSuccess = (data: { token: string; refresh_token: string; user: AuthUser }) => {
+      const { token, refresh_token, user } = data;
+      if (token && user) {
+        this.log('[ThreadKit AuthManager] Processing OAuth success for user:', user);
+        this.handlePluginSuccess(token, refresh_token, user);
+      } else {
+        this.log('[ThreadKit AuthManager] Missing token or user in OAuth message');
+      }
+    };
+
+    // BroadcastChannel listener (primary method - works across tabs with COOP)
+    try {
+      this.oauthChannel = new BroadcastChannel('threadkit-auth');
+      this.oauthChannel.addEventListener('message', (event: MessageEvent) => {
+        this.log('[ThreadKit AuthManager] BroadcastChannel message received:', event.data);
+        if (event.data?.type === 'threadkit:oauth:success') {
+          this.log('[ThreadKit AuthManager] OAuth success via BroadcastChannel!');
+          processOAuthSuccess(event.data);
+        }
+      });
+    } catch {
+      this.log('[ThreadKit AuthManager] BroadcastChannel not supported');
+    }
+
+    // Window postMessage listener (fallback for older browsers)
+    this.oauthWindowHandler = (event: MessageEvent) => {
+      this.log('[ThreadKit AuthManager] Window message received:', event.data);
+      if (event.data?.type === 'threadkit:auth:success' || event.data?.type === 'threadkit:oauth:success') {
+        this.log('[ThreadKit AuthManager] OAuth success via postMessage!');
+        processOAuthSuccess(event.data);
+      }
+    };
+    window.addEventListener('message', this.oauthWindowHandler);
+  }
+
+  /**
+   * Clean up OAuth listeners.
+   * Call this when unmounting your auth component.
+   */
+  destroyOAuthListener(): void {
+    this.log('[ThreadKit AuthManager] Cleaning up OAuth listeners');
+
+    if (this.oauthChannel) {
+      this.oauthChannel.close();
+      this.oauthChannel = null;
+    }
+
+    if (this.oauthWindowHandler && typeof window !== 'undefined') {
+      window.removeEventListener('message', this.oauthWindowHandler);
+      this.oauthWindowHandler = null;
+    }
+  }
+
+  // ============================================================================
   // Logout
   // ============================================================================
 
@@ -432,6 +515,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Clean up resources
    */
   destroy(): void {
+    this.destroyOAuthListener();
     this.removeAllListeners();
   }
 }
