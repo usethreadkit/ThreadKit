@@ -146,6 +146,13 @@ export function Comment({
         <div className="threadkit-comment-content">
           {/* Header line */}
           <div className="threadkit-comment-header">
+            <button
+              className="threadkit-collapse-btn"
+              onClick={handleCollapse}
+              title={t('collapseComment')}
+            >
+              [–]
+            </button>
             <UserHoverCard
               userName={comment.userName}
               userId={comment.userId}
@@ -153,23 +160,20 @@ export function Comment({
             >
               <span className="threadkit-author">{comment.userName}</span>
             </UserHoverCard>
-
-            <span className="threadkit-score">
+            {' '}
+            <span className="threadkit-meta">
               {score} {score !== 1 ? t('points') : t('point')}
+              {' '}
+              {formatTimestamp(comment.timestamp)}
+              {' '}
               <span className="threadkit-score-breakdown">
                 (+{upvotes}/-{downvotes})
               </span>
             </span>
 
-            <span className="threadkit-timestamp">
-              {formatTimestamp(comment.timestamp)}
-            </span>
-
             {comment.edited && <span className="threadkit-edited">*</span>}
 
             {comment.pinned && <span className="threadkit-pinned">{t('pinned')}</span>}
-
-            <span className="threadkit-header-divider">|</span>
 
             {index > 0 && onPrev && (
               <button className="threadkit-nav-btn" onClick={onPrev}>
@@ -182,14 +186,6 @@ export function Comment({
                 {t('next')}
               </button>
             )}
-
-            <button
-              className="threadkit-collapse-btn"
-              onClick={handleCollapse}
-              title={t('collapseComment')}
-            >
-              [–]
-            </button>
           </div>
 
           {/* Comment body */}

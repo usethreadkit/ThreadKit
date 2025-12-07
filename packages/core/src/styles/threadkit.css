@@ -203,18 +203,15 @@
   text-decoration: underline;
 }
 
-.threadkit-score {
-  color: var(--threadkit-text-secondary);
+.threadkit-meta {
+  color: var(--threadkit-text-muted);
+  font-size: 11px;
 }
 
 .threadkit-score-breakdown {
   color: var(--threadkit-text-muted);
   font-size: 11px;
   margin-left: 2px;
-}
-
-.threadkit-timestamp {
-  color: var(--threadkit-text-muted);
 }
 
 .threadkit-edited {
