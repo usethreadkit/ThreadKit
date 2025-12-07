@@ -402,6 +402,7 @@ export function ChatView({
 }: ChatViewProps) {
   const t = useTranslation();
   const messagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
@@ -428,6 +429,8 @@ export function ChatView({
         setInputValue('');
       } finally {
         setIsSubmitting(false);
+        // Refocus input after sending
+        inputRef.current?.focus();
       }
     },
     [inputValue, isSubmitting, onSend]
@@ -450,6 +453,7 @@ export function ChatView({
       )}
       <form className="threadkit-chat-input" onSubmit={handleSubmit}>
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
           onChange={handleInputChange}

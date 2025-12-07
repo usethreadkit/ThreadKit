@@ -47,6 +47,7 @@
   }: Props = $props();
 
   let messagesEl: HTMLDivElement | undefined = $state();
+  let inputEl: HTMLInputElement | undefined = $state();
   let inputValue = $state('');
   let isSubmitting = $state(false);
 
@@ -71,6 +72,8 @@
       inputValue = '';
     } finally {
       isSubmitting = false;
+      // Refocus input after sending
+      inputEl?.focus();
     }
   }
 
@@ -89,6 +92,7 @@
 
   <form class="threadkit-chat-input" onsubmit={handleSubmit}>
     <input
+      bind:this={inputEl}
       type="text"
       value={inputValue}
       oninput={handleInputChange}
