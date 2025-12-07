@@ -63,7 +63,7 @@ export function escapeHtml(text: string): string {
 export const MAX_USERNAME_LENGTH = 24;
 
 /** Minimum username length */
-export const MIN_USERNAME_LENGTH = 2;
+export const MIN_USERNAME_LENGTH = 1;
 
 /**
  * Normalize a display name into a valid username.
@@ -115,10 +115,6 @@ export function validateUsername(username: string): string | null {
 
   if (username.length > MAX_USERNAME_LENGTH) {
     return `Username must be ${MAX_USERNAME_LENGTH} characters or less`;
-  }
-
-  if (username.length < MIN_USERNAME_LENGTH) {
-    return `Username must be at least ${MIN_USERNAME_LENGTH} characters`;
   }
 
   // Check for valid characters

@@ -184,7 +184,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       if (suggestion) {
         setUsername(suggestion);
         // Immediately check availability of the suggested username
-        if (suggestion.length >= 2) {
+        if (suggestion.length >= 1) {
           checkUsernameAvailability(suggestion);
         }
       }
@@ -209,7 +209,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       clearTimeout(usernameCheckTimeout.current);
     }
 
-    if (value.length >= 2) {
+    if (value.length >= 1) {
       usernameCheckTimeout.current = setTimeout(() => {
         checkUsernameAvailability(value);
       }, 300);
@@ -339,7 +339,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   // Username selection for new users (after OAuth/OTP login)
   // Show textarea with inline username input where the reply button would be
   if (state.step === 'username-required') {
-    const canSubmit = username.trim().length >= 2 && isUsernameAvailable === true && !usernameError;
+    const canSubmit = username.trim().length >= 1 && isUsernameAvailable === true && !usernameError;
     return (
       <div className="threadkit-form">
         <textarea

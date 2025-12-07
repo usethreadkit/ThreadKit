@@ -1,7 +1,7 @@
 /// Username validation and normalization utilities.
 ///
 /// Usernames must:
-/// - Be 2-24 characters long
+/// - Be 1-24 characters long
 /// - Only contain alphanumeric characters, hyphens, and underscores
 /// - Not start or end with a hyphen or underscore
 /// - Not contain consecutive hyphens or underscores
@@ -10,7 +10,7 @@
 pub const MAX_USERNAME_LENGTH: usize = 24;
 
 /// Minimum username length
-pub const MIN_USERNAME_LENGTH: usize = 2;
+pub const MIN_USERNAME_LENGTH: usize = 1;
 
 /// Normalize a display name into a valid username.
 /// Converts to lowercase, replaces spaces with hyphens, removes invalid characters.
@@ -61,7 +61,7 @@ pub fn validate_username(username: &str) -> Result<(), &'static str> {
     }
 
     if username.len() < MIN_USERNAME_LENGTH {
-        return Err("Username must be at least 2 characters");
+        return Err("Username cannot be empty");
     }
 
     // Check for valid characters
@@ -128,11 +128,11 @@ mod tests {
         assert!(validate_username("john-smith").is_ok());
         assert!(validate_username("john_smith").is_ok());
         assert!(validate_username("john123").is_ok());
-        assert!(validate_username("ab").is_ok()); // Min length
+        assert!(validate_username("ab").is_ok());
+        assert!(validate_username("a").is_ok()); // Single char is valid
 
         // Invalid usernames
         assert!(validate_username("").is_err()); // Empty
-        assert!(validate_username("a").is_err()); // Too short
         assert!(validate_username("-john").is_err()); // Leading hyphen
         assert!(validate_username("john-").is_err()); // Trailing hyphen
         assert!(validate_username("john--smith").is_err()); // Consecutive hyphens
