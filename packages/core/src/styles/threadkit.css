@@ -447,7 +447,8 @@
   flex-shrink: 0;
 }
 
-.threadkit-hover-card-avatar img {
+.threadkit-hover-card-avatar img,
+.threadkit-hover-card-avatar .threadkit-avatar-placeholder {
   width: 48px;
   height: 48px;
   border-radius: 50%;

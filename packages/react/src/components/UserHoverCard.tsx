@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { UserProfile } from '../types';
+import type { User, UserProfile } from '../types';
 import { useTranslation } from '../i18n';
 import { Avatar } from './Avatar';
 
 interface UserHoverCardProps {
   userName: string;
   userId: string;
+  currentUser?: User;
   getUserProfile?: (userId: string) => UserProfile | undefined;
   children: React.ReactNode;
 }
@@ -29,6 +30,7 @@ function formatNumber(num: number): string {
 export function UserHoverCard({
   userName,
   userId,
+  currentUser,
   getUserProfile,
   children,
 }: UserHoverCardProps) {
@@ -40,6 +42,10 @@ export function UserHoverCard({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const profile = getUserProfile?.(userId);
+
+  // If this is the current user, use their data as fallback or override
+  const isCurrentUser = currentUser?.id === userId;
+  const avatar = profile?.avatar || (isCurrentUser ? currentUser?.avatar : undefined);
 
   const showCard = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -74,10 +80,10 @@ export function UserHoverCard({
   const displayProfile: UserProfile = profile || {
     id: userId,
     name: userName,
-    avatar: undefined,
-    karma: Math.floor(Math.random() * 10000) + 100,
-    totalComments: Math.floor(Math.random() * 500) + 10,
-    joinDate: Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000),
+    avatar,
+    karma: isCurrentUser && currentUser?.karma ? currentUser.karma : (Math.floor(Math.random() * 10000) + 100),
+    totalComments: isCurrentUser && currentUser?.totalComments ? currentUser.totalComments : (Math.floor(Math.random() * 500) + 10),
+    joinDate: isCurrentUser && currentUser?.joinDate ? currentUser.joinDate : (Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000)),
   };
 
   return (

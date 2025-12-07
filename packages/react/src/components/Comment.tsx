@@ -105,6 +105,7 @@ export function Comment({
         <UserHoverCard
           userName={comment.userName}
           userId={comment.userId}
+          currentUser={currentUser}
           getUserProfile={getUserProfile}
         >
           <span className="threadkit-author">{comment.userName}</span>
@@ -156,6 +157,7 @@ export function Comment({
             <UserHoverCard
               userName={comment.userName}
               userId={comment.userId}
+              currentUser={currentUser}
               getUserProfile={getUserProfile}
             >
               <span className="threadkit-author">{comment.userName}</span>
