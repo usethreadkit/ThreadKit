@@ -321,6 +321,9 @@ pub async fn create_comment(
         return Err((StatusCode::FORBIDDEN, "User is blocked".into()));
     }
 
+    // Check if username is set (authenticated users must have username set)
+    auth.require_username_set()?;
+
     // Check if site-wide posting is disabled
     if api_key.0.settings.posting_disabled {
         return Err((StatusCode::FORBIDDEN, "Posting is currently disabled".into()));
@@ -629,10 +632,13 @@ pub async fn create_comment(
 pub async fn update_comment(
     State(state): State<AppState>,
     api_key: ApiKey,
-    auth: AuthUser,
+    auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<UpdateCommentRequest>,
 ) -> Result<Json<TreeComment>, (StatusCode, String)> {
+    // Check if username is set
+    auth.require_username_set()?;
+
     // Validate path ends with the correct comment ID
     if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
@@ -707,6 +713,9 @@ pub async fn delete_comment(
     Path(comment_id): Path<Uuid>,
     Json(req): Json<DeleteRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    // Check if username is set
+    auth.require_username_set()?;
+
     // Validate path
     if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
@@ -769,10 +778,13 @@ pub async fn delete_comment(
 pub async fn vote_comment(
     State(state): State<AppState>,
     api_key: ApiKey,
-    auth: AuthUser,
+    auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<VoteRequest>,
 ) -> Result<Json<VoteResponse>, (StatusCode, String)> {
+    // Check if username is set
+    auth.require_username_set()?;
+
     // Validate path
     if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));

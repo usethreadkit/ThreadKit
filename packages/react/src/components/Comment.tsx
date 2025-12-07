@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatTimestamp } from '@threadkit/core';
 import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
+import { SignInPrompt } from './SignInPrompt';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
 import { useTranslation } from '../i18n';
@@ -18,6 +19,9 @@ const REPORT_REASON_KEYS: ReportReasonKey[] = [
 export function Comment({
   comment,
   currentUser,
+  needsUsername = false,
+  apiUrl,
+  apiKey,
   depth = 0,
   maxDepth = 5,
   collapsed: initialCollapsed = false,
@@ -123,6 +127,7 @@ export function Comment({
               className={`threadkit-vote-btn threadkit-vote-up ${hasUpvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'up')}
               aria-label={t('upvote')}
+              disabled={needsUsername}
             >
               ▲
             </button>
@@ -130,6 +135,7 @@ export function Comment({
               className={`threadkit-vote-btn threadkit-vote-down ${hasDownvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'down')}
               aria-label={t('downvote')}
+              disabled={needsUsername}
             >
               ▼
             </button>
@@ -253,6 +259,7 @@ export function Comment({
                     <button
                       className="threadkit-action-btn"
                       onClick={() => setIsEditing(true)}
+                      disabled={needsUsername}
                     >
                       {t('edit')}
                     </button>
@@ -291,6 +298,7 @@ export function Comment({
                       <button
                         className="threadkit-action-btn"
                         onClick={() => setConfirmingAction('delete')}
+                        disabled={needsUsername}
                       >
                         {t('delete')}
                       </button>
@@ -324,6 +332,7 @@ export function Comment({
                       <button
                         className="threadkit-action-btn"
                         onClick={() => setConfirmingAction('block')}
+                        disabled={needsUsername}
                       >
                         {t('block')}
                       </button>
@@ -372,6 +381,7 @@ export function Comment({
                       <button
                         className="threadkit-action-btn"
                         onClick={() => setShowReportForm(true)}
+                        disabled={needsUsername}
                       >
                         {t('report')}
                       </button>
@@ -411,6 +421,7 @@ export function Comment({
                       <button
                         className="threadkit-action-btn threadkit-mod-action"
                         onClick={() => setConfirmingAction('delete')}
+                        disabled={needsUsername}
                       >
                         {t('delete')}
                       </button>
@@ -441,6 +452,7 @@ export function Comment({
                       <button
                         className="threadkit-action-btn threadkit-mod-action"
                         onClick={() => setConfirmingAction('ban')}
+                        disabled={needsUsername}
                       >
                         {t('ban')}
                       </button>
@@ -454,13 +466,21 @@ export function Comment({
           {/* Reply form */}
           {showReplyForm && (
             <div className="threadkit-reply-form">
-              <CommentForm
-                parentId={comment.id}
-                placeholder={t('writeReply')}
-                autoFocus
-                onSubmit={handleReply}
-                onCancel={() => setShowReplyForm(false)}
-              />
+              {(!currentUser || needsUsername) && apiUrl && apiKey ? (
+                <SignInPrompt
+                  apiUrl={apiUrl}
+                  apiKey={apiKey}
+                  placeholder={t('writeReply')}
+                />
+              ) : (
+                <CommentForm
+                  parentId={comment.id}
+                  placeholder={t('writeReply')}
+                  autoFocus
+                  onSubmit={handleReply}
+                  onCancel={() => setShowReplyForm(false)}
+                />
+              )}
             </div>
           )}
 
@@ -472,6 +492,9 @@ export function Comment({
                   key={child.id}
                   comment={child}
                   currentUser={currentUser}
+                  needsUsername={needsUsername}
+                  apiUrl={apiUrl}
+                  apiKey={apiKey}
                   depth={depth + 1}
                   maxDepth={maxDepth}
                   index={childIndex}

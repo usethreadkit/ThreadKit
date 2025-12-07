@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { User } from '../types';
 import { useTranslation } from '../i18n';
+import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
 
 interface BlockedUser {
   id: string;
@@ -49,6 +50,7 @@ export function SettingsPanel({
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(currentUser?.name || '');
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(DELETE_HOLD_SECONDS);
@@ -63,12 +65,23 @@ export function SettingsPanel({
   useEffect(() => {
     if (!editingName || !newName.trim() || newName === currentUser?.name) {
       setUsernameAvailable(null);
+      setUsernameError(null);
+      setCheckingUsername(false);
+      return;
+    }
+
+    // First validate format
+    const validationError = validateUsername(newName.trim());
+    if (validationError) {
+      setUsernameError(validationError);
+      setUsernameAvailable(null);
       setCheckingUsername(false);
       return;
     }
 
     setCheckingUsername(true);
     setUsernameAvailable(null);
+    setUsernameError(null);
 
     if (checkUsernameRef.current) {
       clearTimeout(checkUsernameRef.current);
@@ -83,7 +96,13 @@ export function SettingsPanel({
         });
         if (response.ok) {
           const data = await response.json();
-          setUsernameAvailable(data.available);
+          if (data.error) {
+            setUsernameError(data.error);
+            setUsernameAvailable(false);
+          } else {
+            setUsernameError(null);
+            setUsernameAvailable(data.available);
+          }
         }
       } catch {
         // Silently fail - allow save attempt
@@ -239,25 +258,33 @@ export function SettingsPanel({
                       <input
                         type="text"
                         value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        className={`threadkit-settings-name-input ${usernameAvailable === false ? 'error' : ''}`}
+                        onChange={(e) => {
+                          // Normalize on input: lowercase, replace spaces with hyphens, remove invalid chars
+                          let value = e.target.value.toLowerCase();
+                          value = value.replace(/\s+/g, '-'); // Replace spaces with hyphens
+                          value = value.replace(/[^a-z0-9\-_]/g, ''); // Remove invalid characters
+                          value = value.slice(0, MAX_USERNAME_LENGTH); // Enforce max length
+                          setNewName(value);
+                        }}
+                        className={`threadkit-settings-name-input ${usernameAvailable === false || usernameError ? 'error' : ''}`}
                         autoFocus
+                        maxLength={MAX_USERNAME_LENGTH}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && usernameAvailable !== false) handleSaveName();
+                          if (e.key === 'Enter' && usernameAvailable !== false && !usernameError) handleSaveName();
                           if (e.key === 'Escape') setEditingName(false);
                         }}
                       />
                       <button
                         className="threadkit-action-btn"
                         onClick={handleSaveName}
-                        disabled={usernameAvailable === false || checkingUsername}
+                        disabled={usernameAvailable === false || checkingUsername || !!usernameError}
                       >
                         {checkingUsername ? t('checking') : t('save')}
                       </button>
-                      {usernameAvailable === false && (
-                        <span className="threadkit-username-taken">{t('usernameTaken')}</span>
+                      {(usernameAvailable === false || usernameError) && (
+                        <span className="threadkit-username-taken">{usernameError || t('usernameTaken')}</span>
                       )}
-                      {usernameAvailable === true && (
+                      {usernameAvailable === true && !usernameError && (
                         <span className="threadkit-username-available">{t('usernameAvailable')}</span>
                       )}
                     </div>

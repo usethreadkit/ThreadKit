@@ -1046,6 +1046,57 @@
   color: var(--threadkit-success);
 }
 
+/* Inline username form (for username-required step) */
+.threadkit-username-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.threadkit-username-inline-label {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  white-space: nowrap;
+}
+
+.threadkit-username-inline-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.threadkit-username-inline-input {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--threadkit-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  outline: none;
+  min-width: 100px;
+}
+
+.threadkit-username-inline-input:focus {
+  border-bottom-color: var(--threadkit-primary);
+}
+
+.threadkit-username-inline-input::placeholder {
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-username-inline-input-wrapper .threadkit-username-status {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.threadkit-username-inline-input-wrapper .threadkit-username-checking {
+  color: var(--threadkit-text-muted);
+}
+
 .threadkit-settings-section {
   padding: 4px 0;
 }
@@ -1524,6 +1575,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 4px 12px;
 }
 
@@ -1532,6 +1584,23 @@
   height: 16px;
   color: var(--threadkit-primary);
   animation: threadkit-spin 1s linear infinite;
+}
+
+.threadkit-signin-cancel-inline {
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--threadkit-text-secondary);
+  background: transparent;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.threadkit-signin-cancel-inline:hover {
+  color: var(--threadkit-text);
+  border-color: var(--threadkit-text-secondary);
+  background: var(--threadkit-bg-hover);
 }
 
 /* ===== Mention Input ===== */

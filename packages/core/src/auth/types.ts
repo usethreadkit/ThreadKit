@@ -29,6 +29,8 @@ export interface AuthUser {
   avatar_url?: string;
   email_verified?: boolean;
   phone_verified?: boolean;
+  /** Whether the user has explicitly chosen their username */
+  username_set?: boolean;
 }
 
 // ============================================================================
@@ -36,14 +38,15 @@ export interface AuthUser {
 // ============================================================================
 
 export type AuthStep =
-  | 'idle'           // Not logging in
-  | 'loading'        // Processing
-  | 'methods'        // Showing method selection
-  | 'otp-input'      // Entering email/phone for OTP
-  | 'otp-verify'     // Entering OTP code
-  | 'otp-name'       // Entering name for new account
-  | 'oauth-pending'  // Waiting for OAuth popup
-  | 'web3-pending';  // Waiting for wallet signature
+  | 'idle'              // Not logging in
+  | 'loading'           // Processing
+  | 'methods'           // Showing method selection
+  | 'otp-input'         // Entering email/phone for OTP
+  | 'otp-verify'        // Entering OTP code
+  | 'otp-name'          // Entering name for new account
+  | 'oauth-pending'     // Waiting for OAuth popup
+  | 'web3-pending'      // Waiting for wallet signature
+  | 'username-required';  // User needs to set their username
 
 export interface AuthState {
   step: AuthStep;

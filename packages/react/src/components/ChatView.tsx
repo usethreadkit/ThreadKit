@@ -7,6 +7,8 @@ import { useTranslation } from '../i18n';
 interface ChatViewProps {
   comments: Comment[];
   currentUser?: User;
+  /** Whether the user needs to set their username before chatting */
+  needsUsername?: boolean;
   showLastN?: number;
   autoScroll?: boolean;
   reactions?: string[];
@@ -384,6 +386,7 @@ function ChatMessage({
 export function ChatView({
   comments,
   currentUser,
+  needsUsername = false,
   showLastN = 100,
   autoScroll = true,
   showPresence = false,
@@ -457,13 +460,13 @@ export function ChatView({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          placeholder={currentUser ? t('typeMessage') : t('signInToChat')}
-          disabled={!currentUser || isSubmitting}
+          placeholder={currentUser && !needsUsername ? t('typeMessage') : t('signInToChat')}
+          disabled={!currentUser || needsUsername || isSubmitting}
         />
         <button
           type="submit"
           className="threadkit-submit-btn"
-          disabled={!currentUser || isSubmitting || !inputValue.trim()}
+          disabled={!currentUser || needsUsername || isSubmitting || !inputValue.trim()}
         >
           {t('send')}
         </button>

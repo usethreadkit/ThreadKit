@@ -151,7 +151,12 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
 
       if (res.ok) {
         const user: AuthUser = await res.json();
-        this.setState({ user, step: 'idle' });
+        // Check if user needs to set their username
+        if (user.username_set === false) {
+          this.setState({ user, step: 'username-required' });
+        } else {
+          this.setState({ user, step: 'idle' });
+        }
         onUserChange?.(user);
       } else if (res.status === 401) {
         // Token expired, try refresh
@@ -309,12 +314,23 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       storage.setToken(data.token);
       storage.setRefreshToken(data.refresh_token);
 
-      this.setState({
-        ...initialState,
-        token: data.token,
-        refreshToken: data.refresh_token,
-        user: data.user,
-      });
+      // Check if user needs to set their username
+      if (data.user.username_set === false) {
+        this.setState({
+          ...initialState,
+          token: data.token,
+          refreshToken: data.refresh_token,
+          user: data.user,
+          step: 'username-required',
+        });
+      } else {
+        this.setState({
+          ...initialState,
+          token: data.token,
+          refreshToken: data.refresh_token,
+          user: data.user,
+        });
+      }
       onUserChange?.(data.user);
     } catch (err) {
       this.setState({
@@ -348,12 +364,23 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     storage.setToken(token);
     storage.setRefreshToken(refreshToken);
 
-    this.setState({
-      ...initialState,
-      token,
-      refreshToken,
-      user,
-    });
+    // Check if user needs to set their username
+    if (user.username_set === false) {
+      this.setState({
+        ...initialState,
+        token,
+        refreshToken,
+        user,
+        step: 'username-required',
+      });
+    } else {
+      this.setState({
+        ...initialState,
+        token,
+        refreshToken,
+        user,
+      });
+    }
     onUserChange?.(user);
   }
 
@@ -376,6 +403,56 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       selectedMethod: null,
       error: null,
     });
+  }
+
+  // ============================================================================
+  // Username Update
+  // ============================================================================
+
+  /**
+   * Update the user's username (for users who haven't set one yet)
+   */
+  async updateUsername(username: string): Promise<void> {
+    const { apiUrl, apiKey, onUserChange } = this.config;
+    const token = this.state.token;
+
+    if (!token) {
+      this.setState({ error: 'Not authenticated' });
+      return;
+    }
+
+    this.setStep('loading');
+
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'X-API-Key': apiKey,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: username }),
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to update username');
+      }
+
+      const updatedUser: AuthUser = await res.json();
+
+      this.setState({
+        user: updatedUser,
+        step: 'idle',
+        error: null,
+      });
+      onUserChange?.(updatedUser);
+    } catch (err) {
+      this.setState({
+        step: 'username-required',
+        error: err instanceof Error ? err.message : 'Failed to update username',
+      });
+    }
   }
 
   // ============================================================================

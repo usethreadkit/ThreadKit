@@ -90,6 +90,9 @@ pub struct UserResponse {
     pub avatar_url: Option<String>,
     pub email_verified: bool,
     pub phone_verified: bool,
+    /// Whether the user has explicitly chosen their username.
+    /// If false, the user should be prompted to set their username.
+    pub username_set: bool,
 }
 
 impl From<User> for UserResponse {
@@ -102,6 +105,7 @@ impl From<User> for UserResponse {
             avatar_url: u.avatar_url,
             email_verified: u.email_verified,
             phone_verified: u.phone_verified,
+            username_set: u.username_set,
         }
     }
 }
@@ -457,6 +461,10 @@ pub async fn verify_otp(
         // Create new user - require name for new accounts
         let name = req.name.ok_or((StatusCode::BAD_REQUEST, "Name required for new accounts".into()))?;
 
+        // Validate username format
+        threadkit_common::validate_username(&name)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
         if !state.redis.is_username_available(&name, None).await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))? {
             return Err((StatusCode::CONFLICT, "Username already taken".into()));
@@ -485,6 +493,7 @@ pub async fn verify_otp(
             global_banned: false,
             shadow_banned: false,
             created_at: now,
+            username_set: true, // User explicitly chose this username
         };
 
         state.redis.set_user(&user).await
@@ -623,6 +632,10 @@ pub async fn register(
         return Err((StatusCode::BAD_REQUEST, "Email or phone required".into()));
     }
 
+    // Validate username format
+    threadkit_common::validate_username(&req.name)
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
     if !state.redis.is_username_available(&req.name, None).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))? {
         return Err((StatusCode::CONFLICT, "Username already taken".into()));
@@ -666,6 +679,7 @@ pub async fn register(
         global_banned: false,
         shadow_banned: false,
         created_at: now,
+        username_set: true, // User explicitly chose this username in registration
     };
 
     state.redis.set_user(&user).await
@@ -1330,9 +1344,17 @@ async fn oauth_callback_inner(
         let user_id = Uuid::now_v7();
         let now = Utc::now();
 
+        // Normalize the name from OAuth provider for initial username suggestion
+        let normalized_name = threadkit_common::normalize_username(&name);
+        let display_name = if normalized_name.is_empty() {
+            format!("user-{}", &user_id.to_string()[..8])
+        } else {
+            normalized_name
+        };
+
         let user = User {
             id: user_id,
-            name,
+            name: display_name.clone(),
             email: email.clone(),
             phone: None,
             avatar_url,
@@ -1344,6 +1366,7 @@ async fn oauth_callback_inner(
             global_banned: false,
             shadow_banned: false,
             created_at: now,
+            username_set: false, // New users must confirm their username
         };
 
         state.redis.set_user(&user).await
@@ -1352,7 +1375,7 @@ async fn oauth_callback_inner(
         let final_name = if state.redis.is_username_available(&user.name, None).await.unwrap_or(false) {
             user.name.clone()
         } else {
-            format!("{}_{}", user.name, &user_id.to_string()[..8])
+            format!("{}-{}", user.name, &user_id.to_string()[..8])
         };
         state.redis.set_user_username_index(&final_name, user_id).await
             .map_err(|e| e.to_string())?;
@@ -1364,7 +1387,16 @@ async fn oauth_callback_inner(
             let _ = state.redis.set_user_email_index(email, user_id).await;
         }
 
-        user
+        // Update user with final name if it changed
+        if final_name != user.name {
+            let mut updated_user = user.clone();
+            updated_user.name = final_name;
+            state.redis.set_user(&updated_user).await
+                .map_err(|e| e.to_string())?;
+            updated_user
+        } else {
+            user
+        }
     };
 
     let session_id = Uuid::now_v7();
@@ -1669,7 +1701,7 @@ async fn get_or_create_web3_user(
     let user_id = Uuid::now_v7();
     let now = Utc::now();
 
-    // Generate display name from address
+    // Generate display name from address (e.g. "0x1234...5678")
     let display_name = web3::truncate_address(address, 6, 4);
 
     let user = User {
@@ -1686,6 +1718,7 @@ async fn get_or_create_web3_user(
         global_banned: false,
         shadow_banned: false,
         created_at: now,
+        username_set: false, // Web3 users need to choose a proper username
     };
 
     state

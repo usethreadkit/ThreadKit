@@ -109,6 +109,9 @@ export interface TranslationStrings {
   usernameTaken: string;
   usernameAvailable: string;
   checking: string;
+  chooseUsername: string;
+  usernamePlaceholder: string;
+  usernameHint: string;
 
   // Auth - general
   signInToPost: string;

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
 import { useTranslation } from '../i18n';
+import { normalizeUsername, validateUsername, MAX_USERNAME_LENGTH } from '@threadkit/core';
 
 interface SignInPromptProps {
   apiUrl: string;
@@ -11,16 +12,25 @@ interface SignInPromptProps {
 
 export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps) {
   const t = useTranslation();
-  const { state, login, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
+  const { state, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, plugins } = useAuth();
   const placeholderText = placeholder ?? t('writeComment');
   const [text, setText] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
   const [showAuthMethods, setShowAuthMethods] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const oauthWindowRef = useRef<Window | null>(null);
   const hasInitialized = useRef(false);
+  const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepRef = useRef(state.step);
+  stepRef.current = state.step; // Keep ref in sync with state
+  const hasShownUsernameSuggestion = useRef(false);
 
   // Fetch auth methods when user clicks sign in
   const handleSignInClick = useCallback(() => {
@@ -31,9 +41,9 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     }
   }, [state.step, login]);
 
-  // Focus input when step changes to OTP input
+  // Focus input when step changes to OTP input or username-required
   useEffect(() => {
-    if (state.step === 'otp-input' || state.step === 'otp-verify' || state.step === 'otp-name') {
+    if (state.step === 'otp-input' || state.step === 'otp-verify' || state.step === 'otp-name' || state.step === 'username-required') {
       inputRef.current?.focus();
     }
   }, [state.step]);
@@ -65,7 +75,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
             if (oauthWindowRef.current?.closed) {
               clearInterval(pollTimer);
               // Reset to method selection if popup closed without auth completing
-              if (state.step === 'oauth-pending') {
+              if (stepRef.current === 'oauth-pending') {
                 handleBack();
               }
             }
@@ -77,7 +87,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       }
       selectMethod(method);
     },
-    [apiUrl, selectMethod, state.step, handleBack]
+    [apiUrl, apiKey, selectMethod, handleBack]
   );
 
   const handleOtpSubmit = useCallback(
@@ -108,6 +118,117 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       }
     },
     [name, otpCode, verifyOtp]
+  );
+
+  // Check username availability with debouncing
+  const checkUsernameAvailability = useCallback(async (value: string) => {
+    // First validate format
+    const validationError = validateUsername(value);
+    if (validationError) {
+      setUsernameError(validationError);
+      setIsUsernameAvailable(null);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const headers: Record<string, string> = {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      };
+      // Include auth token so server can exclude current user from check
+      if (state.token) {
+        headers['Authorization'] = `Bearer ${state.token}`;
+      }
+      const res = await fetch(`${apiUrl}/users/check-username`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ username: value }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.error) {
+          setUsernameError(data.error);
+          setIsUsernameAvailable(false);
+        } else {
+          setUsernameError(null);
+          setIsUsernameAvailable(data.available);
+        }
+      }
+    } catch {
+      // Ignore errors, user can still try to submit
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  }, [apiUrl, apiKey, state.token]);
+
+  // Initialize username from user's email or name when username-required step is shown (only once)
+  useEffect(() => {
+    if (state.step === 'username-required' && !hasShownUsernameSuggestion.current) {
+      hasShownUsernameSuggestion.current = true;
+      let suggestion = '';
+
+      // For email users, use the part before @ as the suggestion
+      const email = state.user?.email || state.otpTarget;
+      if (email && email.includes('@')) {
+        const emailPrefix = email.split('@')[0];
+        suggestion = normalizeUsername(emailPrefix);
+      }
+
+      // Fall back to user's name if no email or email prefix is too short
+      if (suggestion.length < 2 && state.user?.name) {
+        suggestion = normalizeUsername(state.user.name);
+      }
+
+      if (suggestion) {
+        setUsername(suggestion);
+        // Immediately check availability of the suggested username
+        if (suggestion.length >= 2) {
+          checkUsernameAvailability(suggestion);
+        }
+      }
+    }
+  }, [state.step, state.user?.name, state.user?.email, state.otpTarget, checkUsernameAvailability]);
+
+  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // Normalize on input: lowercase, replace spaces with hyphens, remove invalid chars
+    value = value.toLowerCase();
+    value = value.replace(/\s+/g, '-'); // Replace spaces with hyphens
+    value = value.replace(/[^a-z0-9\-_]/g, ''); // Remove invalid characters
+    value = value.slice(0, MAX_USERNAME_LENGTH); // Enforce max length
+
+    setUsername(value);
+    setUsernameError(null);
+    setIsUsernameAvailable(null);
+
+    // Debounce the availability check
+    if (usernameCheckTimeout.current) {
+      clearTimeout(usernameCheckTimeout.current);
+    }
+
+    if (value.length >= 2) {
+      usernameCheckTimeout.current = setTimeout(() => {
+        checkUsernameAvailability(value);
+      }, 300);
+    }
+  }, [checkUsernameAvailability]);
+
+  const handleUsernameSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (username.trim() && isUsernameAvailable && !usernameError && !isSubmittingUsername) {
+        setIsSubmittingUsername(true);
+        try {
+          await updateUsername(username.trim());
+        } finally {
+          setIsSubmittingUsername(false);
+        }
+      }
+    },
+    [username, isUsernameAvailable, usernameError, isSubmittingUsername, updateUsername]
   );
 
   const getMethodIcon = (method: AuthMethod) => {
@@ -187,7 +308,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     );
   }
 
-  // Name input for new accounts
+  // Name input for new OTP accounts
   if (state.step === 'otp-name') {
     return (
       <div className="threadkit-form">
@@ -210,6 +331,60 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
             {t('continue')}
           </button>
         </form>
+        {state.error && <p className="threadkit-signin-error">{state.error}</p>}
+      </div>
+    );
+  }
+
+  // Username selection for new users (after OAuth/OTP login)
+  // Show textarea with inline username input where the reply button would be
+  if (state.step === 'username-required') {
+    const canSubmit = username.trim().length >= 2 && isUsernameAvailable === true && !usernameError;
+    return (
+      <div className="threadkit-form">
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          rows={3}
+        />
+
+        <div className="threadkit-form-actions">
+          <form onSubmit={handleUsernameSubmit} className="threadkit-username-inline-form">
+            <span className="threadkit-username-inline-label">{t('chooseUsername')}:</span>
+            <div className="threadkit-username-inline-input-wrapper">
+              <input
+                ref={inputRef}
+                type="text"
+                className="threadkit-username-inline-input"
+                placeholder={t('usernamePlaceholder')}
+                value={username}
+                onChange={handleUsernameChange}
+                autoComplete="username"
+                maxLength={MAX_USERNAME_LENGTH}
+              />
+              {isCheckingUsername && (
+                <span className="threadkit-username-status threadkit-username-checking">{t('checking')}</span>
+              )}
+              {!isCheckingUsername && isUsernameAvailable === true && !usernameError && (
+                <span className="threadkit-username-status threadkit-username-available">✓</span>
+              )}
+              {!isCheckingUsername && (isUsernameAvailable === false || usernameError) && (
+                <span className="threadkit-username-status threadkit-username-taken">
+                  {usernameError || t('usernameTaken')}
+                </span>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={!canSubmit || isSubmittingUsername}
+            >
+              {isSubmittingUsername ? t('loading') : t('save')}
+            </button>
+          </form>
+        </div>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
       </div>
     );

@@ -11,7 +11,7 @@ use uuid::Uuid;
 use threadkit_common::types::{DeletedAccountStats, Notification, TreeComment, UserPublic};
 
 use crate::{
-    extractors::{ApiKey, AuthUser},
+    extractors::{ApiKey, AuthUser, MaybeAuthUser},
     state::AppState,
 };
 
@@ -52,6 +52,8 @@ pub struct MeResponse {
     pub karma: i64,
     /// Number of unread notifications
     pub unread_notifications: i64,
+    /// Whether the user has explicitly chosen their username
+    pub username_set: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -81,6 +83,9 @@ pub struct CheckUsernameRequest {
 pub struct CheckUsernameResponse {
     /// Whether the username is available
     pub available: bool,
+    /// Validation error if username format is invalid
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -157,6 +162,7 @@ pub async fn get_me(
         phone_verified: user.phone_verified,
         karma: user.karma,
         unread_notifications: unread,
+        username_set: user.username_set,
     }))
 }
 
@@ -187,6 +193,10 @@ pub async fn update_me(
         .ok_or((StatusCode::NOT_FOUND, "User not found".into()))?;
 
     if let Some(ref name) = req.name {
+        // Validate username format
+        threadkit_common::validate_username(name)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
         // Check if new username is available (excluding current user)
         if !state
             .redis
@@ -207,6 +217,7 @@ pub async fn update_me(
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         user.name = name.clone();
+        user.username_set = true; // User has explicitly set their username
     }
 
     if let Some(avatar_url) = req.avatar_url {
@@ -235,6 +246,7 @@ pub async fn update_me(
         phone_verified: user.phone_verified,
         karma: user.karma,
         unread_notifications: unread,
+        username_set: user.username_set,
     }))
 }
 
@@ -279,15 +291,28 @@ pub async fn get_user(
 )]
 pub async fn check_username(
     State(state): State<AppState>,
+    _api_key: ApiKey,
+    MaybeAuthUser(auth): MaybeAuthUser,
     Json(req): Json<CheckUsernameRequest>,
 ) -> Result<Json<CheckUsernameResponse>, (StatusCode, String)> {
+    // First validate the username format
+    if let Err(validation_error) = threadkit_common::validate_username(&req.username) {
+        return Ok(Json(CheckUsernameResponse {
+            available: false,
+            error: Some(validation_error.to_string()),
+        }));
+    }
+
+    // Exclude current user from check (so they can keep their own username)
+    let exclude_user_id = auth.map(|a| a.user_id);
+
     let available = state
         .redis
-        .is_username_available(&req.username, None)
+        .is_username_available(&req.username, exclude_user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(CheckUsernameResponse { available }))
+    Ok(Json(CheckUsernameResponse { available, error: None }))
 }
 
 /// Get user notifications

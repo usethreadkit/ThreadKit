@@ -117,6 +117,10 @@ export {
   formatTime,
   formatDate,
   escapeHtml,
+  normalizeUsername,
+  validateUsername,
+  MAX_USERNAME_LENGTH,
+  MIN_USERNAME_LENGTH,
 } from './utils/format';
 
 // Internationalization (i18n)

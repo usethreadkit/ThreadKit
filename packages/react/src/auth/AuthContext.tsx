@@ -146,6 +146,10 @@ export function AuthProvider({
     manager.handlePluginCancel();
   }, [manager]);
 
+  const updateUsername = useCallback(async (username: string) => {
+    await manager.updateUsername(username);
+  }, [manager]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       state,
@@ -155,9 +159,10 @@ export function AuthProvider({
       setOtpTarget,
       verifyOtp,
       registerPlugin,
+      updateUsername,
       plugins,
     }),
-    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, registerPlugin, plugins]
+    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, registerPlugin, updateUsername, plugins]
   );
 
   return (

@@ -270,6 +270,7 @@ pub struct AuthUserWithRole {
     pub user_id: Uuid,
     pub site_id: Uuid,
     pub role: Role,
+    pub username_set: bool,
 }
 
 impl AuthUserWithRole {
@@ -286,6 +287,14 @@ impl AuthUserWithRole {
             Ok(())
         } else {
             Err((StatusCode::FORBIDDEN, "Admin access required".to_string()))
+        }
+    }
+
+    pub fn require_username_set(&self) -> Result<(), (StatusCode, String)> {
+        if self.username_set {
+            Ok(())
+        } else {
+            Err((StatusCode::FORBIDDEN, "Username must be set before performing this action".to_string()))
         }
     }
 }
@@ -311,10 +320,20 @@ where
             return Err((StatusCode::FORBIDDEN, "User is blocked".to_string()));
         }
 
+        // Get username_set from user record
+        let username_set = app_state
+            .redis
+            .get_user(auth_user.user_id)
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get user".to_string()))?
+            .map(|u| u.username_set)
+            .unwrap_or(true); // Default to true for backwards compatibility
+
         Ok(AuthUserWithRole {
             user_id: auth_user.user_id,
             site_id: auth_user.site_id,
             role,
+            username_set,
         })
     }
 }
@@ -324,11 +343,24 @@ pub struct MaybeAuthUserWithRole {
     pub user_id: Option<Uuid>,
     pub site_id: Option<Uuid>,
     pub role: Role,
+    pub username_set: bool,
 }
 
 impl MaybeAuthUserWithRole {
     pub fn is_authenticated(&self) -> bool {
         self.user_id.is_some()
+    }
+
+    pub fn require_username_set(&self) -> Result<(), (StatusCode, String)> {
+        // Anonymous users don't need username set
+        if !self.is_authenticated() {
+            return Ok(());
+        }
+        if self.username_set {
+            Ok(())
+        } else {
+            Err((StatusCode::FORBIDDEN, "Username must be set before performing this action".to_string()))
+        }
     }
 }
 
@@ -345,11 +377,13 @@ where
                 user_id: Some(auth.user_id),
                 site_id: Some(auth.site_id),
                 role: auth.role,
+                username_set: auth.username_set,
             }),
             Err(_) => Ok(MaybeAuthUserWithRole {
                 user_id: None,
                 site_id: None,
                 role: Role::User, // Anonymous users have basic user role
+                username_set: true, // Anonymous users don't need username
             }),
         }
     }

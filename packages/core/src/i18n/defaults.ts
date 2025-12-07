@@ -110,6 +110,9 @@ export const defaultTranslations: TranslationStrings = {
   usernameTaken: 'Taken',
   usernameAvailable: 'Available',
   checking: '...',
+  chooseUsername: 'Choose a username',
+  usernamePlaceholder: 'your-username',
+  usernameHint: 'Letters, numbers, hyphens, underscores only (2-24 chars)',
 
   // Auth - general
   signInToPost: 'Sign in to post',

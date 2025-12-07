@@ -85,11 +85,11 @@
   const isCollapsed = $derived(localCollapsed !== null ? localCollapsed : collapsed);
   const currentEditText = $derived(localEditText !== null ? localEditText : editText);
 
-  const upvotes = $derived(comment.upvotes.length);
-  const downvotes = $derived(comment.downvotes.length);
+  const upvotes = $derived(comment.upvotes);
+  const downvotes = $derived(comment.downvotes);
   const score = $derived(upvotes - downvotes);
-  const hasUpvoted = $derived(currentUser && comment.upvotes.includes(currentUser.id));
-  const hasDownvoted = $derived(currentUser && comment.downvotes.includes(currentUser.id));
+  const hasUpvoted = $derived(currentUser && comment.userVote === 'up');
+  const hasDownvoted = $derived(currentUser && comment.userVote === 'down');
   const isModOrAdmin = $derived(currentUser?.isModerator || currentUser?.isAdmin);
   const isOwnComment = $derived(currentUser && comment.userId === currentUser.id);
 

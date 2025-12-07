@@ -9,7 +9,8 @@ type Theme = 'light' | 'dark';
 // Configuration for local development
 // Make sure your server is running at localhost:8080
 // Set these values to match your server/.env file
-const LOCAL_API_KEY = 'tk_pub_o7ho3wt97dv7aat5jnou5yh3pml0i16p';
+const LOCAL_API_KEY = 'tk_pub_ehz9km0uaflkemuokmevz639try3a8w8';
+const SITE_ID = '019af799-195f-7b61-954b-b998f9a29877';
 const API_URL = 'http://localhost:8080/v1';
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
               Start Redis: <code>redis-server</code>
             </li>
             <li>
-              Start the server: <code>cd server && cargo run</code>
+              Start the server: <code>cd server && cargo run --release --bin threadkit-http</code>
             </li>
             <li>
               Update <code>LOCAL_API_KEY</code> in this file to match your{' '}
@@ -110,6 +111,21 @@ function App() {
       </main>
 
       <footer style={{ marginTop: 32, color: '#666', fontSize: 14 }}>
+        <div style={{
+          background: '#f5f5f5',
+          borderRadius: 8,
+          padding: 16,
+          marginBottom: 16,
+          fontFamily: 'monospace',
+          fontSize: 12,
+        }}>
+          <div style={{ marginBottom: 8 }}>
+            <strong>Debug Info:</strong>
+          </div>
+          <div>Site ID: <code>{SITE_ID}</code></div>
+          <div>Page URL: <code>{pageUrl}</code></div>
+          <div>API Key: <code>{LOCAL_API_KEY}</code></div>
+        </div>
         <p>
           API Endpoint: <code>{API_URL}</code>
         </p>

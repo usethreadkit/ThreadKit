@@ -22,6 +22,14 @@ pub struct User {
     pub global_banned: bool,
     pub shadow_banned: bool,
     pub created_at: DateTime<Utc>,
+    /// Whether the user has explicitly chosen their username.
+    /// False for OAuth users who were assigned a name from their provider.
+    #[serde(default = "default_username_set")]
+    pub username_set: bool,
+}
+
+fn default_username_set() -> bool {
+    true // Default to true for backwards compatibility with existing users
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

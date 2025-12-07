@@ -239,6 +239,12 @@ export interface CommentFormProps {
 export interface CommentProps {
   comment: Comment;
   currentUser?: User;
+  /** Whether the user needs to set their username before posting */
+  needsUsername?: boolean;
+  /** API URL for SignInPrompt (required if needsUsername can be true) */
+  apiUrl?: string;
+  /** API Key for SignInPrompt (required if needsUsername can be true) */
+  apiKey?: string;
   depth?: number;
   maxDepth?: number;
   collapsed?: boolean;

@@ -8,6 +8,8 @@ import { useTranslation } from '../i18n';
 interface CommentsViewProps {
   comments: CommentType[];
   currentUser?: User;
+  /** Whether the user needs to set their username before posting */
+  needsUsername?: boolean;
   maxDepth?: number;
   allowVoting?: boolean;
   sortBy?: SortBy;
@@ -43,6 +45,7 @@ const SORT_OPTIONS: { value: SortBy; key: SortOptionKey }[] = [
 export function CommentsView({
   comments,
   currentUser,
+  needsUsername = false,
   maxDepth = 5,
   allowVoting = true,
   sortBy = 'votes',
@@ -95,7 +98,7 @@ export function CommentsView({
         {toolbarEnd}
       </div>
       <div className="threadkit-comments-header">
-        {currentUser ? (
+        {currentUser && !needsUsername ? (
           <CommentForm
             placeholder={t('writeComment')}
             onSubmit={onPost}
@@ -116,6 +119,9 @@ export function CommentsView({
               key={comment.id}
               comment={comment}
               currentUser={currentUser}
+              needsUsername={needsUsername}
+              apiUrl={apiUrl}
+              apiKey={apiKey}
               maxDepth={maxDepth}
               index={index}
               totalSiblings={comments.length}

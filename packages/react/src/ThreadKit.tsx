@@ -91,7 +91,7 @@ function ThreadKitInner({
   onSignIn: _onSignIn,
   innerRef,
 }: ThreadKitInnerProps) {
-  const { state: authState, login, registerPlugin } = useAuth();
+  const { state: authState, login, logout, registerPlugin } = useAuth();
   const t = useTranslation();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -445,8 +445,8 @@ function ThreadKitInner({
   }, [login]);
 
   const handleLogout = useCallback(() => {
-    // Logout is handled by auth context
-  }, []);
+    logout();
+  }, [logout]);
 
   const handleUpdateAvatar = useCallback(async (avatar: string) => {
     // TODO: Implement avatar update via API
@@ -611,6 +611,7 @@ function ThreadKitInner({
         <ChatView
           comments={comments}
           currentUser={currentUser}
+          needsUsername={authState.step === 'username-required' || authState.user?.username_set === false}
           showLastN={showLastN}
           autoScroll={autoScroll}
           showPresence={showPresence}
@@ -630,6 +631,7 @@ function ThreadKitInner({
         <CommentsView
           comments={comments}
           currentUser={currentUser}
+          needsUsername={authState.step === 'username-required' || authState.user?.username_set === false}
           maxDepth={maxDepth}
           allowVoting={allowVoting}
           sortBy={currentSort}
