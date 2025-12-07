@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
 
     // Start the pub/sub subscriber
     let pubsub_subscriber = PubSubSubscriber::new(
-        state.redis.clone(),
+        config.redis_url.clone(),
         state.page_channels.clone(),
     );
     let _pubsub_handle = pubsub_subscriber.start();

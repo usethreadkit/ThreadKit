@@ -154,6 +154,18 @@ enum Commands {
         /// Test duration in seconds
         #[arg(short, long, default_value = "30")]
         duration: u64,
+
+        /// Path to users.json file from setup (optional, for authenticated connections)
+        #[arg(long)]
+        users_file: Option<String>,
+
+        /// Enable typing indicator simulation
+        #[arg(long)]
+        typing: bool,
+
+        /// Typing interval in milliseconds (how often each client sends typing)
+        #[arg(long, default_value = "1000")]
+        typing_interval: u64,
     },
 
     /// Build a thread: N users each post M comments, randomly replying or starting new threads
@@ -366,8 +378,11 @@ async fn main() -> Result<()> {
             api_key,
             connections,
             duration,
+            users_file,
+            typing,
+            typing_interval,
         } => {
-            run_ws_test(&url, &api_key, connections, duration).await?;
+            run_ws_test(&url, &api_key, connections, duration, users_file.as_deref(), typing, typing_interval).await?;
         }
         Commands::Thread {
             url,
@@ -1010,77 +1025,261 @@ async fn run_mixed_test(
 // WebSocket Test
 // ============================================================================
 
+/// WebSocket-specific stats
+struct WsStats {
+    connections_attempted: AtomicU64,
+    connections_successful: AtomicU64,
+    connections_failed: AtomicU64,
+    messages_sent: AtomicU64,
+    messages_received: AtomicU64,
+    pings_sent: AtomicU64,
+    pongs_received: AtomicU64,
+    typing_sent: AtomicU64,
+    subscribes_sent: AtomicU64,
+    errors_received: AtomicU64,
+}
+
+impl Default for WsStats {
+    fn default() -> Self {
+        Self {
+            connections_attempted: AtomicU64::new(0),
+            connections_successful: AtomicU64::new(0),
+            connections_failed: AtomicU64::new(0),
+            messages_sent: AtomicU64::new(0),
+            messages_received: AtomicU64::new(0),
+            pings_sent: AtomicU64::new(0),
+            pongs_received: AtomicU64::new(0),
+            typing_sent: AtomicU64::new(0),
+            subscribes_sent: AtomicU64::new(0),
+            errors_received: AtomicU64::new(0),
+        }
+    }
+}
+
 async fn run_ws_test(
     url: &str,
     api_key: &str,
     connections: usize,
     duration: u64,
+    users_file: Option<&str>,
+    typing_enabled: bool,
+    typing_interval_ms: u64,
 ) -> Result<()> {
-    tracing::info!("Starting WebSocket load test");
+    tracing::info!("Starting WebSocket load test (JSON-RPC 2.0)");
     tracing::info!("  URL: {}", url);
     tracing::info!("  Connections: {}", connections);
     tracing::info!("  Duration: {}s", duration);
+    tracing::info!("  Typing enabled: {}", typing_enabled);
+    if typing_enabled {
+        tracing::info!("  Typing interval: {}ms", typing_interval_ms);
+    }
 
-    let stats = Arc::new(Stats::default());
+    // Load users if provided (for authenticated connections)
+    let users: Option<Arc<Vec<TestUser>>> = if let Some(path) = users_file {
+        let data = std::fs::read_to_string(path).ok();
+        data.and_then(|d| serde_json::from_str::<SetupData>(&d).ok())
+            .filter(|s| !s.users.is_empty())
+            .map(|s| {
+                tracing::info!("  Using {} users from setup data", s.users.len());
+                Arc::new(s.users)
+            })
+    } else {
+        None
+    };
+
+    // Load pages from setup data if available
+    let pages: Vec<String> = if let Some(path) = users_file {
+        std::fs::read_to_string(path)
+            .ok()
+            .and_then(|d| serde_json::from_str::<SetupData>(&d).ok())
+            .map(|s| s.pages)
+            .unwrap_or_else(|| {
+                (0..10)
+                    .map(|i| format!("https://loadtest.example.com/page/{}", i))
+                    .collect()
+            })
+    } else {
+        (0..10)
+            .map(|i| format!("https://loadtest.example.com/page/{}", i))
+            .collect()
+    };
+    let pages = Arc::new(pages);
+
+    let stats = Arc::new(WsStats::default());
     let start = Instant::now();
     let duration = Duration::from_secs(duration);
+    let typing_interval = Duration::from_millis(typing_interval_ms);
 
     let mut handles = Vec::new();
 
     for i in 0..connections {
         let stats = stats.clone();
-        let url = format!("{}?api_key={}", url, api_key);
-        let page_id = format!("loadtest-page-{}", i % 10);
+        let users = users.clone();
+        let pages = pages.clone();
+
+        // Build connection URL with API key and optional token
+        let token = users.as_ref().map(|u| u[i % u.len()].token.clone());
+        let ws_url = if let Some(ref t) = token {
+            format!("{}/ws?api_key={}&token={}", url, api_key, t)
+        } else {
+            format!("{}/ws?api_key={}", url, api_key)
+        };
 
         handles.push(tokio::spawn(async move {
             use futures_util::{SinkExt, StreamExt};
             use tokio_tungstenite::connect_async;
 
-            let connect_result = connect_async(&url).await;
+            stats.connections_attempted.fetch_add(1, Ordering::Relaxed);
+
+            let connect_result = connect_async(&ws_url).await;
             let (mut ws, _) = match connect_result {
                 Ok(conn) => conn,
                 Err(e) => {
                     tracing::debug!("Connection {} failed: {}", i, e);
-                    stats.failures.fetch_add(1, Ordering::Relaxed);
+                    stats.connections_failed.fetch_add(1, Ordering::Relaxed);
                     return;
                 }
             };
 
-            stats.successes.fetch_add(1, Ordering::Relaxed);
+            stats.connections_successful.fetch_add(1, Ordering::Relaxed);
 
-            // Subscribe to a page
+            // Pick a random page to subscribe to
+            let page_id = Uuid::new_v4(); // Use real page ID from hashing would be better
+            let page_url = &pages[i % pages.len()];
+            let _ = page_url; // We'd compute page_id from hash(site_id, page_url) in real usage
+
+            // Subscribe to a page (JSON-RPC 2.0 format)
             let subscribe_msg = serde_json::json!({
-                "type": "subscribe",
-                "page_id": page_id
+                "jsonrpc": "2.0",
+                "method": "subscribe",
+                "params": {
+                    "page_id": page_id.to_string()
+                }
             });
-            let _ = ws
-                .send(tokio_tungstenite::tungstenite::Message::Text(
-                    subscribe_msg.to_string().into(),
-                ))
-                .await;
+            if ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                subscribe_msg.to_string().into(),
+            )).await.is_ok() {
+                stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                stats.subscribes_sent.fetch_add(1, Ordering::Relaxed);
+            }
 
-            // Keep connection alive, occasionally send pings
-            let mut interval = tokio::time::interval(Duration::from_secs(5));
+            // Set up intervals
+            let mut ping_interval = tokio::time::interval(Duration::from_secs(30));
+            let mut typing_timer = if typing_enabled {
+                Some(tokio::time::interval(typing_interval))
+            } else {
+                None
+            };
+
+            let mut rng = StdRng::from_entropy();
 
             while start.elapsed() < duration {
                 tokio::select! {
-                    _ = interval.tick() => {
-                        let ping_msg = serde_json::json!({ "type": "ping" });
-                        stats.requests.fetch_add(1, Ordering::Relaxed);
+                    // Ping every 30s
+                    _ = ping_interval.tick() => {
+                        let ping_msg = serde_json::json!({
+                            "jsonrpc": "2.0",
+                            "method": "ping"
+                        });
                         if ws.send(tokio_tungstenite::tungstenite::Message::Text(
                             ping_msg.to_string().into(),
-                        )).await.is_err() {
+                        )).await.is_ok() {
+                            stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                            stats.pings_sent.fetch_add(1, Ordering::Relaxed);
+                        } else {
                             break;
                         }
                     }
+
+                    // Typing indicator (if enabled)
+                    _ = async {
+                        if let Some(ref mut timer) = typing_timer {
+                            timer.tick().await
+                        } else {
+                            std::future::pending::<tokio::time::Instant>().await
+                        }
+                    } => {
+                        // Randomly decide to reply to something or type at root
+                        let reply_to: Option<Uuid> = if rng.gen_bool(0.3) {
+                            Some(Uuid::new_v4()) // Fake comment ID
+                        } else {
+                            None
+                        };
+
+                        let typing_msg = serde_json::json!({
+                            "jsonrpc": "2.0",
+                            "method": "typing",
+                            "params": {
+                                "page_id": page_id.to_string(),
+                                "reply_to": reply_to.map(|u| u.to_string())
+                            }
+                        });
+                        if ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                            typing_msg.to_string().into(),
+                        )).await.is_ok() {
+                            stats.messages_sent.fetch_add(1, Ordering::Relaxed);
+                            stats.typing_sent.fetch_add(1, Ordering::Relaxed);
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Receive messages
                     msg = ws.next() => {
                         match msg {
-                            Some(Ok(_)) => {}
-                            _ => break,
+                            Some(Ok(tokio_tungstenite::tungstenite::Message::Text(text))) => {
+                                stats.messages_received.fetch_add(1, Ordering::Relaxed);
+
+                                // Parse and track message types
+                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                                    match json.get("method").and_then(|m| m.as_str()) {
+                                        Some("pong") => {
+                                            stats.pongs_received.fetch_add(1, Ordering::Relaxed);
+                                        }
+                                        Some("error") => {
+                                            stats.errors_received.fetch_add(1, Ordering::Relaxed);
+                                            tracing::debug!("Connection {} received error: {}", i, text);
+                                        }
+                                        Some("connected") => {
+                                            // Expected on connection
+                                        }
+                                        Some("presence") => {
+                                            // Expected after subscribe
+                                        }
+                                        Some(other) => {
+                                            tracing::trace!("Connection {} received: {}", i, other);
+                                        }
+                                        None => {}
+                                    }
+                                }
+                            }
+                            Some(Ok(tokio_tungstenite::tungstenite::Message::Ping(data))) => {
+                                let _ = ws.send(tokio_tungstenite::tungstenite::Message::Pong(data)).await;
+                            }
+                            Some(Ok(_)) => {
+                                // Binary, Pong, Close, Frame
+                            }
+                            Some(Err(e)) => {
+                                tracing::debug!("Connection {} error: {}", i, e);
+                                break;
+                            }
+                            None => break,
                         }
                     }
                 }
             }
+
+            // Send unsubscribe before closing
+            let unsubscribe_msg = serde_json::json!({
+                "jsonrpc": "2.0",
+                "method": "unsubscribe",
+                "params": {
+                    "page_id": page_id.to_string()
+                }
+            });
+            let _ = ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                unsubscribe_msg.to_string().into(),
+            )).await;
 
             let _ = ws.close(None).await;
         }));
@@ -1089,16 +1288,26 @@ async fn run_ws_test(
     // Progress reporter
     let stats_clone = stats.clone();
     let progress_handle = tokio::spawn(async move {
+        let mut last_sent = 0u64;
+        let mut last_recv = 0u64;
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let connected = stats_clone.successes.load(Ordering::Relaxed);
-            let failed = stats_clone.failures.load(Ordering::Relaxed);
-            let messages = stats_clone.requests.load(Ordering::Relaxed);
+            let connected = stats_clone.connections_successful.load(Ordering::Relaxed);
+            let failed = stats_clone.connections_failed.load(Ordering::Relaxed);
+            let sent = stats_clone.messages_sent.load(Ordering::Relaxed);
+            let recv = stats_clone.messages_received.load(Ordering::Relaxed);
+            let sent_per_sec = sent - last_sent;
+            let recv_per_sec = recv - last_recv;
+            last_sent = sent;
+            last_recv = recv;
             tracing::info!(
-                "  Connected: {} | Failed: {} | Messages: {}",
+                "  Conn: {}/{} | Sent/s: {} | Recv/s: {} | Total: {}/{}",
                 connected,
-                failed,
-                messages
+                connected + failed,
+                sent_per_sec,
+                recv_per_sec,
+                sent,
+                recv
             );
         }
     });
@@ -1110,21 +1319,39 @@ async fn run_ws_test(
     progress_handle.abort();
 
     // Print results
-    let total_messages = stats.requests.load(Ordering::Relaxed);
-    let connected = stats.successes.load(Ordering::Relaxed);
-    let failed = stats.failures.load(Ordering::Relaxed);
     let elapsed = start.elapsed();
+    let attempted = stats.connections_attempted.load(Ordering::Relaxed);
+    let successful = stats.connections_successful.load(Ordering::Relaxed);
+    let failed = stats.connections_failed.load(Ordering::Relaxed);
+    let sent = stats.messages_sent.load(Ordering::Relaxed);
+    let recv = stats.messages_received.load(Ordering::Relaxed);
+    let pings = stats.pings_sent.load(Ordering::Relaxed);
+    let pongs = stats.pongs_received.load(Ordering::Relaxed);
+    let typing = stats.typing_sent.load(Ordering::Relaxed);
+    let subscribes = stats.subscribes_sent.load(Ordering::Relaxed);
+    let errors = stats.errors_received.load(Ordering::Relaxed);
 
     println!("\n========== WebSocket Results ==========");
     println!("Duration: {:.2}s", elapsed.as_secs_f64());
-    println!("Connections attempted: {}", connections);
-    println!("Connections successful: {}", connected);
-    println!("Connections failed: {}", failed);
-    println!("Total messages sent: {}", total_messages);
-    println!(
-        "Messages/sec: {:.2}",
-        total_messages as f64 / elapsed.as_secs_f64()
-    );
+    println!();
+    println!("Connections:");
+    println!("  Attempted: {}", attempted);
+    println!("  Successful: {}", successful);
+    println!("  Failed: {}", failed);
+    println!("  Success rate: {:.2}%", if attempted > 0 { successful as f64 / attempted as f64 * 100.0 } else { 0.0 });
+    println!();
+    println!("Messages:");
+    println!("  Total sent: {}", sent);
+    println!("  Total received: {}", recv);
+    println!("  Sent/sec: {:.2}", sent as f64 / elapsed.as_secs_f64());
+    println!("  Recv/sec: {:.2}", recv as f64 / elapsed.as_secs_f64());
+    println!();
+    println!("By type:");
+    println!("  Subscribes: {}", subscribes);
+    println!("  Pings sent: {}", pings);
+    println!("  Pongs received: {}", pongs);
+    println!("  Typing sent: {}", typing);
+    println!("  Errors received: {}", errors);
 
     Ok(())
 }

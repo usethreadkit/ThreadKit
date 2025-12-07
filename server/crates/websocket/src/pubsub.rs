@@ -3,12 +3,12 @@
 //! Subscribes to `threadkit:page:*:events` and relays messages to in-memory broadcast channels.
 
 use dashmap::DashMap;
+use fred::prelude::*;
+use fred::types::Message as RedisMessage;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
-
-use threadkit_common::redis::RedisClient;
 
 use crate::messages::ServerMessage;
 
@@ -24,19 +24,20 @@ struct PubSubEvent {
 /// Redis Pub/Sub subscriber
 ///
 /// Subscribes to Redis pub/sub channels and relays events to in-memory broadcast channels.
+/// Uses fred's SubscriberClient for efficient pub/sub handling.
 pub struct PubSubSubscriber {
-    redis: Arc<RedisClient>,
+    redis_url: String,
     page_channels: Arc<DashMap<Uuid, broadcast::Sender<ServerMessage>>>,
 }
 
 impl PubSubSubscriber {
     /// Create a new subscriber
     pub fn new(
-        redis: Arc<RedisClient>,
+        redis_url: String,
         page_channels: Arc<DashMap<Uuid, broadcast::Sender<ServerMessage>>>,
     ) -> Self {
         Self {
-            redis,
+            redis_url,
             page_channels,
         }
     }
@@ -47,58 +48,78 @@ impl PubSubSubscriber {
     /// and relays received messages to the appropriate broadcast channels.
     pub fn start(self) -> JoinHandle<()> {
         tokio::spawn(async move {
-            if let Err(e) = self.run().await {
-                tracing::error!("PubSub subscriber error: {}", e);
+            loop {
+                if let Err(e) = self.run().await {
+                    tracing::error!("PubSub subscriber error: {}, reconnecting in 5s...", e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                }
             }
         })
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        // For now, we use a polling approach since fred's subscriber API
-        // requires a separate subscriber client. In production, you'd want
-        // to use fred's SubscriberClient for proper pub/sub.
-        //
-        // TODO: Implement proper Redis pub/sub using fred's SubscriberClient
-        //
-        // The current implementation relies on the HTTP server and WS server
-        // sharing in-memory broadcast channels when running in the same process,
-        // or using the batcher's publish queue when running separately.
+        // Create a dedicated subscriber client
+        let config = Config::from_url(&self.redis_url)?;
+        let subscriber = Builder::from_config(config).build_subscriber_client()?;
 
-        tracing::info!("PubSub subscriber started (using polling mode)");
+        // Initialize the connection
+        subscriber.init().await?;
+        tracing::info!("PubSub subscriber connected to Redis");
 
-        // Keep the task alive
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+        // Get the message receiver before subscribing
+        let mut message_rx = subscriber.message_rx();
+
+        // Subscribe to all page events using pattern matching
+        // Pattern: threadkit:page:*:events
+        subscriber.psubscribe("threadkit:page:*:events").await?;
+        tracing::info!("Subscribed to pattern: threadkit:page:*:events");
+
+        // Spawn a task to manage re-subscriptions after reconnects
+        subscriber.manage_subscriptions();
+
+        // Process incoming messages
+        while let Ok(message) = message_rx.recv().await {
+            self.handle_message(&message);
         }
-    }
 
-    /// Broadcast a message to a page's subscribers
-    #[allow(dead_code)]
-    fn broadcast(&self, page_id: Uuid, message: ServerMessage) {
-        if let Some(tx) = self.page_channels.get(&page_id) {
-            let _ = tx.send(message);
-        }
+        tracing::warn!("PubSub message receiver closed");
+        Ok(())
     }
 
     /// Handle a received pub/sub message
-    #[allow(dead_code)]
-    fn handle_message(&self, channel: &str, payload: &str) {
+    fn handle_message(&self, message: &RedisMessage) {
+        // Get the channel name (for pattern subscriptions, this is the actual channel that matched)
+        let channel = message.channel.to_string();
+
         // Parse channel to extract page_id: "threadkit:page:{page_id}:events"
         let parts: Vec<&str> = channel.split(':').collect();
         if parts.len() != 4 || parts[0] != "threadkit" || parts[1] != "page" || parts[3] != "events" {
+            tracing::debug!("Ignoring message from unexpected channel: {}", channel);
             return;
         }
 
         let page_id = match parts[2].parse::<Uuid>() {
             Ok(id) => id,
-            Err(_) => return,
+            Err(_) => {
+                tracing::debug!("Failed to parse page_id from channel: {}", channel);
+                return;
+            }
+        };
+
+        // Get the message payload - convert Value to string
+        let payload: String = match message.value.clone().convert() {
+            Ok(s) => s,
+            Err(_) => {
+                tracing::debug!("Message value is not a string");
+                return;
+            }
         };
 
         // Parse event payload
-        let event: PubSubEvent = match serde_json::from_str(payload) {
+        let event: PubSubEvent = match serde_json::from_str(&payload) {
             Ok(e) => e,
             Err(e) => {
-                tracing::warn!("Failed to parse pub/sub event: {}", e);
+                tracing::warn!("Failed to parse pub/sub event: {} - payload: {}", e, payload);
                 return;
             }
         };
@@ -109,6 +130,7 @@ impl PubSubSubscriber {
                 if let Ok(comment) = serde_json::from_value(event.data.get("comment").cloned().unwrap_or_default()) {
                     Some(ServerMessage::new_comment(page_id, comment))
                 } else {
+                    tracing::debug!("Failed to parse new_comment data");
                     None
                 }
             }
@@ -127,7 +149,10 @@ impl PubSubSubscriber {
                     (Some(cid), Some(c), Some(ch)) => {
                         Some(ServerMessage::edit_comment(page_id, cid, c, ch))
                     }
-                    _ => None,
+                    _ => {
+                        tracing::debug!("Failed to parse edit_comment data");
+                        None
+                    }
                 }
             }
             "delete_comment" => {
@@ -149,7 +174,10 @@ impl PubSubSubscriber {
                     (Some(cid), Some(u), Some(d)) => {
                         Some(ServerMessage::vote_update(page_id, cid, u, d))
                     }
-                    _ => None,
+                    _ => {
+                        tracing::debug!("Failed to parse vote_update data");
+                        None
+                    }
                 }
             }
             _ => {
@@ -160,6 +188,23 @@ impl PubSubSubscriber {
 
         if let Some(msg) = message {
             self.broadcast(page_id, msg);
+        }
+    }
+
+    /// Broadcast a message to a page's subscribers
+    fn broadcast(&self, page_id: Uuid, message: ServerMessage) {
+        if let Some(tx) = self.page_channels.get(&page_id) {
+            match tx.send(message) {
+                Ok(n) => {
+                    tracing::trace!("Broadcast to {} receivers on page {}", n, page_id);
+                }
+                Err(_) => {
+                    // No receivers - channel might be empty, that's ok
+                }
+            }
+        } else {
+            // No channel for this page - no one is subscribed, that's ok
+            tracing::trace!("No broadcast channel for page {}", page_id);
         }
     }
 }
