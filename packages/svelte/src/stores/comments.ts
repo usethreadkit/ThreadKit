@@ -5,13 +5,14 @@ import {
   type SortBy,
   type CommentStoreState,
   type ThreadKitError,
+  type VoteResponse,
 } from '@threadkit/core';
 
 export interface CommentsStoreConfig {
   siteId: string;
   url: string;
   apiUrl: string;
-  apiKey?: string;
+  apiKey: string;
   sortBy?: SortBy;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];
@@ -20,7 +21,7 @@ export interface CommentsStoreConfig {
 export interface CommentsStore extends Readable<CommentStoreState> {
   post: (text: string, parentId?: string) => Promise<Comment>;
   delete: (commentId: string) => Promise<void>;
-  vote: (commentId: string, type: 'up' | 'down') => Promise<void>;
+  vote: (commentId: string, type: 'up' | 'down') => Promise<VoteResponse>;
   refresh: () => Promise<void>;
   setSortBy: (sortBy: SortBy) => void;
   addComment: (comment: Comment) => void;

@@ -3,7 +3,7 @@ export {
   createCommentsStore,
   type CommentsStore,
   type CommentsStoreConfig,
-  type Comment,
+  type Comment as CommentType,
   type SortBy,
   type CommentStoreState,
 } from './stores/comments';

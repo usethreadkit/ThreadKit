@@ -211,11 +211,12 @@
   async function handleVote(commentId: string, voteType: 'up' | 'down') {
     if (!allowVoting) return;
     try {
-      await commentsStore.vote(commentId, voteType);
-      // Optimistic update
+      const result = await commentsStore.vote(commentId, voteType);
+      // Update with server response
       commentsStore.updateComment(commentId, {
-        upvotes: voteType === 'up' && user ? [user.id] : [],
-        downvotes: voteType === 'down' && user ? [user.id] : [],
+        upvotes: result.upvotes,
+        downvotes: result.downvotes,
+        userVote: result.user_vote ?? undefined,
       });
     } catch (e) {
       onError?.(e as Error);
