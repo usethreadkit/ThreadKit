@@ -26,6 +26,7 @@ export function Comment({
   totalSiblings = 1,
   highlightedCommentId,
   collapsedThreads,
+  onPost,
   onReply,
   onVote,
   onDelete,
@@ -58,7 +59,10 @@ export function Comment({
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
   const isOwnComment = currentUser && comment.userId === currentUser.id;
 
-  const handleReply = async () => {
+  const handleReply = async (text: string, parentId?: string) => {
+    if (onPost) {
+      await onPost(text, parentId);
+    }
     onReply?.(comment.id);
     setShowReplyForm(false);
   };
@@ -473,6 +477,7 @@ export function Comment({
                   collapsed={collapsedThreads?.has(child.id)}
                   highlightedCommentId={highlightedCommentId}
                   collapsedThreads={collapsedThreads}
+                  onPost={onPost}
                   onReply={onReply}
                   onVote={onVote}
                   onDelete={onDelete}

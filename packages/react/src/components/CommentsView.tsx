@@ -121,6 +121,7 @@ export function CommentsView({
               totalSiblings={comments.length}
               highlighted={highlightedCommentId === comment.id}
               collapsed={collapsedThreads?.has(comment.id)}
+              onPost={onPost}
               onReply={handleReply}
               onVote={allowVoting ? onVote : undefined}
               onDelete={onDelete}

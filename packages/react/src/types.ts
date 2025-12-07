@@ -248,6 +248,8 @@ export interface CommentProps {
   highlightedCommentId?: string | null;
   /** Set of collapsed thread IDs (for nested collapse state) */
   collapsedThreads?: Set<string>;
+  /** Called to post a reply (text, parentId) */
+  onPost?: (text: string, parentId?: string) => Promise<void>;
   onReply?: (parentId: string) => void;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
   onDelete?: (commentId: string) => void;
