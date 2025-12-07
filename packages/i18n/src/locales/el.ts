@@ -107,7 +107,7 @@ export const el: TranslationStrings = {
   holdForSeconds: 'Κράτα πατημένο για {seconds} δευτερόλεπτα ακόμα...',
 
   // Username
-  usernameTaken: 'Μη διαθέσιμο',
+  usernameTaken: 'Κατειλημμένο',
   usernameAvailable: 'Διαθέσιμο',
   checking: 'Έλεγχος...',
 
@@ -156,7 +156,11 @@ export const el: TranslationStrings = {
   daysAgo: 'πριν {n}μ',
 
   // Notifications
-  markAllRead: 'Σήμανση όλων ως αναγνωσμένα',
+  markAllRead: 'Σήμανση όλων ως αναγνωσμένων',
+
+  // Social Links
+  socialLinks: 'Κοινωνικοί σύνδεσμοι',
+  saveSocialLinks: 'Αποθήκευση κοινωνικών συνδέσμων',
 
   // Errors
   failedToPost: 'Αποτυχία δημοσίευσης σχολίου',

@@ -161,6 +161,10 @@ export const defaultTranslations: TranslationStrings = {
   // Notifications
   markAllRead: 'Mark all read',
 
+  // Social Links
+  socialLinks: 'Social Links',
+  saveSocialLinks: 'Save Social Links',
+
   // Errors
   failedToPost: 'Failed to post comment',
   failedToVote: 'Failed to vote',

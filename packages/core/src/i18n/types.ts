@@ -159,6 +159,9 @@ export interface TranslationStrings {
 
   // Notifications
   markAllRead: string;
+  // Social Links
+  socialLinks: string;
+  saveSocialLinks: string;
 
   // Errors
   failedToPost: string;

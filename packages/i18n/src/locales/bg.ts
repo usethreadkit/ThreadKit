@@ -110,6 +110,9 @@ export const bg: TranslationStrings = {
   usernameTaken: 'Заето',
   usernameAvailable: 'Налично',
   checking: 'Проверка...',
+  chooseUsername: 'Изберете потребителско име',
+  usernamePlaceholder: 'вашето-потребителско-име',
+  usernameHint: 'Само букви, цифри, тирета, долни черти (2-24 знака)',
 
   // Auth - general
   signInToPost: 'Влезте, за да публикувате',
@@ -157,6 +160,10 @@ export const bg: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Маркирай всички като прочетени',
+
+  // Social Links
+  socialLinks: 'Социални връзки',
+  saveSocialLinks: 'Запазване на социалните връзки',
 
   // Errors
   failedToPost: 'Неуспешно публикуване на коментар',

@@ -107,9 +107,12 @@ export const id: TranslationStrings = {
   holdForSeconds: 'Tahan selama {seconds} detik lagi...',
 
   // Username
-  usernameTaken: 'Sudah digunakan',
+  usernameTaken: 'Terpakai',
   usernameAvailable: 'Tersedia',
   checking: 'Memeriksa...',
+  chooseUsername: 'Pilih nama pengguna',
+  usernamePlaceholder: 'nama-pengguna-anda',
+  usernameHint: 'Hanya huruf, angka, tanda hubung, garis bawah (2-24 karakter)',
 
   // Auth - general
   signInToPost: 'Masuk untuk memposting',
@@ -157,6 +160,10 @@ export const id: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Tandai semua sudah dibaca',
+
+  // Social Links
+  socialLinks: 'Tautan sosial',
+  saveSocialLinks: 'Simpan tautan sosial',
 
   // Errors
   failedToPost: 'Gagal memposting komentar',

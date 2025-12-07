@@ -107,7 +107,7 @@ export const my: TranslationStrings = {
   holdForSeconds: '{seconds} စက္ကန့် ဖိထားပါ...',
 
   // Username
-  usernameTaken: 'ယူပြီး',
+  usernameTaken: 'အသုံးပြုပြီး',
   usernameAvailable: 'ရနိုင်သည်',
   checking: 'စစ်ဆေးနေသည်...',
 
@@ -156,7 +156,11 @@ export const my: TranslationStrings = {
   daysAgo: '{n} ရက်က',
 
   // Notifications
-  markAllRead: 'အားလုံးဖတ်ပြီး',
+  markAllRead: 'အားလုံးဖတ်ပြီးအဖြစ်မှတ်သားပါ',
+
+  // Social Links
+  socialLinks: 'လူမှုကွန်ယက်လင့်များ',
+  saveSocialLinks: 'လူမှုကွန်ယက်လင့်များကိုသိမ်းဆည်းပါ',
 
   // Errors
   failedToPost: 'Post တင်မရပါ',

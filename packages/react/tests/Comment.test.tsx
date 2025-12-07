@@ -16,8 +16,8 @@ const mockComment: CommentType = {
   userName: 'TestUser',
   text: 'This is a test comment',
   timestamp: Date.now() - 60000, // 1 minute ago
-  upvotes: ['user-2', 'user-3'],
-  downvotes: ['user-4'],
+  upvotes: 2,
+  downvotes: 1,
   children: [],
   edited: false,
   pinned: false,
@@ -56,17 +56,20 @@ describe('Comment', () => {
     it('displays correct score', () => {
       render(<Comment comment={mockComment} />);
       // 2 upvotes - 1 downvote = 1 point
-      expect(screen.getByText('1 point')).toBeInTheDocument();
+      expect(screen.getByText(/1 point/)).toBeInTheDocument();
     });
 
     it('pluralizes points correctly', () => {
       const multiPointComment = {
         ...mockComment,
-        upvotes: ['user-2', 'user-3', 'user-4'],
-        downvotes: [],
+        upvotes: 3,
+        downvotes: 0,
       };
       render(<Comment comment={multiPointComment} />);
-      expect(screen.getByText('3 points')).toBeInTheDocument();
+      const scoreElement = screen.getByTestId('comment-meta-score');
+      // Use a regular expression to match "3 points" within the text content,
+      // as there might be other text (like timestamp) in the same span.
+      expect(scoreElement).toHaveTextContent(/3 points/);
     });
 
     it('shows edited indicator when comment was edited', () => {
@@ -78,12 +81,12 @@ describe('Comment', () => {
     it('shows pinned indicator when comment is pinned', () => {
       const pinnedComment = { ...mockComment, pinned: true };
       render(<Comment comment={pinnedComment} />);
-      expect(screen.getByText('pinned')).toBeInTheDocument();
+      expect(screen.getByText('Pinned')).toBeInTheDocument();
     });
 
     it('renders share button', () => {
       render(<Comment comment={mockComment} />);
-      expect(screen.getByText('share')).toBeInTheDocument();
+      expect(screen.getByText('Share')).toBeInTheDocument();
     });
   });
 
@@ -91,31 +94,31 @@ describe('Comment', () => {
     it('shows "just now" for very recent comments', () => {
       const recentComment = { ...mockComment, timestamp: Date.now() - 5000 };
       render(<Comment comment={recentComment} />);
-      expect(screen.getByText('just now')).toBeInTheDocument();
+      expect(screen.getByText(/just now/)).toBeInTheDocument();
     });
 
     it('shows minutes ago', () => {
       const minutesAgo = { ...mockComment, timestamp: Date.now() - 5 * 60 * 1000 };
       render(<Comment comment={minutesAgo} />);
-      expect(screen.getByText('5 minutes ago')).toBeInTheDocument();
+      expect(screen.getByText(/5 minutes ago/)).toBeInTheDocument();
     });
 
     it('shows "1 minute ago" singular', () => {
       const oneMinuteAgo = { ...mockComment, timestamp: Date.now() - 60 * 1000 };
       render(<Comment comment={oneMinuteAgo} />);
-      expect(screen.getByText('1 minute ago')).toBeInTheDocument();
+      expect(screen.getByText(/1 minute ago/)).toBeInTheDocument();
     });
 
     it('shows hours ago', () => {
       const hoursAgo = { ...mockComment, timestamp: Date.now() - 3 * 60 * 60 * 1000 };
       render(<Comment comment={hoursAgo} />);
-      expect(screen.getByText('3 hours ago')).toBeInTheDocument();
+      expect(screen.getByText(/3 hours ago/)).toBeInTheDocument();
     });
 
     it('shows days ago', () => {
       const daysAgo = { ...mockComment, timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000 };
       render(<Comment comment={daysAgo} />);
-      expect(screen.getByText('2 days ago')).toBeInTheDocument();
+      expect(screen.getByText(/2 days ago/)).toBeInTheDocument();
     });
   });
 
@@ -149,7 +152,7 @@ describe('Comment', () => {
     it('highlights upvote button when user has upvoted', () => {
       const upvotedComment = {
         ...mockComment,
-        upvotes: ['current-user'],
+        userVote: 'up',
       };
       const currentUser = { id: 'current-user', name: 'Me' };
       render(<Comment comment={upvotedComment} currentUser={currentUser} onVote={vi.fn()} />);
@@ -197,7 +200,7 @@ describe('Comment', () => {
           onEdit={vi.fn()}
         />
       );
-      expect(screen.getByText('edit')).toBeInTheDocument();
+      expect(screen.getByText('Edit')).toBeInTheDocument();
     });
 
     it('shows delete button for own comment', () => {
@@ -208,7 +211,7 @@ describe('Comment', () => {
           onDelete={vi.fn()}
         />
       );
-      expect(screen.getByText('delete')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
     it('shows delete confirmation dialog', () => {
@@ -221,10 +224,10 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('delete'));
-      expect(screen.getByText('delete?')).toBeInTheDocument();
-      expect(screen.getByText('yes')).toBeInTheDocument();
-      expect(screen.getByText('no')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Delete'));
+      expect(screen.getByText('Delete?')).toBeInTheDocument();
+      expect(screen.getByText('Yes')).toBeInTheDocument();
+      expect(screen.getByText('No')).toBeInTheDocument();
     });
 
     it('calls onDelete when confirmed', () => {
@@ -237,8 +240,8 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('delete'));
-      fireEvent.click(screen.getByText('yes'));
+      fireEvent.click(screen.getByText('Delete'));
+      fireEvent.click(screen.getByText('Yes'));
       expect(onDelete).toHaveBeenCalledWith('comment-1');
     });
 
@@ -252,8 +255,8 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('delete'));
-      fireEvent.click(screen.getByText('no'));
+      fireEvent.click(screen.getByText('Delete'));
+      fireEvent.click(screen.getByText('No'));
       expect(onDelete).not.toHaveBeenCalled();
       expect(screen.queryByText('delete?')).not.toBeInTheDocument();
     });
@@ -270,7 +273,7 @@ describe('Comment', () => {
           onBlock={vi.fn()}
         />
       );
-      expect(screen.getByText('block')).toBeInTheDocument();
+      expect(screen.getByText('Block')).toBeInTheDocument();
     });
 
     it('shows report button for other users comments', () => {
@@ -281,7 +284,7 @@ describe('Comment', () => {
           onReport={vi.fn()}
         />
       );
-      expect(screen.getByText('report')).toBeInTheDocument();
+      expect(screen.getByText('Report')).toBeInTheDocument();
     });
 
     it('does not show edit button for other users comments', () => {
@@ -307,7 +310,7 @@ describe('Comment', () => {
           onDelete={vi.fn()}
         />
       );
-      expect(screen.getByText('delete')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
     it('shows ban button for moderator', () => {
@@ -318,7 +321,7 @@ describe('Comment', () => {
           onBan={vi.fn()}
         />
       );
-      expect(screen.getByText('ban')).toBeInTheDocument();
+      expect(screen.getByText('Ban')).toBeInTheDocument();
     });
   });
 
@@ -331,7 +334,7 @@ describe('Comment', () => {
           maxDepth={5}
         />
       );
-      expect(screen.getByText('reply')).toBeInTheDocument();
+      expect(screen.getByText('Reply')).toBeInTheDocument();
     });
 
     it('hides reply button when depth equals maxDepth', () => {
@@ -353,7 +356,7 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('reply'));
+      fireEvent.click(screen.getByText('Reply'));
       expect(screen.getByPlaceholderText('Write a reply...')).toBeInTheDocument();
     });
   });
@@ -368,10 +371,10 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('edit'));
+      fireEvent.click(screen.getByText('Edit'));
       expect(screen.getByDisplayValue('This is a test comment')).toBeInTheDocument();
-      expect(screen.getByText('save')).toBeInTheDocument();
-      expect(screen.getByText('cancel')).toBeInTheDocument();
+      expect(screen.getByText('Save')).toBeInTheDocument();
+      expect(screen.getByText('Cancel')).toBeInTheDocument();
     });
 
     it('calls onEdit with new text when saved', () => {
@@ -384,10 +387,10 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('edit'));
+      fireEvent.click(screen.getByText('Edit'));
       const textarea = screen.getByDisplayValue('This is a test comment');
       fireEvent.change(textarea, { target: { value: 'Updated comment' } });
-      fireEvent.click(screen.getByText('save'));
+      fireEvent.click(screen.getByText('Save'));
 
       expect(onEdit).toHaveBeenCalledWith('comment-1', 'Updated comment');
     });
@@ -402,10 +405,10 @@ describe('Comment', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('edit'));
+      fireEvent.click(screen.getByText('Edit'));
       const textarea = screen.getByDisplayValue('This is a test comment');
       fireEvent.change(textarea, { target: { value: 'Updated comment' } });
-      fireEvent.click(screen.getByText('cancel'));
+      fireEvent.click(screen.getByText('Cancel'));
 
       expect(onEdit).not.toHaveBeenCalled();
       expect(screen.getByText('This is a test comment')).toBeInTheDocument();

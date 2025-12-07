@@ -109,7 +109,7 @@ export const ko: TranslationStrings = {
   // Username
   usernameTaken: '사용 중',
   usernameAvailable: '사용 가능',
-  checking: '...',
+  checking: '확인 중...',
 
   // Auth - general
   signInToPost: '로그인하여 게시',
@@ -157,6 +157,10 @@ export const ko: TranslationStrings = {
 
   // Notifications
   markAllRead: '모두 읽음으로 표시',
+
+  // Social Links
+  socialLinks: '소셜 링크',
+  saveSocialLinks: '소셜 링크 저장',
 
   // Errors
   failedToPost: '댓글 게시 실패',

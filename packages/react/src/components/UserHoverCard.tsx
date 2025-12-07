@@ -121,6 +121,64 @@ export function UserHoverCard({
             </div>
             <div className="threadkit-hover-card-info">
               <div className="threadkit-hover-card-name">{displayProfile.name}</div>
+              {displayProfile.socialLinks && (
+                <div className="threadkit-hover-card-social-links">
+                  {displayProfile.socialLinks.twitter && (
+                    <a href={`https://twitter.com/${displayProfile.socialLinks.twitter}`} target="_blank" rel="noopener noreferrer" title="Twitter">
+                      {/* Replace with actual Twitter SVG icon */}
+                      <span className="threadkit-social-icon">T</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.github && (
+                    <a href={`https://github.com/${displayProfile.socialLinks.github}`} target="_blank" rel="noopener noreferrer" title="GitHub">
+                      {/* Replace with actual GitHub SVG icon */}
+                      <span className="threadkit-social-icon">G</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.facebook && (
+                    <a href={`https://facebook.com/${displayProfile.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" title="Facebook">
+                      {/* Replace with actual Facebook SVG icon */}
+                      <span className="threadkit-social-icon">F</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.whatsapp && (
+                    <a href={`https://wa.me/${displayProfile.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                      {/* Replace with actual WhatsApp SVG icon */}
+                      <span className="threadkit-social-icon">W</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.telegram && (
+                    <a href={`https://t.me/${displayProfile.socialLinks.telegram}`} target="_blank" rel="noopener noreferrer" title="Telegram">
+                      {/* Replace with actual Telegram SVG icon */}
+                      <span className="threadkit-social-icon">Te</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.instagram && (
+                    <a href={`https://instagram.com/${displayProfile.socialLinks.instagram}`} target="_blank" rel="noopener noreferrer" title="Instagram">
+                      {/* Replace with actual Instagram SVG icon */}
+                      <span className="threadkit-social-icon">I</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.tiktok && (
+                    <a href={`https://tiktok.com/@${displayProfile.socialLinks.tiktok}`} target="_blank" rel="noopener noreferrer" title="TikTok">
+                      {/* Replace with actual TikTok SVG icon */}
+                      <span className="threadkit-social-icon">Tk</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.snapchat && (
+                    <a href={`https://snapchat.com/add/${displayProfile.socialLinks.snapchat}`} target="_blank" rel="noopener noreferrer" title="Snapchat">
+                      {/* Replace with actual Snapchat SVG icon */}
+                      <span className="threadkit-social-icon">S</span>
+                    </a>
+                  )}
+                  {displayProfile.socialLinks.discord && (
+                    <a href={`https://discordapp.com/users/${displayProfile.socialLinks.discord}`} target="_blank" rel="noopener noreferrer" title="Discord">
+                      {/* Replace with actual Discord SVG icon */}
+                      <span className="threadkit-social-icon">D</span>
+                    </a>
+                  )}
+                </div>
+              )}
               <div className="threadkit-hover-card-stats">
                 <div className="threadkit-hover-card-stat">
                   <span className="threadkit-hover-card-stat-value">

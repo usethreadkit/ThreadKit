@@ -109,8 +109,7 @@ export const nl: TranslationStrings = {
   // Username
   usernameTaken: 'Bezet',
   usernameAvailable: 'Beschikbaar',
-  checking: '...',
-
+  checking: 'Controleren...',
   // Auth - general
   signInToPost: 'Log in om te plaatsen',
   signInLabel: 'Inloggen:',
@@ -156,7 +155,11 @@ export const nl: TranslationStrings = {
   daysAgo: '{n}d geleden',
 
   // Notifications
-  markAllRead: 'Alles als gelezen markeren',
+  markAllRead: 'Markeer alles als gelezen',
+
+  // Social Links
+  socialLinks: 'Sociale links',
+  saveSocialLinks: 'Sociale links opslaan',
 
   // Errors
   failedToPost: 'Plaatsen van reactie mislukt',

@@ -110,6 +110,9 @@ export const ar: TranslationStrings = {
   usernameTaken: 'مأخوذ',
   usernameAvailable: 'متاح',
   checking: 'جار التحقق...',
+  chooseUsername: 'اختر اسم مستخدم',
+  usernamePlaceholder: 'اسم المستخدم الخاص بك',
+  usernameHint: 'الأحرف والأرقام والواصلات والشرطات السفلية فقط (2-24 حرفًا)',
 
   // Auth - general
   signInToPost: 'سجل الدخول للنشر',
@@ -156,7 +159,11 @@ export const ar: TranslationStrings = {
   daysAgo: 'منذ {n} يوم',
 
   // Notifications
-  markAllRead: 'تحديد الكل كمقروء',
+  markAllRead: 'وضع الكل كمقروء',
+
+  // Social Links
+  socialLinks: 'روابط التواصل الاجتماعي',
+  saveSocialLinks: 'حفظ روابط التواصل الاجتماعي',
 
   // Errors
   failedToPost: 'فشل نشر التعليق',

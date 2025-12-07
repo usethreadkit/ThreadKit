@@ -108,7 +108,7 @@ export const da: TranslationStrings = {
 
   // Username
   usernameTaken: 'Optaget',
-  usernameAvailable: 'Ledig',
+  usernameAvailable: 'Tilgængelig',
   checking: 'Kontrollerer...',
 
   // Auth - general
@@ -157,6 +157,10 @@ export const da: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Marker alle som læst',
+
+  // Social Links
+  socialLinks: 'Sociale links',
+  saveSocialLinks: 'Gem sociale links',
 
   // Errors
   failedToPost: 'Kunne ikke sende kommentar',

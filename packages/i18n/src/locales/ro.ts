@@ -107,9 +107,12 @@ export const ro: TranslationStrings = {
   holdForSeconds: 'Ține apăsat încă {seconds} secunde...',
 
   // Username
-  usernameTaken: 'Luat',
+  usernameTaken: 'Ocupat',
   usernameAvailable: 'Disponibil',
-  checking: 'Se verifică...',
+  checking: 'Verificare...',
+  chooseUsername: 'Alegeți un nume de utilizator',
+  usernamePlaceholder: 'numele-tău-de-utilizator',
+  usernameHint: 'Doar litere, cifre, cratime, underscore (2-24 caractere)',
 
   // Auth - general
   signInToPost: 'Conectează-te pentru a posta',
@@ -157,6 +160,10 @@ export const ro: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Marchează totul ca citit',
+
+  // Social Links
+  socialLinks: 'Link-uri sociale',
+  saveSocialLinks: 'Salvează link-urile sociale',
 
   // Errors
   failedToPost: 'Nu s-a putut posta comentariul',

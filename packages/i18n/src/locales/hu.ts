@@ -110,6 +110,9 @@ export const hu: TranslationStrings = {
   usernameTaken: 'Foglalt',
   usernameAvailable: 'Elérhető',
   checking: 'Ellenőrzés...',
+  chooseUsername: 'Válasszon felhasználónevet',
+  usernamePlaceholder: 'az-ön-felhasználóneve',
+  usernameHint: 'Csak betűk, számok, kötőjelek, aláhúzások (2-24 karakter)',
 
   // Auth - general
   signInToPost: 'Jelentkezz be a hozzászóláshoz',
@@ -156,7 +159,11 @@ export const hu: TranslationStrings = {
   daysAgo: '{n} napja',
 
   // Notifications
-  markAllRead: 'Összes megjelölése olvasottként',
+  markAllRead: 'Mindet olvasottnak jelöli',
+
+  // Social Links
+  socialLinks: 'Közösségi linkek',
+  saveSocialLinks: 'Közösségi linkek mentése',
 
   // Errors
   failedToPost: 'Nem sikerült a közzététel',

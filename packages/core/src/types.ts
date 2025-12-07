@@ -27,6 +27,18 @@ export interface Comment {
   status?: 'approved' | 'pending' | 'rejected' | 'deleted';
 }
 
+export interface SocialLinks {
+  twitter?: string;
+  github?: string;
+  facebook?: string;
+  whatsapp?: string;
+  telegram?: string;
+  instagram?: string;
+  tiktok?: string;
+  snapchat?: string;
+  discord?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -36,6 +48,7 @@ export interface User {
   karma?: number;
   totalComments?: number;
   joinDate?: number;
+  socialLinks?: SocialLinks;
 }
 
 export interface UserProfile {
@@ -45,6 +58,7 @@ export interface UserProfile {
   karma: number;
   totalComments: number;
   joinDate: number;
+  socialLinks?: SocialLinks;
 }
 
 // ============================================================================

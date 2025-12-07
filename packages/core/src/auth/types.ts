@@ -21,6 +21,8 @@ export interface AuthMethod {
 // Auth User (from API)
 // ============================================================================
 
+import type { SocialLinks } from '../types';
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -31,6 +33,7 @@ export interface AuthUser {
   phone_verified?: boolean;
   /** Whether the user has explicitly chosen their username */
   username_set?: boolean;
+  social_links?: SocialLinks;
 }
 
 // ============================================================================

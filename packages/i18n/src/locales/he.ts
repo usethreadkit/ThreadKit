@@ -109,7 +109,7 @@ export const he: TranslationStrings = {
   // Username
   usernameTaken: 'תפוס',
   usernameAvailable: 'פנוי',
-  checking: 'בודק...',
+  checking: 'בדיקה...',
 
   // Auth - general
   signInToPost: 'התחבר כדי לפרסם',
@@ -157,6 +157,10 @@ export const he: TranslationStrings = {
 
   // Notifications
   markAllRead: 'סמן הכל כנקרא',
+
+  // Social Links
+  socialLinks: 'קישורים חברתיים',
+  saveSocialLinks: 'שמור קישורים חברתיים',
 
   // Errors
   failedToPost: 'פרסום התגובה נכשל',

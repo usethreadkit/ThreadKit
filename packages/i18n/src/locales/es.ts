@@ -107,9 +107,12 @@ export const es: TranslationStrings = {
   holdForSeconds: 'Mantén presionado {seconds} segundos más...',
 
   // Username
-  usernameTaken: 'No disponible',
+  usernameTaken: 'Ocupado',
   usernameAvailable: 'Disponible',
-  checking: '...',
+  checking: 'Comprobando...',
+  chooseUsername: 'Elige un nombre de usuario',
+  usernamePlaceholder: 'tu-nombre-de-usuario',
+  usernameHint: 'Solo letras, números, guiones y guiones bajos (2-24 caracteres)',
 
   // Auth - general
   signInToPost: 'Inicia sesión para publicar',
@@ -157,6 +160,10 @@ export const es: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Marcar todo como leído',
+
+  // Social Links
+  socialLinks: 'Enlaces sociales',
+  saveSocialLinks: 'Guardar enlaces sociales',
 
   // Errors
   failedToPost: 'Error al publicar comentario',

@@ -474,13 +474,13 @@ export function ChatView({
 
       {showPresence && (
         <div className="threadkit-chat-presence">
-          {presenceCount === 1 ? t('personOnline', { n: presenceCount }) : t('peopleOnline', { n: presenceCount })}
+          {presenceCount} {presenceCount === 1 ? t('personOnline') : t('peopleOnline')}
         </div>
       )}
 
       {typingUsers.length > 0 && (
         <div className="threadkit-typing-indicator">
-          {typingUsers.length === 1 ? t('personTyping', { n: typingUsers.length }) : t('peopleTyping', { n: typingUsers.length })}
+          {typingUsers.length} {typingUsers.length === 1 ? t('personTyping') : t('peopleTyping')}
         </div>
       )}
 

@@ -110,6 +110,9 @@ export const en: TranslationStrings = {
   usernameTaken: 'Taken',
   usernameAvailable: 'Available',
   checking: '...',
+  chooseUsername: 'Choose a username',
+  usernamePlaceholder: 'your-username',
+  usernameHint: 'Letters, numbers, hyphens, underscores only (2-24 chars)',
 
   // Auth - general
   signInToPost: 'Sign in to post',
@@ -157,6 +160,10 @@ export const en: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Mark all read',
+
+  // Social Links
+  socialLinks: 'Social Links',
+  saveSocialLinks: 'Save Social Links',
 
   // Errors
   failedToPost: 'Failed to post comment',

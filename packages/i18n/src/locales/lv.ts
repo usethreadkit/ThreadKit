@@ -109,7 +109,7 @@ export const lv: TranslationStrings = {
   // Username
   usernameTaken: 'Aizņemts',
   usernameAvailable: 'Pieejams',
-  checking: 'Pārbauda...',
+  checking: 'Pārbaude...',
 
   // Auth - general
   signInToPost: 'Pieslēgties, lai publicētu',
@@ -156,7 +156,11 @@ export const lv: TranslationStrings = {
   daysAgo: 'pirms {n} d',
 
   // Notifications
-  markAllRead: 'Atzīmēt visu kā izlasītu',
+  markAllRead: 'Atzīmēt visus kā izlasītus',
+
+  // Social Links
+  socialLinks: 'Sociālās saites',
+  saveSocialLinks: 'Saglabāt sociālās saites',
 
   // Errors
   failedToPost: 'Neizdevās publicēt komentāru',

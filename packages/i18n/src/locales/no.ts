@@ -110,6 +110,9 @@ export const no: TranslationStrings = {
   usernameTaken: 'Opptatt',
   usernameAvailable: 'Tilgjengelig',
   checking: 'Sjekker...',
+  chooseUsername: 'Velg et brukernavn',
+  usernamePlaceholder: 'ditt-brukernavn',
+  usernameHint: 'Kun bokstaver, tall, bindestreker, understreker (2-24 tegn)',
 
   // Auth - general
   signInToPost: 'Logg inn for å publisere',
@@ -156,7 +159,11 @@ export const no: TranslationStrings = {
   daysAgo: '{n}d siden',
 
   // Notifications
-  markAllRead: 'Marker alle som lest',
+  markAllRead: 'Merk alle som lest',
+
+  // Social Links
+  socialLinks: 'Sosiale lenker',
+  saveSocialLinks: 'Lagre sosiale lenker',
 
   // Errors
   failedToPost: 'Kunne ikke publisere kommentar',

@@ -35,7 +35,7 @@ describe('CommentForm', () => {
 
     it('renders formatting help button', () => {
       render(<CommentForm onSubmit={vi.fn()} />);
-      expect(screen.getByText('formatting help')).toBeInTheDocument();
+      expect(screen.getByText('Formatting help')).toBeInTheDocument();
     });
   });
 
@@ -206,17 +206,17 @@ describe('CommentForm', () => {
       expect(screen.queryByText('Markdown formatting is supported')).not.toBeInTheDocument();
 
       // Show help
-      fireEvent.click(screen.getByText('formatting help'));
+      fireEvent.click(screen.getByText('Formatting help'));
       expect(screen.getByText('Markdown formatting is supported')).toBeInTheDocument();
 
       // Hide help
-      fireEvent.click(screen.getByText('formatting help'));
+      fireEvent.click(screen.getByText('Formatting help'));
       expect(screen.queryByText('Markdown formatting is supported')).not.toBeInTheDocument();
     });
 
     it('displays formatting examples', () => {
       render(<CommentForm onSubmit={vi.fn()} />);
-      fireEvent.click(screen.getByText('formatting help'));
+      fireEvent.click(screen.getByText('Formatting help'));
 
       expect(screen.getByText('*italics*')).toBeInTheDocument();
       expect(screen.getByText('**bold**')).toBeInTheDocument();

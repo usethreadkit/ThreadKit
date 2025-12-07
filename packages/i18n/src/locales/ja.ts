@@ -108,8 +108,11 @@ export const ja: TranslationStrings = {
 
   // Username
   usernameTaken: '使用済み',
-  usernameAvailable: '使用可能',
-  checking: '...',
+  usernameAvailable: '利用可能',
+  checking: '確認中...',
+  chooseUsername: 'ユーザー名を選択',
+  usernamePlaceholder: 'あなたのユーザー名',
+  usernameHint: '文字、数字、ハイフン、アンダースコアのみ (2-24文字)',
 
   // Auth - general
   signInToPost: 'ログインして投稿',
@@ -157,6 +160,10 @@ export const ja: TranslationStrings = {
 
   // Notifications
   markAllRead: 'すべて既読にする',
+
+  // Social Links
+  socialLinks: 'ソーシャルリンク',
+  saveSocialLinks: 'ソーシャルリンクを保存',
 
   // Errors
   failedToPost: 'コメントの投稿に失敗しました',

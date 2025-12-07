@@ -107,9 +107,12 @@ export const sr: TranslationStrings = {
   holdForSeconds: 'Drži još {seconds} sekundi...',
 
   // Username
-  usernameTaken: 'Zauzeto',
-  usernameAvailable: 'Dostupno',
-  checking: 'Proveravam...',
+  usernameTaken: 'Заузето',
+  usernameAvailable: 'Доступно',
+  checking: 'Проверавам...',
+  chooseUsername: 'Изаберите корисничко име',
+  usernamePlaceholder: 'ваше-корисничко-име',
+  usernameHint: 'Само слова, бројеви, цртице, доње црте (2-24 знака)',
 
   // Auth - general
   signInToPost: 'Prijavi se za objavu',
@@ -156,7 +159,11 @@ export const sr: TranslationStrings = {
   daysAgo: 'pre {n} d',
 
   // Notifications
-  markAllRead: 'Označi sve pročitano',
+  markAllRead: 'Означи све као прочитано',
+
+  // Social Links
+  socialLinks: 'Друштвени линкови',
+  saveSocialLinks: 'Сачувај друштвене линкове',
 
   // Errors
   failedToPost: 'Nije uspelo objavljivanje komentara',

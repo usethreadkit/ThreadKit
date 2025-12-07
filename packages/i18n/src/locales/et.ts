@@ -109,7 +109,7 @@ export const et: TranslationStrings = {
   // Username
   usernameTaken: 'Võetud',
   usernameAvailable: 'Saadaval',
-  checking: 'Kontrollin...',
+  checking: 'Kontrollimine...',
 
   // Auth - general
   signInToPost: 'Logi sisse postitamiseks',
@@ -157,6 +157,10 @@ export const et: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Märgi kõik loetuks',
+
+  // Social Links
+  socialLinks: 'Sotsiaalsed lingid',
+  saveSocialLinks: 'Salvesta sotsiaalsed lingid',
 
   // Errors
   failedToPost: 'Kommentaari postitamine ebaõnnestus',

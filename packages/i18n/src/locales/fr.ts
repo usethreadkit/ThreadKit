@@ -107,10 +107,9 @@ export const fr: TranslationStrings = {
   holdForSeconds: 'Maintenir encore {seconds} secondes...',
 
   // Username
-  usernameTaken: 'Indisponible',
+  usernameTaken: 'Pris',
   usernameAvailable: 'Disponible',
-  checking: '...',
-
+  checking: 'Vérification...',
   // Auth - general
   signInToPost: 'Connectez-vous pour publier',
   signInLabel: 'Connexion :',
@@ -156,7 +155,11 @@ export const fr: TranslationStrings = {
   daysAgo: 'il y a {n}j',
 
   // Notifications
-  markAllRead: 'Tout marquer comme lu',
+  markAllRead: 'Marquer tout lu',
+
+  // Social Links
+  socialLinks: 'Liens sociaux',
+  saveSocialLinks: 'Enregistrer les liens sociaux',
 
   // Errors
   failedToPost: 'Échec de la publication',

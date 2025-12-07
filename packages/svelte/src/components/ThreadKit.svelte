@@ -7,6 +7,7 @@
   import { setTranslationContext } from '../i18n';
   import CommentsView from './CommentsView.svelte';
   import ChatView from './ChatView.svelte';
+  import SettingsPanel from './SettingsPanel.svelte';
 
   interface Props {
     siteId: string;
@@ -80,7 +81,7 @@
   let comments = $state<Comment[]>([]);
   let loading = $state(true);
   let error = $state<Error | null>(null);
-  let user = $state<User | null>(null);
+  let currentUser = $state<User | null>(null);
   let connected = $state(false);
   let presenceCount = $state(0);
   let typingUsers = $state<Array<{ userId: string; userName: string }>>([]);
@@ -139,16 +140,17 @@
     // Subscribe to auth store
     unsubAuth = authStore.subscribe((state) => {
       if (state.user) {
-        user = {
+        currentUser = {
           id: state.user.id,
           name: state.user.name,
           avatar: state.user.avatar_url,
           isModerator: false,
           isAdmin: false,
+          socialLinks: state.user.social_links, // Assuming social_links is returned by authStore
         };
-        onSignIn?.(user);
-      } else if (user !== null) {
-        user = null;
+        onSignIn?.(currentUser);
+      } else if (currentUser !== null) {
+        currentUser = null;
         onSignOut?.();
       }
     });
@@ -194,7 +196,32 @@
   });
 
   // Computed
-  const isModerator = $derived(user?.isModerator || user?.isAdmin || false);
+  const isModerator = $derived(currentUser?.isModerator || currentUser?.isAdmin || false);
+
+  async function handleUpdateSocialLinks(socialLinks: SocialLinks) {
+    console.log('Updating social links:', socialLinks);
+    // TODO: Implement actual API call to update user social links
+    // For now, update the current user's social links locally
+    if (currentUser) {
+      currentUser = { ...currentUser, socialLinks };
+      // Also likely need to update the authStore here if it manages user data
+      // authStore.updateUser({ socialLinks }); // Assuming authStore has an updateUser method
+    }
+  }
+
+  async function handleUpdateName(name: string) {
+    console.log('Updating name:', name);
+    // TODO: Implement actual API call to update user name
+    if (currentUser) {
+      currentUser = { ...currentUser, name };
+      // authStore.updateUser({ name }); // Assuming authStore has an updateUser method
+    }
+  }
+
+  function handleThemeChange(newTheme: 'light' | 'dark') {
+    currentTheme = newTheme;
+    // Potentially save theme preference to local storage or API
+  }
 
   // Handlers
   async function handlePost(text: string, parentId?: string) {
@@ -354,7 +381,17 @@
         <code class="threadkit-error-code">{error.message}</code>
       {/if}
     </div>
-  {:else if mode === 'chat'}
+  {:else}
+    <SettingsPanel
+      {currentUser}
+      onLogin={() => authStore.signIn()}
+      onLogout={() => authStore.signOut()}
+      onUpdateSocialLinks={handleUpdateSocialLinks}
+      onUpdateName={handleUpdateName}
+      onThemeChange={handleThemeChange}
+      theme={currentTheme}
+    />
+    {#if mode === 'chat'}
     <ChatView
       {comments}
       currentUser={user ?? undefined}

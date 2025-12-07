@@ -107,8 +107,8 @@ export const lt: TranslationStrings = {
   holdForSeconds: 'Laikykite dar {seconds} sekundžių...',
 
   // Username
-  usernameTaken: 'Užimta',
-  usernameAvailable: 'Laisva',
+  usernameTaken: 'Užimtas',
+  usernameAvailable: 'Prieinamas',
   checking: 'Tikrinama...',
 
   // Auth - general
@@ -157,6 +157,10 @@ export const lt: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Pažymėti visus kaip perskaitytus',
+
+  // Social Links
+  socialLinks: 'Socialinės nuorodos',
+  saveSocialLinks: 'Išsaugoti socialines nuorodas',
 
   // Errors
   failedToPost: 'Nepavyko paskelbti komentaro',

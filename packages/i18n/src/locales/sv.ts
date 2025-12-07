@@ -110,6 +110,9 @@ export const sv: TranslationStrings = {
   usernameTaken: 'Upptaget',
   usernameAvailable: 'Tillgängligt',
   checking: 'Kontrollerar...',
+  chooseUsername: 'Välj ett användarnamn',
+  usernamePlaceholder: 'ditt-användarnamn',
+  usernameHint: 'Endast bokstäver, siffror, bindestreck, understreck (2-24 tecken)',
 
   // Auth - general
   signInToPost: 'Logga in för att publicera',
@@ -157,6 +160,10 @@ export const sv: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Markera alla som lästa',
+
+  // Social Links
+  socialLinks: 'Sociala länkar',
+  saveSocialLinks: 'Spara sociala länkar',
 
   // Errors
   failedToPost: 'Misslyckades med att publicera kommentar',

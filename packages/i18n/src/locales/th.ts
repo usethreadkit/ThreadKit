@@ -107,8 +107,8 @@ export const th: TranslationStrings = {
   holdForSeconds: 'กดค้างไว้ต่ออีก {seconds} วินาที...',
 
   // Username
-  usernameTaken: 'ถูกใช้งานแล้ว',
-  usernameAvailable: 'ใช้งานได้',
+  usernameTaken: 'ไม่ว่าง',
+  usernameAvailable: 'ว่าง',
   checking: 'กำลังตรวจสอบ...',
 
   // Auth - general
@@ -156,7 +156,11 @@ export const th: TranslationStrings = {
   daysAgo: '{n} วันที่แล้ว',
 
   // Notifications
-  markAllRead: 'ทำเครื่องหมายทั้งหมดว่าอ่านแล้ว',
+  markAllRead: 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมด',
+
+  // Social Links
+  socialLinks: 'ลิงก์โซเชียล',
+  saveSocialLinks: 'บันทึกลิงก์โซเชียล',
 
   // Errors
   failedToPost: 'โพสต์ความคิดเห็นล้มเหลว',

@@ -163,7 +163,7 @@ export function Comment({
               <span className="threadkit-author">{comment.userName}</span>
             </UserHoverCard>
             {' '}
-            <span className="threadkit-meta">
+            <span className="threadkit-meta" data-testid="comment-meta-score">
               {score} {score !== 1 ? t('points') : t('point')}
               {' '}
               {formatTimestamp(comment.timestamp)}

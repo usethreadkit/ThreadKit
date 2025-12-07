@@ -106,11 +106,13 @@ accountDeleted: 'Tài khoản đã bị xóa',
 holdToDelete: 'Giữ để xóa tài khoản (15s)',
 holdForSeconds: 'Giữ thêm {seconds} giây...',
 
-// Username
-usernameTaken: 'Đã dùng',
-usernameAvailable: 'Có sẵn',
-checking: 'Đang kiểm tra...',
-
+  // Username
+  usernameTaken: 'Đã dùng',
+  usernameAvailable: 'Có sẵn',
+  checking: 'Đang kiểm tra...',
+  chooseUsername: 'Chọn tên người dùng',
+  usernamePlaceholder: 'tên-người-dùng-của-bạn',
+  usernameHint: 'Chỉ chữ cái, số, dấu gạch ngang, gạch dưới (2-24 ký tự)',
 // Auth - general
 signInToPost: 'Đăng nhập để đăng bài',
 signInLabel: 'Đăng nhập:',
@@ -156,8 +158,11 @@ hoursAgo: '{n} giờ trước',
 daysAgo: '{n} ngày trước',
 
 // Notifications
-markAllRead: 'Đánh dấu tất cả đã đọc',
+  markAllRead: 'Đánh dấu tất cả đã đọc',
 
+  // Social Links
+  socialLinks: 'Liên kết xã hội',
+  saveSocialLinks: 'Lưu liên kết xã hội',
 // Errors
 failedToPost: 'Không thể đăng bình luận',
 failedToVote: 'Không thể bình chọn',

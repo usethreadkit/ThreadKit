@@ -107,9 +107,9 @@ export const zh: TranslationStrings = {
   holdForSeconds: '再按住{seconds}秒...',
 
   // Username
-  usernameTaken: '已被使用',
+  usernameTaken: '已被占用',
   usernameAvailable: '可用',
-  checking: '...',
+  checking: '正在检查...',
 
   // Auth - general
   signInToPost: '登录后发布',
@@ -156,7 +156,11 @@ export const zh: TranslationStrings = {
   daysAgo: '{n}天前',
 
   // Notifications
-  markAllRead: '全部标为已读',
+  markAllRead: '全部标记为已读',
+
+  // Social Links
+  socialLinks: '社交链接',
+  saveSocialLinks: '保存社交链接',
 
   // Errors
   failedToPost: '发布评论失败',

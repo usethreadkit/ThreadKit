@@ -110,6 +110,9 @@ export const sl: TranslationStrings = {
   usernameTaken: 'Zasedeno',
   usernameAvailable: 'Na voljo',
   checking: 'Preverjam...',
+  chooseUsername: 'Izberite uporabniško ime',
+  usernamePlaceholder: 'vaše-uporabniško-ime',
+  usernameHint: 'Samo črke, številke, pomišljaji, podčrtaji (2-24 znakov)',
 
   // Auth - general
   signInToPost: 'Prijavite se za objavo',
@@ -157,6 +160,10 @@ export const sl: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Označi vse kot prebrano',
+
+  // Social Links
+  socialLinks: 'Družabne povezave',
+  saveSocialLinks: 'Shrani družabne povezave',
 
   // Errors
   failedToPost: 'Objavljanje komentarja ni uspelo',

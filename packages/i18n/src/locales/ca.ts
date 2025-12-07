@@ -109,7 +109,10 @@ export const ca: TranslationStrings = {
   // Username
   usernameTaken: 'Ocupat',
   usernameAvailable: 'Disponible',
-  checking: 'Comprovant...', 
+  checking: 'Comprovant...',
+  chooseUsername: 'Tria un nom d\'usuari',
+  usernamePlaceholder: 'el-teu-nom-d\'usuari',
+  usernameHint: 'Només lletres, números, guions i guions baixos (2-24 caràcters)', 
 
   // Auth - general
   signInToPost: 'Inicia sessió per publicar',
@@ -157,6 +160,10 @@ export const ca: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Marca-ho tot com a llegit',
+
+  // Social Links
+  socialLinks: 'Enllaços socials',
+  saveSocialLinks: 'Desar enllaços socials',
 
   // Errors
   failedToPost: 'No s\'ha pogut publicar el comentari',

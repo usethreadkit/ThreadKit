@@ -495,6 +495,46 @@
   color: var(--threadkit-text-secondary);
 }
 
+/* Social Link Input Group in Settings Panel */
+.threadkit-social-link-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px; /* Consistent with other settings items */
+}
+
+.threadkit-social-link-input-group label {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+}
+
+/* Social Links in User Hover Card */
+.threadkit-hover-card-social-links {
+  display: flex;
+  gap: 8px; /* Spacing between icons */
+  margin-top: 8px; /* More vertical spacing below username */
+  margin-bottom: 8px; /* Spacing before stats */
+  padding-left: 4px; /* Align with other content */
+}
+
+.threadkit-social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; /* Tiny icons */
+  height: 20px;
+  background: var(--threadkit-bg-secondary);
+  border-radius: 50%;
+  font-size: 10px; /* Placeholder text size */
+  color: var(--threadkit-text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.threadkit-social-icon:hover {
+  background: var(--threadkit-bg-hover);
+}
+
 /* ===== Comment Form ===== */
 
 .threadkit-form {

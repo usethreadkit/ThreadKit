@@ -18,6 +18,7 @@ interface SettingsPanelProps {
   onLogout: () => void;
   onUpdateAvatar: (avatar: string) => void;
   onUpdateName: (name: string) => void;
+  onUpdateSocialLinks: (socialLinks: SocialLinks) => void;
   onUnblock: (userId: string) => void;
   onThemeChange: (theme: 'light' | 'dark') => void;
   onDeleteAccount: () => void;
@@ -36,6 +37,7 @@ export function SettingsPanel({
   onLogout,
   onUpdateAvatar: _onUpdateAvatar,
   onUpdateName,
+  onUpdateSocialLinks,
   onUnblock,
   onThemeChange,
   onDeleteAccount,
@@ -52,6 +54,15 @@ export function SettingsPanel({
   const [deleteCountdown, setDeleteCountdown] = useState(DELETE_HOLD_SECONDS);
   const [isHolding, setIsHolding] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [twitter, setTwitter] = useState(currentUser?.socialLinks?.twitter || '');
+  const [github, setGithub] = useState(currentUser?.socialLinks?.github || '');
+  const [facebook, setFacebook] = useState(currentUser?.socialLinks?.facebook || '');
+  const [whatsapp, setWhatsapp] = useState(currentUser?.socialLinks?.whatsapp || '');
+  const [telegram, setTelegram] = useState(currentUser?.socialLinks?.telegram || '');
+  const [instagram, setInstagram] = useState(currentUser?.socialLinks?.instagram || '');
+  const [tiktok, setTiktok] = useState(currentUser?.socialLinks?.tiktok || '');
+  const [snapchat, setSnapchat] = useState(currentUser?.socialLinks?.snapchat || '');
+  const [discord, setDiscord] = useState(currentUser?.socialLinks?.discord || '');
   const holdIntervalRef = useRef<number | null>(null);
   const hideDeleteModeRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,6 +130,15 @@ export function SettingsPanel({
     setIsOpen((prev) => !prev);
     setActiveSection(null);
     setEditingName(false);
+    setTwitter(currentUser?.socialLinks?.twitter || '');
+    setGithub(currentUser?.socialLinks?.github || '');
+    setFacebook(currentUser?.socialLinks?.facebook || '');
+    setWhatsapp(currentUser?.socialLinks?.whatsapp || '');
+    setTelegram(currentUser?.socialLinks?.telegram || '');
+    setInstagram(currentUser?.socialLinks?.instagram || '');
+    setTiktok(currentUser?.socialLinks?.tiktok || '');
+    setSnapchat(currentUser?.socialLinks?.snapchat || '');
+    setDiscord(currentUser?.socialLinks?.discord || '');
     setDeleteMode(false);
     setDeleteCountdown(DELETE_HOLD_SECONDS);
     setIsHolding(false);
@@ -203,6 +223,23 @@ export function SettingsPanel({
       }
     };
   }, [isHolding, deleted, onDeleteAccount]);
+
+  const renderSocialLinkInput = (
+    label: string,
+    value: string,
+    setValue: (value: string) => void
+  ) => (
+    <div className="threadkit-social-link-input-group">
+      <label>{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="threadkit-settings-name-input" // Reusing username input styling
+        placeholder={`https://${label.toLowerCase()}.com/your-profile`}
+      />
+    </div>
+  );
 
   return (
     <div className="threadkit-settings" ref={containerRef}>
@@ -370,6 +407,50 @@ export function SettingsPanel({
                       <input type="checkbox" />
                       <span>{t('weeklyDigest')}</span>
                     </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Social Links */}
+              <div className="threadkit-settings-section">
+                <button
+                  className="threadkit-settings-item"
+                  onClick={() => setActiveSection(activeSection === 'social' ? null : 'social')}
+                >
+                  {t('socialLinks')}
+                  <span className="threadkit-settings-arrow">{activeSection === 'social' ? '▲' : '▼'}</span>
+                </button>
+                {activeSection === 'social' && (
+                  <div className="threadkit-social-links-settings">
+                    {renderSocialLinkInput('Twitter', twitter, setTwitter)}
+                    {renderSocialLinkInput('GitHub', github, setGithub)}
+                    {renderSocialLinkInput('Facebook', facebook, setFacebook)}
+                    {renderSocialLinkInput('WhatsApp', whatsapp, setWhatsapp)}
+                    {renderSocialLinkInput('Telegram', telegram, setTelegram)}
+                    {renderSocialLinkInput('Instagram', instagram, setInstagram)}
+                    {renderSocialLinkInput('TikTok', tiktok, setTiktok)}
+                    {renderSocialLinkInput('Snapchat', snapchat, setSnapchat)}
+                    {renderSocialLinkInput('Discord', discord, setDiscord)}
+
+                    <button
+                      className="threadkit-action-btn"
+                      onClick={() => {
+                        onUpdateSocialLinks({
+                          twitter: twitter || undefined,
+                          github: github || undefined,
+                          facebook: facebook || undefined,
+                          whatsapp: whatsapp || undefined,
+                          telegram: telegram || undefined,
+                          instagram: instagram || undefined,
+                          tiktok: tiktok || undefined,
+                          snapchat: snapchat || undefined,
+                          discord: discord || undefined,
+                        });
+                        setActiveSection(null); // Close section after saving
+                      }}
+                    >
+                      {t('saveSocialLinks')}
+                    </button>
                   </div>
                 )}
               </div>

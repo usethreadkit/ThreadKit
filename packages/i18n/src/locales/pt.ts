@@ -107,9 +107,12 @@ export const pt: TranslationStrings = {
   holdForSeconds: 'Segure por mais {seconds} segundos...',
 
   // Username
-  usernameTaken: 'Indisponível',
+  usernameTaken: 'Ocupado',
   usernameAvailable: 'Disponível',
-  checking: '...',
+  checking: 'Verificando...',
+  chooseUsername: 'Escolha um nome de usuário',
+  usernamePlaceholder: 'seu-nome-de-usuário',
+  usernameHint: 'Apenas letras, números, hífens, sublinhados (2-24 caracteres)',
 
   // Auth - general
   signInToPost: 'Entre para publicar',
@@ -156,7 +159,11 @@ export const pt: TranslationStrings = {
   daysAgo: '{n}d atrás',
 
   // Notifications
-  markAllRead: 'Marcar tudo como lido',
+  markAllRead: 'Marcar todos como lidos',
+
+  // Social Links
+  socialLinks: 'Links sociais',
+  saveSocialLinks: 'Salvar links sociais',
 
   // Errors
   failedToPost: 'Falha ao publicar comentário',

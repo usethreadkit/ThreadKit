@@ -108,7 +108,7 @@ export const fi: TranslationStrings = {
 
   // Username
   usernameTaken: 'Varattu',
-  usernameAvailable: 'Vapaa',
+  usernameAvailable: 'Käytettävissä',
   checking: 'Tarkistetaan...',
 
   // Auth - general
@@ -156,7 +156,11 @@ export const fi: TranslationStrings = {
   daysAgo: '{n}pv sitten',
 
   // Notifications
-  markAllRead: 'Merkitse kaikki luetuiksi',
+  markAllRead: 'Merkitse kaikki luetuksi',
+
+  // Social Links
+  socialLinks: 'Sosiaalisen median linkit',
+  saveSocialLinks: 'Tallenna sosiaalisen median linkit',
 
   // Errors
   failedToPost: 'Kommentin lähetys epäonnistui',

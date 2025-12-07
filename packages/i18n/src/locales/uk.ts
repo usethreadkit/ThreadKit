@@ -108,7 +108,7 @@ export const uk: TranslationStrings = {
 
   // Username
   usernameTaken: 'Зайнято',
-  usernameAvailable: 'Вільне',
+  usernameAvailable: 'Доступно',
   checking: 'Перевірка...', 
 
   // Auth - general
@@ -156,7 +156,11 @@ export const uk: TranslationStrings = {
   daysAgo: '{n} дн тому',
 
   // Notifications
-  markAllRead: 'Позначити всі як прочитані',
+  markAllRead: 'Позначити всі прочитані',
+
+  // Social Links
+  socialLinks: 'Соціальні посилання',
+  saveSocialLinks: 'Зберегти соціальні посилання',
 
   // Errors
   failedToPost: 'Не вдалося опублікувати',

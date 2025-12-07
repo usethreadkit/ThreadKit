@@ -98,7 +98,7 @@ describe('NotificationsPanel', () => {
           onMarkAllRead={vi.fn()}
         />
       );
-      expect(screen.getByLabelText('Notifications (2 unread)')).toBeInTheDocument();
+      expect(screen.getByLabelText('Notifications (2)')).toBeInTheDocument();
     });
   });
 

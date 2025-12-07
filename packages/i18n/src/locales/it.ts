@@ -107,9 +107,12 @@ export const it: TranslationStrings = {
   holdForSeconds: 'Tieni premuto per altri {seconds} secondi...',
 
   // Username
-  usernameTaken: 'Non disponibile',
+  usernameTaken: 'Occupato',
   usernameAvailable: 'Disponibile',
-  checking: '...',
+  checking: 'Controllo...',
+  chooseUsername: 'Scegli un nome utente',
+  usernamePlaceholder: 'il-tuo-nome-utente',
+  usernameHint: 'Solo lettere, numeri, trattini, underscore (2-24 caratteri)',
 
   // Auth - general
   signInToPost: 'Accedi per pubblicare',
@@ -156,7 +159,11 @@ export const it: TranslationStrings = {
   daysAgo: '{n}g fa',
 
   // Notifications
-  markAllRead: 'Segna tutto come letto',
+  markAllRead: 'Segna tutti come letti',
+
+  // Social Links
+  socialLinks: 'Link sociali',
+  saveSocialLinks: 'Salva link sociali',
 
   // Errors
   failedToPost: 'Pubblicazione commento fallita',

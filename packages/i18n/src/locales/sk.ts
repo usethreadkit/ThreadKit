@@ -107,9 +107,9 @@ export const sk: TranslationStrings = {
   holdForSeconds: 'Podržte ešte {seconds} sekúnd...',
 
   // Username
-  usernameTaken: 'Obsadené',
+  usernameTaken: 'Zabrané',
   usernameAvailable: 'Dostupné',
-  checking: 'Kontrolujem...',
+  checking: 'Kontroluje sa...',
 
   // Auth - general
   signInToPost: 'Prihláste sa pre uverejnenie',
@@ -156,7 +156,11 @@ export const sk: TranslationStrings = {
   daysAgo: 'pred {n} dňami',
 
   // Notifications
-  markAllRead: 'Označiť všetky ako prečítané',
+  markAllRead: 'Označiť všetko ako prečítané',
+
+  // Social Links
+  socialLinks: 'Sociálne odkazy',
+  saveSocialLinks: 'Uložiť sociálne odkazy',
 
   // Errors
   failedToPost: 'Nepodarilo sa uverejniť komentár',

@@ -109,8 +109,7 @@ export const ru: TranslationStrings = {
   // Username
   usernameTaken: 'Занято',
   usernameAvailable: 'Доступно',
-  checking: '...',
-
+  checking: 'Проверка...',
   // Auth - general
   signInToPost: 'Войдите, чтобы опубликовать',
   signInLabel: 'Вход:',
@@ -156,7 +155,11 @@ export const ru: TranslationStrings = {
   daysAgo: '{n} д. назад',
 
   // Notifications
-  markAllRead: 'Отметить всё как прочитанное',
+  markAllRead: 'Отметить все как прочитанное',
+
+  // Social Links
+  socialLinks: 'Социальные ссылки',
+  saveSocialLinks: 'Сохранить социальные ссылки',
 
   // Errors
   failedToPost: 'Не удалось опубликовать комментарий',

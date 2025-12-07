@@ -108,7 +108,7 @@ export const fa: TranslationStrings = {
 
   // Username
   usernameTaken: 'گرفته شده',
-  usernameAvailable: 'در دسترس',
+  usernameAvailable: 'موجود',
   checking: 'در حال بررسی...',
 
   // Auth - general
@@ -156,7 +156,11 @@ export const fa: TranslationStrings = {
   daysAgo: '{n} روز پیش',
 
   // Notifications
-  markAllRead: 'علامت‌گذاری همه به عنوان خوانده شده',
+  markAllRead: 'علامت گذاری همه به عنوان خوانده شده',
+
+  // Social Links
+  socialLinks: 'لینک‌های اجتماعی',
+  saveSocialLinks: 'ذخیره لینک‌های اجتماعی',
 
   // Errors
   failedToPost: 'ارسال نظر ناموفق بود',

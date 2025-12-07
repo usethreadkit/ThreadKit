@@ -107,9 +107,12 @@ export const de: TranslationStrings = {
   holdForSeconds: 'Noch {seconds} Sekunden halten...',
 
   // Username
-  usernameTaken: 'Vergeben',
+  usernameTaken: 'Belegt',
   usernameAvailable: 'Verfügbar',
-  checking: '...',
+  checking: 'Prüfe...',
+  chooseUsername: 'Benutzernamen wählen',
+  usernamePlaceholder: 'dein-benutzername',
+  usernameHint: 'Nur Buchstaben, Zahlen, Bindestriche, Unterstriche (2-24 Zeichen)',
 
   // Auth - general
   signInToPost: 'Anmelden zum Posten',
@@ -157,6 +160,10 @@ export const de: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Alle als gelesen markieren',
+
+  // Social Links
+  socialLinks: 'Soziale Links',
+  saveSocialLinks: 'Soziale Links speichern',
 
   // Errors
   failedToPost: 'Posten fehlgeschlagen',

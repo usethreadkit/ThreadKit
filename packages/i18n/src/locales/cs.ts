@@ -107,9 +107,9 @@ export const cs: TranslationStrings = {
   holdForSeconds: 'Držte ještě {seconds} sekund...',
 
   // Username
-  usernameTaken: 'Zabráno',
+  usernameTaken: 'Zabrané',
   usernameAvailable: 'Dostupné',
-  checking: 'Ověřování...',
+  checking: 'Kontroluji...',
 
   // Auth - general
   signInToPost: 'Přihlaste se pro odeslání příspěvku',
@@ -157,6 +157,10 @@ export const cs: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Označit vše jako přečtené',
+
+  // Social Links
+  socialLinks: 'Sociální odkazy',
+  saveSocialLinks: 'Uložit sociální odkazy',
 
   // Errors
   failedToPost: 'Nepodařilo se odeslat komentář',

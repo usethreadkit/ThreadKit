@@ -107,7 +107,7 @@ export const tr: TranslationStrings = {
   holdForSeconds: '{seconds} saniye daha basılı tut...',
 
   // Username
-  usernameTaken: 'Alınmış',
+  usernameTaken: 'Alındı',
   usernameAvailable: 'Mevcut',
   checking: 'Kontrol ediliyor...',
 
@@ -157,6 +157,10 @@ export const tr: TranslationStrings = {
 
   // Notifications
   markAllRead: 'Tümünü okundu olarak işaretle',
+
+  // Social Links
+  socialLinks: 'Sosyal Bağlantılar',
+  saveSocialLinks: 'Sosyal Bağlantıları Kaydet',
 
   // Errors
   failedToPost: 'Yorum yayınlanamadı',
