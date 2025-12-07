@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { User } from '../types';
 import { useTranslation } from '../i18n';
 import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
+import { Avatar } from './Avatar';
 
 interface BlockedUser {
   id: string;
@@ -247,9 +248,10 @@ export function SettingsPanel({
             <>
               {/* User Info */}
               <div className="threadkit-settings-user">
-                <img
-                  src={currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`}
+                <Avatar
+                  src={currentUser.avatar}
                   alt={currentUser.name}
+                  seed={currentUser.name}
                   className="threadkit-settings-avatar"
                 />
                 <div className="threadkit-settings-user-info">

@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import type { UserProfile } from '@threadkit/core';
   import { getTranslation } from '../i18n';
+  import Avatar from './Avatar.svelte';
 
   const t = getTranslation();
 
@@ -82,7 +83,7 @@
   const displayProfile = $derived<UserProfile>(profile || {
     id: userId,
     name: userName,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`,
+    avatar: undefined,
     karma: Math.floor(Math.random() * 10000) + 100,
     totalComments: Math.floor(Math.random() * 500) + 10,
     joinDate: Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000),
@@ -111,7 +112,7 @@
   >
     <div class="threadkit-hover-card-content">
       <div class="threadkit-hover-card-avatar">
-        <img src={displayProfile.avatar} alt={displayProfile.name} />
+        <Avatar src={displayProfile.avatar} alt={displayProfile.name} />
       </div>
       <div class="threadkit-hover-card-info">
         <div class="threadkit-hover-card-name">{displayProfile.name}</div>

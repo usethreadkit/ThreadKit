@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { UserProfile } from '../types';
 import { useTranslation } from '../i18n';
+import { Avatar } from './Avatar';
 
 interface UserHoverCardProps {
   userName: string;
@@ -73,7 +74,7 @@ export function UserHoverCard({
   const displayProfile: UserProfile = profile || {
     id: userId,
     name: userName,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`,
+    avatar: undefined,
     karma: Math.floor(Math.random() * 10000) + 100,
     totalComments: Math.floor(Math.random() * 500) + 10,
     joinDate: Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000),
@@ -106,9 +107,10 @@ export function UserHoverCard({
         >
           <div className="threadkit-hover-card-content">
             <div className="threadkit-hover-card-avatar">
-              <img
+              <Avatar
                 src={displayProfile.avatar}
                 alt={displayProfile.name}
+                seed={displayProfile.name}
               />
             </div>
             <div className="threadkit-hover-card-info">
