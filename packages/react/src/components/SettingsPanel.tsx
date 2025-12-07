@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { User } from '../types';
+import { useTranslation } from '../i18n';
 
 interface BlockedUser {
   id: string;
@@ -42,6 +43,7 @@ export function SettingsPanel({
   onThemeChange,
   onDeleteAccount,
 }: SettingsPanelProps) {
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -192,8 +194,8 @@ export function SettingsPanel({
       <button
         className="threadkit-settings-btn"
         onClick={handleToggle}
-        aria-label="Settings"
-        title="Settings"
+        aria-label={t('settings')}
+        title={t('settings')}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
@@ -205,11 +207,11 @@ export function SettingsPanel({
         <div className="threadkit-settings-dropdown">
           {/* Mobile header with close button */}
           <div className="threadkit-mobile-header">
-            <span className="threadkit-mobile-title">Settings</span>
+            <span className="threadkit-mobile-title">{t('settings')}</span>
             <button
               className="threadkit-mobile-close"
               onClick={handleToggle}
-              aria-label="Close"
+              aria-label={t('close')}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -219,7 +221,7 @@ export function SettingsPanel({
           {!currentUser ? (
             <div className="threadkit-settings-section">
               <button className="threadkit-settings-item" onClick={onLogin}>
-                Sign in
+                {t('signIn')}
               </button>
             </div>
           ) : (
@@ -250,13 +252,13 @@ export function SettingsPanel({
                         onClick={handleSaveName}
                         disabled={usernameAvailable === false || checkingUsername}
                       >
-                        {checkingUsername ? '...' : 'save'}
+                        {checkingUsername ? t('checking') : t('save')}
                       </button>
                       {usernameAvailable === false && (
-                        <span className="threadkit-username-taken">taken</span>
+                        <span className="threadkit-username-taken">{t('usernameTaken')}</span>
                       )}
                       {usernameAvailable === true && (
-                        <span className="threadkit-username-available">available</span>
+                        <span className="threadkit-username-available">{t('usernameAvailable')}</span>
                       )}
                     </div>
                   ) : (
@@ -286,7 +288,7 @@ export function SettingsPanel({
                   className="threadkit-settings-item"
                   onClick={() => setActiveSection(activeSection === 'avatar' ? null : 'avatar')}
                 >
-                  Change avatar
+                  {t('changeAvatar')}
                   <span className="threadkit-settings-arrow">{activeSection === 'avatar' ? '▲' : '▼'}</span>
                 </button>
                 {activeSection === 'avatar' && (
@@ -316,7 +318,7 @@ export function SettingsPanel({
                   className="threadkit-settings-item"
                   onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
                 >
-                  Theme: {theme}
+                  {t('theme')}: {theme}
                   <span className="threadkit-settings-value">{theme === 'light' ? '☀️' : '🌙'}</span>
                 </button>
               </div>
@@ -327,13 +329,13 @@ export function SettingsPanel({
                   className="threadkit-settings-item"
                   onClick={() => setActiveSection(activeSection === 'blocked' ? null : 'blocked')}
                 >
-                  Blocked users ({blockedUsers.length})
+                  {t('blockedUsers')} ({blockedUsers.length})
                   <span className="threadkit-settings-arrow">{activeSection === 'blocked' ? '▲' : '▼'}</span>
                 </button>
                 {activeSection === 'blocked' && (
                   <div className="threadkit-blocked-list">
                     {blockedUsers.length === 0 ? (
-                      <div className="threadkit-settings-empty">No blocked users</div>
+                      <div className="threadkit-settings-empty">{t('noBlockedUsers')}</div>
                     ) : (
                       blockedUsers.map((user) => (
                         <div key={user.id} className="threadkit-blocked-user">
@@ -342,7 +344,7 @@ export function SettingsPanel({
                             className="threadkit-action-btn"
                             onClick={() => onUnblock(user.id)}
                           >
-                            unblock
+                            {t('unblock')}
                           </button>
                         </div>
                       ))
@@ -357,22 +359,22 @@ export function SettingsPanel({
                   className="threadkit-settings-item"
                   onClick={() => setActiveSection(activeSection === 'notifications' ? null : 'notifications')}
                 >
-                  Notifications
+                  {t('notifications')}
                   <span className="threadkit-settings-arrow">{activeSection === 'notifications' ? '▲' : '▼'}</span>
                 </button>
                 {activeSection === 'notifications' && (
                   <div className="threadkit-notification-settings">
                     <label className="threadkit-settings-toggle">
                       <input type="checkbox" defaultChecked />
-                      <span>Email on replies</span>
+                      <span>{t('emailOnReplies')}</span>
                     </label>
                     <label className="threadkit-settings-toggle">
                       <input type="checkbox" defaultChecked />
-                      <span>Email on mentions</span>
+                      <span>{t('emailOnMentions')}</span>
                     </label>
                     <label className="threadkit-settings-toggle">
                       <input type="checkbox" />
-                      <span>Weekly digest</span>
+                      <span>{t('weeklyDigest')}</span>
                     </label>
                   </div>
                 )}
@@ -383,7 +385,7 @@ export function SettingsPanel({
               {/* Logout */}
               <div className="threadkit-settings-section">
                 <button className="threadkit-settings-item" onClick={onLogout}>
-                  Sign out
+                  {t('signOut')}
                 </button>
               </div>
 
@@ -394,11 +396,11 @@ export function SettingsPanel({
                     className="threadkit-settings-item threadkit-settings-danger"
                     onClick={() => setDeleteMode(true)}
                   >
-                    Delete account
+                    {t('deleteAccount')}
                   </button>
                 ) : deleted ? (
                   <div className="threadkit-settings-item threadkit-delete-complete">
-                    Account deleted
+                    {t('accountDeleted')}
                   </div>
                 ) : (
                   <button
@@ -410,8 +412,8 @@ export function SettingsPanel({
                     onTouchEnd={stopHolding}
                   >
                     {isHolding
-                      ? `Hold for ${deleteCountdown} more seconds...`
-                      : 'Hold to delete account (15s)'}
+                      ? t('holdForSeconds', { seconds: deleteCountdown })
+                      : t('holdToDelete')}
                   </button>
                 )}
               </div>

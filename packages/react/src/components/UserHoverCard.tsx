@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { UserProfile } from '../types';
+import { useTranslation } from '../i18n';
 
 interface UserHoverCardProps {
   userName: string;
@@ -29,6 +30,7 @@ export function UserHoverCard({
   getUserProfile,
   children,
 }: UserHoverCardProps) {
+  const t = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -115,17 +117,17 @@ export function UserHoverCard({
                   <span className="threadkit-hover-card-stat-value">
                     {formatNumber(displayProfile.karma)}
                   </span>
-                  <span className="threadkit-hover-card-stat-label">karma</span>
+                  <span className="threadkit-hover-card-stat-label">{t('karma')}</span>
                 </div>
                 <div className="threadkit-hover-card-stat">
                   <span className="threadkit-hover-card-stat-value">
                     {formatNumber(displayProfile.totalComments)}
                   </span>
-                  <span className="threadkit-hover-card-stat-label">comments</span>
+                  <span className="threadkit-hover-card-stat-label">{t('comments')}</span>
                 </div>
               </div>
               <div className="threadkit-hover-card-joined">
-                Joined {formatDate(displayProfile.joinDate)}
+                {t('joined')} {formatDate(displayProfile.joinDate)}
               </div>
             </div>
           </div>

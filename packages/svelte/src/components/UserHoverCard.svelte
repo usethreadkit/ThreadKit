@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { UserProfile } from '@threadkit/core';
+  import { getTranslation } from '../i18n';
+
+  const t = getTranslation();
 
   interface Props {
     userName: string;
@@ -102,17 +105,17 @@
             <span class="threadkit-hover-card-stat-value">
               {formatNumber(displayProfile.karma)}
             </span>
-            <span class="threadkit-hover-card-stat-label">karma</span>
+            <span class="threadkit-hover-card-stat-label">{t('karma')}</span>
           </div>
           <div class="threadkit-hover-card-stat">
             <span class="threadkit-hover-card-stat-value">
               {formatNumber(displayProfile.totalComments)}
             </span>
-            <span class="threadkit-hover-card-stat-label">comments</span>
+            <span class="threadkit-hover-card-stat-label">{t('comments')}</span>
           </div>
         </div>
         <div class="threadkit-hover-card-joined">
-          Joined {formatDate(displayProfile.joinDate)}
+          {t('joined')} {formatDate(displayProfile.joinDate)}
         </div>
       </div>
     </div>

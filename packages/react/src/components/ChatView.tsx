@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
+import { useTranslation } from '../i18n';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -24,13 +25,14 @@ interface ChatViewProps {
   plugins?: ThreadKitPlugin[];
 }
 
-const REPORT_REASONS = [
-  'Spam',
-  'Harassment',
-  'Hate speech',
-  'Misinformation',
-  'Other',
-] as const;
+type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
+const REPORT_REASON_KEYS: ReportReasonKey[] = [
+  'reportSpam',
+  'reportHarassment',
+  'reportHateSpeech',
+  'reportMisinformation',
+  'reportOther',
+];
 
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp);
@@ -51,6 +53,7 @@ interface ChatMessageProps {
   onBan?: (userId: string) => void;
   getUserProfile?: (userId: string) => UserProfile | undefined;
   plugins?: ThreadKitPlugin[];
+  t: ReturnType<typeof useTranslation>;
 }
 
 function ChatMessage({
@@ -64,6 +67,7 @@ function ChatMessage({
   onBan,
   getUserProfile,
   plugins,
+  t,
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [confirmingAction, setConfirmingAction] = useState<'block' | 'ban' | 'delete' | null>(null);
@@ -111,13 +115,13 @@ function ChatMessage({
             onClick={handleSaveEdit}
             disabled={!editText.trim()}
           >
-            save
+            {t('save')}
           </button>
           <button
             className="threadkit-cancel-btn"
             onClick={handleCancelEdit}
           >
-            cancel
+            {t('cancel')}
           </button>
         </div>
       </div>
@@ -162,14 +166,14 @@ function ChatMessage({
                     setIsEditing(true);
                   }}
                 >
-                  edit
+                  {t('edit')}
                 </button>
               )}
 
               {onDelete && (
                 confirmingAction === 'delete' ? (
                   <span className="threadkit-confirm-inline">
-                    delete?
+                    {t('deleteConfirm')}
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-yes"
                       onClick={(e) => {
@@ -178,7 +182,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-no"
@@ -187,7 +191,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 ) : (
@@ -198,7 +202,7 @@ function ChatMessage({
                       setConfirmingAction('delete');
                     }}
                   >
-                    delete
+                    {t('delete')}
                   </button>
                 )
               )}
@@ -209,7 +213,7 @@ function ChatMessage({
               {onBlock && (
                 confirmingAction === 'block' ? (
                   <span className="threadkit-confirm-inline">
-                    block user?
+                    {t('blockConfirm')}
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-yes"
                       onClick={(e) => {
@@ -218,7 +222,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-no"
@@ -227,7 +231,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 ) : (
@@ -238,14 +242,14 @@ function ChatMessage({
                       setConfirmingAction('block');
                     }}
                   >
-                    block
+                    {t('block')}
                   </button>
                 )
               )}
 
               {onReport && (
                 reportSubmitted ? (
-                  <span className="threadkit-report-thanks">thanks!</span>
+                  <span className="threadkit-report-thanks">{t('reportSubmitted')}</span>
                 ) : showReportForm ? (
                   <span className="threadkit-report-inline" onClick={(e) => e.stopPropagation()}>
                     <select
@@ -253,10 +257,10 @@ function ChatMessage({
                       value={reportReason}
                       onChange={(e) => setReportReason(e.target.value)}
                     >
-                      <option value="">select reason...</option>
-                      {REPORT_REASONS.map((reason) => (
-                        <option key={reason} value={reason}>
-                          {reason}
+                      <option value="">{t('selectReason')}</option>
+                      {REPORT_REASON_KEYS.map((reasonKey) => (
+                        <option key={reasonKey} value={reasonKey}>
+                          {t(reasonKey)}
                         </option>
                       ))}
                     </select>
@@ -270,7 +274,7 @@ function ChatMessage({
                         setReportSubmitted(true);
                       }}
                     >
-                      submit
+                      {t('submit')}
                     </button>
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-no"
@@ -280,7 +284,7 @@ function ChatMessage({
                         setReportReason('');
                       }}
                     >
-                      cancel
+                      {t('cancel')}
                     </button>
                   </span>
                 ) : (
@@ -291,7 +295,7 @@ function ChatMessage({
                       setShowReportForm(true);
                     }}
                   >
-                    report
+                    {t('report')}
                   </button>
                 )
               )}
@@ -299,7 +303,7 @@ function ChatMessage({
               {isModOrAdmin && onDelete && (
                 confirmingAction === 'delete' ? (
                   <span className="threadkit-confirm-inline">
-                    delete?
+                    {t('deleteConfirm')}
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-yes"
                       onClick={(e) => {
@@ -308,7 +312,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-no"
@@ -317,7 +321,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 ) : (
@@ -328,7 +332,7 @@ function ChatMessage({
                       setConfirmingAction('delete');
                     }}
                   >
-                    delete
+                    {t('delete')}
                   </button>
                 )
               )}
@@ -336,7 +340,7 @@ function ChatMessage({
               {isModOrAdmin && onBan && (
                 confirmingAction === 'ban' ? (
                   <span className="threadkit-confirm-inline">
-                    ban user?
+                    {t('banConfirm')}
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-yes"
                       onClick={(e) => {
@@ -345,7 +349,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       className="threadkit-confirm-btn threadkit-confirm-no"
@@ -354,7 +358,7 @@ function ChatMessage({
                         setConfirmingAction(null);
                       }}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 ) : (
@@ -365,7 +369,7 @@ function ChatMessage({
                       setConfirmingAction('ban');
                     }}
                   >
-                    ban
+                    {t('ban')}
                   </button>
                 )
               )}
@@ -396,6 +400,7 @@ export function ChatView({
   toolbarEnd,
   plugins,
 }: ChatViewProps) {
+  const t = useTranslation();
   const messagesRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -448,7 +453,7 @@ export function ChatView({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          placeholder={currentUser ? 'Type a message...' : 'Sign in to chat'}
+          placeholder={currentUser ? t('typeMessage') : t('signInToChat')}
           disabled={!currentUser || isSubmitting}
         />
         <button
@@ -456,19 +461,19 @@ export function ChatView({
           className="threadkit-submit-btn"
           disabled={!currentUser || isSubmitting || !inputValue.trim()}
         >
-          Send
+          {t('send')}
         </button>
       </form>
 
       {showPresence && (
         <div className="threadkit-chat-presence">
-          {presenceCount} {presenceCount === 1 ? 'person' : 'people'} online
+          {presenceCount === 1 ? t('personOnline', { n: presenceCount }) : t('peopleOnline', { n: presenceCount })}
         </div>
       )}
 
       {typingUsers.length > 0 && (
         <div className="threadkit-typing-indicator">
-          {typingUsers.length} {typingUsers.length === 1 ? 'person is' : 'people are'} typing...
+          {typingUsers.length === 1 ? t('personTyping', { n: typingUsers.length }) : t('peopleTyping', { n: typingUsers.length })}
         </div>
       )}
 
@@ -486,6 +491,7 @@ export function ChatView({
             onBan={onBan}
             getUserProfile={getUserProfile}
             plugins={plugins}
+            t={t}
           />
         ))}
       </div>

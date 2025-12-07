@@ -10,7 +10,18 @@ import { zh } from './locales/zh';
 import { ko } from './locales/ko';
 import { it } from './locales/it';
 import { nl } from './locales/nl';
+import { pl } from './locales/pl';
 import { ru } from './locales/ru';
+import { tr } from './locales/tr';
+import { fa } from './locales/fa';
+import { vi } from './locales/vi';
+import { cs } from './locales/cs';
+import { id } from './locales/id';
+import { hu } from './locales/hu';
+import { uk } from './locales/uk';
+import { ar } from './locales/ar';
+import { sv } from './locales/sv';
+import { ro } from './locales/ro';
 
 /**
  * Map of locale codes to translation objects
@@ -37,8 +48,19 @@ export const locales: LocaleMap = {
   ko,
   it,
   nl,
+  pl,
   ru,
-};
+  tr,
+  fa,
+  vi,
+  cs,
+  id,
+  hu,
+  uk,
+  ar,
+  sv,
+  ro,
+} as any;
 
 /**
  * List of supported locale codes.

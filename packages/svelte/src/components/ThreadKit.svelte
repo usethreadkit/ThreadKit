@@ -3,7 +3,8 @@
   import { createCommentsStore, type CommentsStore } from '../stores/comments';
   import { createWebSocketStore, type WebSocketStore } from '../stores/websocket';
   import { createAuthStore, type AuthStore } from '../stores/auth';
-  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile } from '@threadkit/core';
+  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile, PartialTranslations } from '@threadkit/core';
+  import { setTranslationContext } from '../i18n';
   import CommentsView from './CommentsView.svelte';
   import ChatView from './ChatView.svelte';
 
@@ -23,6 +24,7 @@
     showPresence?: boolean;
     showTyping?: boolean;
     plugins?: ThreadKitPlugin[];
+    translations?: PartialTranslations;
     initialComments?: Comment[];
     onSignIn?: (user: User) => void;
     onSignOut?: () => void;
@@ -49,6 +51,7 @@
     showPresence = false,
     showTyping = false,
     plugins = [],
+    translations,
     initialComments,
     onSignIn,
     onSignOut,
@@ -58,6 +61,9 @@
     onCommentEdited,
     onError,
   }: Props = $props();
+
+  // Set up translations context
+  const t = setTranslationContext(translations);
 
   // Create stores
   let commentsStore: CommentsStore;
@@ -338,11 +344,11 @@
   data-theme={currentTheme}
 >
   {#if loading}
-    <div class="threadkit-loading">Loading comments...</div>
+    <div class="threadkit-loading">{t('loadingComments')}</div>
   {:else if error}
     <div class="threadkit-error">
-      <strong>Failed to load comments</strong>
-      <p>Please try again later.</p>
+      <strong>{t('failedToLoadComments')}</strong>
+      <p>{t('tryAgainLater')}</p>
       {#if error.message}
         <code class="threadkit-error-code">{error.message}</code>
       {/if}
@@ -390,7 +396,7 @@
   {#if !hideBranding}
     <div class="threadkit-branding">
       <a href="https://usethreadkit.com" target="_blank" rel="noopener noreferrer">
-        Powered by ThreadKit
+        {t('poweredByThreadKit')}
       </a>
     </div>
   {/if}

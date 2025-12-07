@@ -1,14 +1,18 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin } from '@threadkit/core';
+  import { getTranslation } from '../i18n';
   import Comment from './Comment.svelte';
   import CommentForm from './CommentForm.svelte';
 
-  const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-    { value: 'votes', label: 'top' },
-    { value: 'newest', label: 'new' },
-    { value: 'controversial', label: 'controversial' },
-    { value: 'oldest', label: 'old' },
+  const t = getTranslation();
+
+  type SortOptionKey = 'sortTop' | 'sortNew' | 'sortControversial' | 'sortOld';
+  const SORT_OPTIONS: { value: SortBy; key: SortOptionKey }[] = [
+    { value: 'votes', key: 'sortTop' },
+    { value: 'newest', key: 'sortNew' },
+    { value: 'controversial', key: 'sortControversial' },
+    { value: 'oldest', key: 'sortOld' },
   ];
 
   interface Props {
@@ -70,14 +74,14 @@
   <div class="threadkit-toolbar">
     {#if onSortChange}
       <div class="threadkit-sort">
-        <span class="threadkit-sort-label">sorted by:</span>
+        <span class="threadkit-sort-label">{t('sortedBy')}</span>
         {#each SORT_OPTIONS as option}
           <button
             class="threadkit-sort-option"
             class:active={sortBy === option.value}
             onclick={() => onSortChange?.(option.value)}
           >
-            {option.label}
+            {t(option.key)}
           </button>
         {/each}
       </div>
@@ -88,14 +92,14 @@
   </div>
   <div class="threadkit-comments-header">
     <CommentForm
-      placeholder={currentUser ? 'Write a comment...' : 'Sign in to comment'}
+      placeholder={currentUser ? t('writeComment') : t('signInToPost')}
       onSubmit={onPost}
     />
   </div>
 
   {#if comments.length === 0}
     <div class="threadkit-empty">
-      No comments yet. Be the first to comment!
+      {t('noComments')}
     </div>
   {:else}
     <div class="threadkit-comment-list">

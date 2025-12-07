@@ -1,15 +1,19 @@
 <script lang="ts">
   import type { Comment, User, UserProfile, ThreadKitPlugin } from '@threadkit/core';
   import { renderMarkdown, formatTime } from '../utils/markdown';
+  import { getTranslation } from '../i18n';
   import UserHoverCard from './UserHoverCard.svelte';
 
-  const REPORT_REASONS = [
-    'Spam',
-    'Harassment',
-    'Hate speech',
-    'Misinformation',
-    'Other',
-  ] as const;
+  const t = getTranslation();
+
+  type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
+  const REPORT_REASON_KEYS: ReportReasonKey[] = [
+    'reportSpam',
+    'reportHarassment',
+    'reportHateSpeech',
+    'reportMisinformation',
+    'reportOther',
+  ];
 
   interface Props {
     message: Comment;
@@ -103,13 +107,13 @@
         onclick={handleSaveEdit}
         disabled={!currentEditText.trim()}
       >
-        save
+        {t('save')}
       </button>
       <button
         class="threadkit-cancel-btn"
         onclick={handleCancelEdit}
       >
-        cancel
+        {t('cancel')}
       </button>
     </div>
   </div>
@@ -153,14 +157,14 @@
                 isEditing = true;
               }}
             >
-              edit
+              {t('edit')}
             </button>
           {/if}
 
           {#if onDelete}
             {#if confirmingAction === 'delete'}
               <span class="threadkit-confirm-inline">
-                delete?
+                {t('deleteConfirm')}
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-yes"
                   onclick={(e) => {
@@ -169,7 +173,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  yes
+                  {t('yes')}
                 </button>
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-no"
@@ -178,7 +182,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  no
+                  {t('no')}
                 </button>
               </span>
             {:else}
@@ -189,7 +193,7 @@
                   confirmingAction = 'delete';
                 }}
               >
-                delete
+                {t('delete')}
               </button>
             {/if}
           {/if}
@@ -198,7 +202,7 @@
           {#if onBlock}
             {#if confirmingAction === 'block'}
               <span class="threadkit-confirm-inline">
-                block user?
+                {t('blockConfirm')}
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-yes"
                   onclick={(e) => {
@@ -207,7 +211,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  yes
+                  {t('yes')}
                 </button>
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-no"
@@ -216,7 +220,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  no
+                  {t('no')}
                 </button>
               </span>
             {:else}
@@ -227,23 +231,23 @@
                   confirmingAction = 'block';
                 }}
               >
-                block
+                {t('block')}
               </button>
             {/if}
           {/if}
 
           {#if onReport}
             {#if reportSubmitted}
-              <span class="threadkit-report-thanks">thanks!</span>
+              <span class="threadkit-report-thanks">{t('reportSubmitted')}</span>
             {:else if showReportForm}
               <span class="threadkit-report-inline" onclick={(e) => e.stopPropagation()}>
                 <select
                   class="threadkit-report-select"
                   bind:value={reportReason}
                 >
-                  <option value="">select reason...</option>
-                  {#each REPORT_REASONS as reason}
-                    <option value={reason}>{reason}</option>
+                  <option value="">{t('selectReason')}</option>
+                  {#each REPORT_REASON_KEYS as reasonKey}
+                    <option value={reasonKey}>{t(reasonKey)}</option>
                   {/each}
                 </select>
                 <button
@@ -256,7 +260,7 @@
                     reportSubmitted = true;
                   }}
                 >
-                  submit
+                  {t('submit')}
                 </button>
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-no"
@@ -266,7 +270,7 @@
                     reportReason = '';
                   }}
                 >
-                  cancel
+                  {t('cancel')}
                 </button>
               </span>
             {:else}
@@ -277,7 +281,7 @@
                   showReportForm = true;
                 }}
               >
-                report
+                {t('report')}
               </button>
             {/if}
           {/if}
@@ -285,7 +289,7 @@
           {#if isModOrAdmin && onDelete}
             {#if confirmingAction === 'delete'}
               <span class="threadkit-confirm-inline">
-                delete?
+                {t('deleteConfirm')}
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-yes"
                   onclick={(e) => {
@@ -294,7 +298,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  yes
+                  {t('yes')}
                 </button>
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-no"
@@ -303,7 +307,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  no
+                  {t('no')}
                 </button>
               </span>
             {:else}
@@ -314,7 +318,7 @@
                   confirmingAction = 'delete';
                 }}
               >
-                delete
+                {t('delete')}
               </button>
             {/if}
           {/if}
@@ -322,7 +326,7 @@
           {#if isModOrAdmin && onBan}
             {#if confirmingAction === 'ban'}
               <span class="threadkit-confirm-inline">
-                ban user?
+                {t('banConfirm')}
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-yes"
                   onclick={(e) => {
@@ -331,7 +335,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  yes
+                  {t('yes')}
                 </button>
                 <button
                   class="threadkit-confirm-btn threadkit-confirm-no"
@@ -340,7 +344,7 @@
                     confirmingAction = null;
                   }}
                 >
-                  no
+                  {t('no')}
                 </button>
               </span>
             {:else}
@@ -351,7 +355,7 @@
                   confirmingAction = 'ban';
                 }}
               >
-                ban
+                {t('ban')}
               </button>
             {/if}
           {/if}

@@ -50,3 +50,13 @@ export { default as UserHoverCard } from './components/UserHoverCard.svelte';
 // Utilities
 export { renderMarkdown, formatTimestamp, formatTime } from './utils/markdown';
 export type { MarkdownOptions } from './utils/markdown';
+
+// i18n - Translation utilities
+export {
+  setTranslationContext,
+  getTranslation,
+  defaultTranslations,
+  type PartialTranslations,
+  type TranslationStrings,
+  type TranslatorFunction,
+} from './i18n';

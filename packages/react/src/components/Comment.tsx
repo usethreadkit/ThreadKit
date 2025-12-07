@@ -4,14 +4,16 @@ import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
+import { useTranslation } from '../i18n';
 
-const REPORT_REASONS = [
-  'Spam',
-  'Harassment',
-  'Hate speech',
-  'Misinformation',
-  'Other',
-] as const;
+type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
+const REPORT_REASON_KEYS: ReportReasonKey[] = [
+  'reportSpam',
+  'reportHarassment',
+  'reportHateSpeech',
+  'reportMisinformation',
+  'reportOther',
+];
 
 export function Comment({
   comment,
@@ -38,6 +40,7 @@ export function Comment({
   getUserProfile,
   plugins,
 }: CommentProps) {
+  const t = useTranslation();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [confirmingAction, setConfirmingAction] = useState<'block' | 'delete' | 'ban' | null>(null);
@@ -85,7 +88,7 @@ export function Comment({
         <button
           className="threadkit-expand-btn"
           onClick={handleCollapse}
-          title="Expand comment"
+          title={t('expandComment')}
         >
           [+]
         </button>
@@ -97,8 +100,8 @@ export function Comment({
           <span className="threadkit-author">{comment.userName}</span>
         </UserHoverCard>
         <span className="threadkit-collapsed-info">
-          {score} point{score !== 1 ? 's' : ''} · {formatTimestamp(comment.timestamp)}
-          {comment.children.length > 0 && ` · ${comment.children.length} ${comment.children.length === 1 ? 'child' : 'children'}`}
+          {score} {score !== 1 ? t('points') : t('point')} · {formatTimestamp(comment.timestamp)}
+          {comment.children.length > 0 && ` · ${comment.children.length} ${comment.children.length === 1 ? t('child') : t('children')}`}
         </span>
       </div>
     );
@@ -113,14 +116,14 @@ export function Comment({
             <button
               className={`threadkit-vote-btn threadkit-vote-up ${hasUpvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'up')}
-              aria-label="Upvote"
+              aria-label={t('upvote')}
             >
               ▲
             </button>
             <button
               className={`threadkit-vote-btn threadkit-vote-down ${hasDownvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'down')}
-              aria-label="Downvote"
+              aria-label={t('downvote')}
             >
               ▼
             </button>
@@ -140,7 +143,7 @@ export function Comment({
             </UserHoverCard>
 
             <span className="threadkit-score">
-              {score} point{score !== 1 ? 's' : ''}
+              {score} {score !== 1 ? t('points') : t('point')}
               <span className="threadkit-score-breakdown">
                 (+{upvotes}/-{downvotes})
               </span>
@@ -152,26 +155,26 @@ export function Comment({
 
             {comment.edited && <span className="threadkit-edited">*</span>}
 
-            {comment.pinned && <span className="threadkit-pinned">pinned</span>}
+            {comment.pinned && <span className="threadkit-pinned">{t('pinned')}</span>}
 
             <span className="threadkit-header-divider">|</span>
 
             {index > 0 && onPrev && (
               <button className="threadkit-nav-btn" onClick={onPrev}>
-                prev
+                {t('prev')}
               </button>
             )}
 
             {index < totalSiblings - 1 && onNext && (
               <button className="threadkit-nav-btn" onClick={onNext}>
-                next
+                {t('next')}
               </button>
             )}
 
             <button
               className="threadkit-collapse-btn"
               onClick={handleCollapse}
-              title="Collapse comment"
+              title={t('collapseComment')}
             >
               [–]
             </button>
@@ -194,13 +197,13 @@ export function Comment({
                     onClick={handleSaveEdit}
                     disabled={!editText.trim()}
                   >
-                    save
+                    {t('save')}
                   </button>
                   <button
                     className="threadkit-cancel-btn"
                     onClick={handleCancelEdit}
                   >
-                    cancel
+                    {t('cancel')}
                   </button>
                 </div>
               </div>
@@ -234,7 +237,7 @@ export function Comment({
                   }
                 }}
               >
-                share
+                {t('share')}
               </button>
 
               {/* Own comment actions: edit, reply, delete */}
@@ -245,7 +248,7 @@ export function Comment({
                       className="threadkit-action-btn"
                       onClick={() => setIsEditing(true)}
                     >
-                      edit
+                      {t('edit')}
                     </button>
                   )}
 
@@ -254,14 +257,14 @@ export function Comment({
                       className="threadkit-action-btn"
                       onClick={() => setShowReplyForm(!showReplyForm)}
                     >
-                      reply
+                      {t('reply')}
                     </button>
                   )}
 
                   {onDelete && (
                     confirmingAction === 'delete' ? (
                       <span className="threadkit-confirm-inline">
-                        delete?
+                        {t('deleteConfirm')}
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-yes"
                           onClick={() => {
@@ -269,13 +272,13 @@ export function Comment({
                             setConfirmingAction(null);
                           }}
                         >
-                          yes
+                          {t('yes')}
                         </button>
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-no"
                           onClick={() => setConfirmingAction(null)}
                         >
-                          no
+                          {t('no')}
                         </button>
                       </span>
                     ) : (
@@ -283,7 +286,7 @@ export function Comment({
                         className="threadkit-action-btn"
                         onClick={() => setConfirmingAction('delete')}
                       >
-                        delete
+                        {t('delete')}
                       </button>
                     )
                   )}
@@ -294,7 +297,7 @@ export function Comment({
                   {currentUser && onBlock && (
                     confirmingAction === 'block' ? (
                       <span className="threadkit-confirm-inline">
-                        block user?
+                        {t('blockConfirm')}
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-yes"
                           onClick={() => {
@@ -302,13 +305,13 @@ export function Comment({
                             setConfirmingAction(null);
                           }}
                         >
-                          yes
+                          {t('yes')}
                         </button>
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-no"
                           onClick={() => setConfirmingAction(null)}
                         >
-                          no
+                          {t('no')}
                         </button>
                       </span>
                     ) : (
@@ -316,14 +319,14 @@ export function Comment({
                         className="threadkit-action-btn"
                         onClick={() => setConfirmingAction('block')}
                       >
-                        block
+                        {t('block')}
                       </button>
                     )
                   )}
 
                   {currentUser && onReport && (
                     reportSubmitted ? (
-                      <span className="threadkit-report-thanks">thanks!</span>
+                      <span className="threadkit-report-thanks">{t('reportSubmitted')}</span>
                     ) : showReportForm ? (
                       <span className="threadkit-report-inline">
                         <select
@@ -331,10 +334,10 @@ export function Comment({
                           value={reportReason}
                           onChange={(e) => setReportReason(e.target.value)}
                         >
-                          <option value="">select reason...</option>
-                          {REPORT_REASONS.map((reason) => (
-                            <option key={reason} value={reason}>
-                              {reason}
+                          <option value="">{t('selectReason')}</option>
+                          {REPORT_REASON_KEYS.map((reasonKey) => (
+                            <option key={reasonKey} value={reasonKey}>
+                              {t(reasonKey)}
                             </option>
                           ))}
                         </select>
@@ -347,7 +350,7 @@ export function Comment({
                             setReportSubmitted(true);
                           }}
                         >
-                          submit
+                          {t('submit')}
                         </button>
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-no"
@@ -356,7 +359,7 @@ export function Comment({
                             setReportReason('');
                           }}
                         >
-                          cancel
+                          {t('cancel')}
                         </button>
                       </span>
                     ) : (
@@ -364,7 +367,7 @@ export function Comment({
                         className="threadkit-action-btn"
                         onClick={() => setShowReportForm(true)}
                       >
-                        report
+                        {t('report')}
                       </button>
                     )
                   )}
@@ -374,14 +377,14 @@ export function Comment({
                       className="threadkit-action-btn"
                       onClick={() => setShowReplyForm(!showReplyForm)}
                     >
-                      reply
+                      {t('reply')}
                     </button>
                   )}
 
                   {isModOrAdmin && onDelete && (
                     confirmingAction === 'delete' ? (
                       <span className="threadkit-confirm-inline">
-                        delete?
+                        {t('deleteConfirm')}
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-yes"
                           onClick={() => {
@@ -389,13 +392,13 @@ export function Comment({
                             setConfirmingAction(null);
                           }}
                         >
-                          yes
+                          {t('yes')}
                         </button>
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-no"
                           onClick={() => setConfirmingAction(null)}
                         >
-                          no
+                          {t('no')}
                         </button>
                       </span>
                     ) : (
@@ -403,7 +406,7 @@ export function Comment({
                         className="threadkit-action-btn threadkit-mod-action"
                         onClick={() => setConfirmingAction('delete')}
                       >
-                        delete
+                        {t('delete')}
                       </button>
                     )
                   )}
@@ -411,7 +414,7 @@ export function Comment({
                   {isModOrAdmin && onBan && (
                     confirmingAction === 'ban' ? (
                       <span className="threadkit-confirm-inline">
-                        ban user?
+                        {t('banConfirm')}
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-yes"
                           onClick={() => {
@@ -419,13 +422,13 @@ export function Comment({
                             setConfirmingAction(null);
                           }}
                         >
-                          yes
+                          {t('yes')}
                         </button>
                         <button
                           className="threadkit-confirm-btn threadkit-confirm-no"
                           onClick={() => setConfirmingAction(null)}
                         >
-                          no
+                          {t('no')}
                         </button>
                       </span>
                     ) : (
@@ -433,7 +436,7 @@ export function Comment({
                         className="threadkit-action-btn threadkit-mod-action"
                         onClick={() => setConfirmingAction('ban')}
                       >
-                        ban
+                        {t('ban')}
                       </button>
                     )
                   )}
@@ -447,7 +450,7 @@ export function Comment({
             <div className="threadkit-reply-form">
               <CommentForm
                 parentId={comment.id}
-                placeholder="Write a reply..."
+                placeholder={t('writeReply')}
                 onSubmit={handleReply}
                 onCancel={() => setShowReplyForm(false)}
               />

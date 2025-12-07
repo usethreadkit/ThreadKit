@@ -1,7 +1,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { Comment, User, UserProfile, ThreadKitPlugin } from '@threadkit/core';
+  import { getTranslation } from '../i18n';
   import ChatMessage from './ChatMessage.svelte';
+
+  const t = getTranslation();
 
   interface Props {
     comments: Comment[];
@@ -89,7 +92,7 @@
       type="text"
       value={inputValue}
       oninput={handleInputChange}
-      placeholder={currentUser ? 'Type a message...' : 'Sign in to chat'}
+      placeholder={currentUser ? t('typeMessage') : t('signInToChat')}
       disabled={!currentUser || isSubmitting}
     />
     <button
@@ -97,19 +100,19 @@
       class="threadkit-submit-btn"
       disabled={!currentUser || isSubmitting || !inputValue.trim()}
     >
-      Send
+      {t('send')}
     </button>
   </form>
 
   {#if showPresence}
     <div class="threadkit-chat-presence">
-      {presenceCount} {presenceCount === 1 ? 'person' : 'people'} online
+      {presenceCount === 1 ? t('personOnline', { n: presenceCount }) : t('peopleOnline', { n: presenceCount })}
     </div>
   {/if}
 
   {#if typingUsers.length > 0}
     <div class="threadkit-typing-indicator">
-      {typingUsers.length} {typingUsers.length === 1 ? 'person is' : 'people are'} typing...
+      {typingUsers.length === 1 ? t('personTyping', { n: typingUsers.length }) : t('peopleTyping', { n: typingUsers.length })}
     </div>
   {/if}
 

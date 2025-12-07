@@ -1,38 +1,38 @@
-English
-Spanish
-German
-Japanese
-French
-Portuguese
-Russian
-Italian
-Dutch
-Polish
-Turkish
-Chinese
-Persian
-Vietnamese
-Czech
-Indonesian
-Korean
-Ukrainian
-Hungarian
-Arabic
-Swedish
-Romanian
-Greek
-Danish
-Finnish
-Hebrew
-Slovak
-Thai
-Bulgarian
-Croatian
-Norwegian
-Lithuanian
-Serbian
-Slovenian
-Catalan
-Estonian
-Norwegian
-Latvian
+- [x] English
+- [x] Spanish
+- [x] German
+- [x] Japanese
+- [x] French
+- [x] Portuguese
+- [x] Russian
+- [x] Italian
+- [x] Dutch
+- [x] Polish
+- [x] Turkish
+- [x] Chinese
+- [x] Persian
+- [x] Vietnamese
+- [x] Czech
+- [x] Indonesian
+- [x] Korean
+- [x] Ukrainian
+- [x] Hungarian
+- [x] Arabic
+- [x] Swedish
+- [x] Romanian
+- [ ] Greek
+- [ ] Danish
+- [ ] Finnish
+- [ ] Hebrew
+- [ ] Slovak
+- [ ] Thai
+- [ ] Bulgarian
+- [ ] Croatian
+- [ ] Norwegian
+- [ ] Lithuanian
+- [ ] Serbian
+- [ ] Slovenian
+- [ ] Catalan
+- [ ] Estonian
+- [ ] Norwegian
+- [ ] Latvian

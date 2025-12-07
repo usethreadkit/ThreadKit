@@ -1,18 +1,22 @@
 <script lang="ts">
   import type { Comment as CommentType, User, UserProfile, ThreadKitPlugin } from '@threadkit/core';
   import { renderMarkdown, formatTimestamp } from '../utils/markdown';
+  import { getTranslation } from '../i18n';
   import CommentForm from './CommentForm.svelte';
   import UserHoverCard from './UserHoverCard.svelte';
   // Self-import for recursive rendering
   import Comment from './Comment.svelte';
 
-  const REPORT_REASONS = [
-    'Spam',
-    'Harassment',
-    'Hate speech',
-    'Misinformation',
-    'Other',
-  ] as const;
+  const t = getTranslation();
+
+  type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
+  const REPORT_REASON_KEYS: ReportReasonKey[] = [
+    'reportSpam',
+    'reportHarassment',
+    'reportHateSpeech',
+    'reportMisinformation',
+    'reportOther',
+  ];
 
   interface Props {
     comment: CommentType;
@@ -124,10 +128,6 @@
     localEditText = value;
   }
 
-  function handleFormSubmit(e: CustomEvent<{ text: string; parentId?: string }>) {
-    handleReply();
-  }
-
   function handleFormCancel() {
     showReplyForm = false;
   }
@@ -142,7 +142,7 @@
     <button
       class="threadkit-expand-btn"
       onclick={handleCollapse}
-      title="Expand comment"
+      title={t('expandComment')}
     >
       [+]
     </button>
@@ -156,9 +156,9 @@
       {/snippet}
     </UserHoverCard>
     <span class="threadkit-collapsed-info">
-      {score} point{score !== 1 ? 's' : ''} &middot; {formatTimestamp(comment.timestamp)}
+      {score} {score !== 1 ? t('points') : t('point')} &middot; {formatTimestamp(comment.timestamp)}
       {#if comment.children.length > 0}
-        &middot; {comment.children.length} {comment.children.length === 1 ? 'child' : 'children'}
+        &middot; {comment.children.length} {comment.children.length === 1 ? t('child') : t('children')}
       {/if}
     </span>
   </div>
@@ -177,7 +177,7 @@
             class="threadkit-vote-btn threadkit-vote-up"
             class:active={hasUpvoted}
             onclick={() => onVote?.(comment.id, 'up')}
-            aria-label="Upvote"
+            aria-label={t('upvote')}
           >
             &#9650;
           </button>
@@ -185,7 +185,7 @@
             class="threadkit-vote-btn threadkit-vote-down"
             class:active={hasDownvoted}
             onclick={() => onVote?.(comment.id, 'down')}
-            aria-label="Downvote"
+            aria-label={t('downvote')}
           >
             &#9660;
           </button>
@@ -207,7 +207,7 @@
           </UserHoverCard>
 
           <span class="threadkit-score">
-            {score} point{score !== 1 ? 's' : ''}
+            {score} {score !== 1 ? t('points') : t('point')}
             <span class="threadkit-score-breakdown">
               (+{upvotes}/-{downvotes})
             </span>
@@ -222,27 +222,27 @@
           {/if}
 
           {#if comment.pinned}
-            <span class="threadkit-pinned">pinned</span>
+            <span class="threadkit-pinned">{t('pinned')}</span>
           {/if}
 
           <span class="threadkit-header-divider">|</span>
 
           {#if index > 0 && onPrev}
             <button class="threadkit-nav-btn" onclick={onPrev}>
-              prev
+              {t('prev')}
             </button>
           {/if}
 
           {#if index < totalSiblings - 1 && onNext}
             <button class="threadkit-nav-btn" onclick={onNext}>
-              next
+              {t('next')}
             </button>
           {/if}
 
           <button
             class="threadkit-collapse-btn"
             onclick={handleCollapse}
-            title="Collapse comment"
+            title={t('collapseComment')}
           >
             [&ndash;]
           </button>
@@ -264,13 +264,13 @@
                   onclick={handleSaveEdit}
                   disabled={!currentEditText.trim()}
                 >
-                  save
+                  {t('save')}
                 </button>
                 <button
                   class="threadkit-cancel-btn"
                   onclick={handleCancelEdit}
                 >
-                  cancel
+                  {t('cancel')}
                 </button>
               </div>
             </div>
@@ -298,7 +298,7 @@
                 }
               }}
             >
-              share
+              {t('share')}
             </button>
 
             <!-- Own comment actions: edit, reply, delete -->
@@ -308,7 +308,7 @@
                   class="threadkit-action-btn"
                   onclick={() => isEditing = true}
                 >
-                  edit
+                  {t('edit')}
                 </button>
               {/if}
 
@@ -317,14 +317,14 @@
                   class="threadkit-action-btn"
                   onclick={() => showReplyForm = !showReplyForm}
                 >
-                  reply
+                  {t('reply')}
                 </button>
               {/if}
 
               {#if onDelete}
                 {#if confirmingAction === 'delete'}
                   <span class="threadkit-confirm-inline">
-                    delete?
+                    {t('deleteConfirm')}
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-yes"
                       onclick={() => {
@@ -332,13 +332,13 @@
                         confirmingAction = null;
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-no"
                       onclick={() => confirmingAction = null}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 {:else}
@@ -346,7 +346,7 @@
                     class="threadkit-action-btn"
                     onclick={() => confirmingAction = 'delete'}
                   >
-                    delete
+                    {t('delete')}
                   </button>
                 {/if}
               {/if}
@@ -355,7 +355,7 @@
               {#if currentUser && onBlock}
                 {#if confirmingAction === 'block'}
                   <span class="threadkit-confirm-inline">
-                    block user?
+                    {t('blockConfirm')}
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-yes"
                       onclick={() => {
@@ -363,13 +363,13 @@
                         confirmingAction = null;
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-no"
                       onclick={() => confirmingAction = null}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 {:else}
@@ -377,23 +377,23 @@
                     class="threadkit-action-btn"
                     onclick={() => confirmingAction = 'block'}
                   >
-                    block
+                    {t('block')}
                   </button>
                 {/if}
               {/if}
 
               {#if currentUser && onReport}
                 {#if reportSubmitted}
-                  <span class="threadkit-report-thanks">thanks!</span>
+                  <span class="threadkit-report-thanks">{t('reportSubmitted')}</span>
                 {:else if showReportForm}
                   <span class="threadkit-report-inline">
                     <select
                       class="threadkit-report-select"
                       bind:value={reportReason}
                     >
-                      <option value="">select reason...</option>
-                      {#each REPORT_REASONS as reason}
-                        <option value={reason}>{reason}</option>
+                      <option value="">{t('selectReason')}</option>
+                      {#each REPORT_REASON_KEYS as reasonKey}
+                        <option value={reasonKey}>{t(reasonKey)}</option>
                       {/each}
                     </select>
                     <button
@@ -405,7 +405,7 @@
                         reportSubmitted = true;
                       }}
                     >
-                      submit
+                      {t('submit')}
                     </button>
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-no"
@@ -414,7 +414,7 @@
                         reportReason = '';
                       }}
                     >
-                      cancel
+                      {t('cancel')}
                     </button>
                   </span>
                 {:else}
@@ -422,7 +422,7 @@
                     class="threadkit-action-btn"
                     onclick={() => showReportForm = true}
                   >
-                    report
+                    {t('report')}
                   </button>
                 {/if}
               {/if}
@@ -432,14 +432,14 @@
                   class="threadkit-action-btn"
                   onclick={() => showReplyForm = !showReplyForm}
                 >
-                  reply
+                  {t('reply')}
                 </button>
               {/if}
 
               {#if isModOrAdmin && onDelete}
                 {#if confirmingAction === 'delete'}
                   <span class="threadkit-confirm-inline">
-                    delete?
+                    {t('deleteConfirm')}
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-yes"
                       onclick={() => {
@@ -447,13 +447,13 @@
                         confirmingAction = null;
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-no"
                       onclick={() => confirmingAction = null}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 {:else}
@@ -461,7 +461,7 @@
                     class="threadkit-action-btn threadkit-mod-action"
                     onclick={() => confirmingAction = 'delete'}
                   >
-                    delete
+                    {t('delete')}
                   </button>
                 {/if}
               {/if}
@@ -469,7 +469,7 @@
               {#if isModOrAdmin && onBan}
                 {#if confirmingAction === 'ban'}
                   <span class="threadkit-confirm-inline">
-                    ban user?
+                    {t('banConfirm')}
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-yes"
                       onclick={() => {
@@ -477,13 +477,13 @@
                         confirmingAction = null;
                       }}
                     >
-                      yes
+                      {t('yes')}
                     </button>
                     <button
                       class="threadkit-confirm-btn threadkit-confirm-no"
                       onclick={() => confirmingAction = null}
                     >
-                      no
+                      {t('no')}
                     </button>
                   </span>
                 {:else}
@@ -491,7 +491,7 @@
                     class="threadkit-action-btn threadkit-mod-action"
                     onclick={() => confirmingAction = 'ban'}
                   >
-                    ban
+                    {t('ban')}
                   </button>
                 {/if}
               {/if}
@@ -504,10 +504,12 @@
           <div class="threadkit-reply-form">
             <CommentForm
               parentId={comment.id}
-              placeholder="Write a reply..."
+              placeholder={t('writeReply')}
               showCancel={true}
-              on:submit={handleFormSubmit}
-              on:cancel={handleFormCancel}
+              onSubmit={async (text, parentId) => {
+                handleReply();
+              }}
+              onCancel={handleFormCancel}
             />
           </div>
         {/if}

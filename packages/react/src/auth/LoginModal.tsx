@@ -7,6 +7,7 @@ import {
   CloseIcon,
   AUTH_ICONS,
 } from './icons';
+import { useTranslation } from '../i18n';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -15,6 +16,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
+  const t = useTranslation();
   const { state, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
   const [inputValue, setInputValue] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -27,30 +29,26 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
     inputRef.current?.focus();
   }, [state.step]);
 
-  // Handle OAuth popup message
+  // Handle OAuth popup message via BroadcastChannel (avoids COOP issues)
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Verify origin (use base URL without /v1)
-      const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
-      if (!event.origin.includes(new URL(baseUrl).host)) {
-        return;
-      }
+    const channel = new BroadcastChannel('threadkit-auth');
 
+    const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'threadkit:oauth:success') {
         const { token, refresh_token, user } = event.data;
-        // Close popup
-        oauthWindowRef.current?.close();
-        // Handle success through auth context
+        try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
         window.postMessage({ type: 'threadkit:auth:success', token, refresh_token, user }, '*');
       } else if (event.data?.type === 'threadkit:oauth:error') {
-        oauthWindowRef.current?.close();
-        // Handle error
+        try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [apiUrl]);
+    channel.addEventListener('message', handleMessage);
+    return () => {
+      channel.removeEventListener('message', handleMessage);
+      channel.close();
+    };
+  }, []);
 
   const handleMethodSelect = useCallback(
     (method: AuthMethod) => {
@@ -71,12 +69,17 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
 
         // Poll for popup close - reset state if user closes without completing
         const pollTimer = setInterval(() => {
-          if (oauthWindowRef.current?.closed) {
-            clearInterval(pollTimer);
-            // Reset to method selection if popup closed without auth completing
-            if (state.step === 'oauth-pending') {
-              selectMethod(state.availableMethods[0]);
+          try {
+            if (oauthWindowRef.current?.closed) {
+              clearInterval(pollTimer);
+              // Reset to method selection if popup closed without auth completing
+              if (state.step === 'oauth-pending') {
+                selectMethod(state.availableMethods[0]);
+              }
             }
+          } catch (e) {
+            // COOP may block access to window.closed - stop polling
+            clearInterval(pollTimer);
           }
         }, 500);
       }
@@ -134,15 +137,15 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         return (
           <div className="tk-auth-loading">
             <LoadingSpinner className="tk-auth-spinner" />
-            <p>Loading...</p>
+            <p>{t('loading')}</p>
           </div>
         );
 
       case 'methods':
         return (
           <div className="tk-auth-methods">
-            <h2 className="tk-auth-title">Sign in</h2>
-            <p className="tk-auth-subtitle">Choose how you want to sign in</p>
+            <h2 className="tk-auth-title">{t('signIn')}</h2>
+            <p className="tk-auth-subtitle">{t('chooseSignInMethod')}</p>
 
             <div className="tk-auth-method-list">
               {state.availableMethods.map((method) => (
@@ -152,7 +155,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
                   onClick={() => handleMethodSelect(method)}
                 >
                   {getMethodIcon(method)}
-                  <span>Continue with {method.name}</span>
+                  <span>{t('continueWith')} {method.name}</span>
                 </button>
               ))}
             </div>
@@ -164,17 +167,17 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         return (
           <form className="tk-auth-form" onSubmit={handleOtpSubmit}>
             <h2 className="tk-auth-title">
-              {isEmail ? 'Enter your email' : 'Enter your phone number'}
+              {isEmail ? t('enterEmail') : t('enterPhone')}
             </h2>
             <p className="tk-auth-subtitle">
-              We'll send you a code to sign in
+              {t('weWillSendCode')}
             </p>
 
             <input
               ref={inputRef}
               type={isEmail ? 'email' : 'tel'}
               className="tk-auth-input"
-              placeholder={isEmail ? 'you@example.com' : '+1 234 567 8900'}
+              placeholder={isEmail ? t('emailPlaceholder') : t('phonePlaceholder')}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               autoComplete={isEmail ? 'email' : 'tel'}
@@ -189,7 +192,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
               className="tk-auth-submit-btn"
               disabled={!inputValue.trim()}
             >
-              Send code
+              {t('sendCode')}
             </button>
           </form>
         );
@@ -197,16 +200,16 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
       case 'otp-verify':
         return (
           <form className="tk-auth-form" onSubmit={handleVerifySubmit}>
-            <h2 className="tk-auth-title">Check your {state.selectedMethod?.id === 'email' ? 'email' : 'phone'}</h2>
+            <h2 className="tk-auth-title">{state.selectedMethod?.id === 'email' ? t('checkEmail') : t('checkPhone')}</h2>
             <p className="tk-auth-subtitle">
-              Enter the 6-digit code we sent to {state.otpTarget}
+              {t('enterCode')} {state.otpTarget}
             </p>
 
             <input
               ref={inputRef}
               type="text"
               className="tk-auth-input tk-auth-otp-input"
-              placeholder="000000"
+              placeholder={t('otpPlaceholder')}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               autoComplete="one-time-code"
@@ -223,7 +226,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
               className="tk-auth-submit-btn"
               disabled={otpCode.length !== 6}
             >
-              Verify
+              {t('verify')}
             </button>
           </form>
         );
@@ -231,16 +234,16 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
       case 'otp-name':
         return (
           <form className="tk-auth-form" onSubmit={handleNameSubmit}>
-            <h2 className="tk-auth-title">Welcome!</h2>
+            <h2 className="tk-auth-title">{t('welcome')}</h2>
             <p className="tk-auth-subtitle">
-              Choose a display name for your account
+              {t('chooseDisplayName')}
             </p>
 
             <input
               ref={inputRef}
               type="text"
               className="tk-auth-input"
-              placeholder="Your name"
+              placeholder={t('yourName')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
@@ -255,7 +258,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
               className="tk-auth-submit-btn"
               disabled={!name.trim()}
             >
-              Continue
+              {t('continue')}
             </button>
           </form>
         );
@@ -264,8 +267,8 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         return (
           <div className="tk-auth-loading">
             <LoadingSpinner className="tk-auth-spinner" />
-            <p>Completing sign in with {state.selectedMethod?.name}...</p>
-            <p className="tk-auth-subtitle">A popup window should have opened</p>
+            <p>{t('completingSignIn')} {state.selectedMethod?.name}...</p>
+            <p className="tk-auth-subtitle">{t('popupShouldOpen')}</p>
           </div>
         );
 
@@ -274,7 +277,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         return (
           <div className="tk-auth-loading">
             <LoadingSpinner className="tk-auth-spinner" />
-            <p>Connecting to {state.selectedMethod?.name}...</p>
+            <p>{t('connectingTo')} {state.selectedMethod?.name}...</p>
           </div>
         );
 

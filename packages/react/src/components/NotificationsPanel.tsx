@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from '../i18n';
 
 export interface Notification {
   id: string;
@@ -17,15 +18,15 @@ interface NotificationsPanelProps {
   onNotificationClick?: (notification: Notification) => void;
 }
 
-function formatTimeAgo(date: Date): string {
+function formatTimeAgo(date: Date, t: ReturnType<typeof useTranslation>): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return t('justNow');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t('minutesAgo', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return t('daysAgo', { n: days });
   return date.toLocaleDateString();
 }
 
@@ -35,6 +36,7 @@ export function NotificationsPanel({
   onMarkAllRead,
   onNotificationClick,
 }: NotificationsPanelProps) {
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -74,8 +76,8 @@ export function NotificationsPanel({
       <button
         className="threadkit-notifications-btn"
         onClick={handleToggle}
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-        title="Notifications"
+        aria-label={`${t('notifications')}${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
+        title={t('notifications')}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -90,11 +92,11 @@ export function NotificationsPanel({
         <div className="threadkit-notifications-dropdown">
           {/* Mobile header with close button */}
           <div className="threadkit-mobile-header">
-            <span className="threadkit-mobile-title">Notifications</span>
+            <span className="threadkit-mobile-title">{t('notifications')}</span>
             <button
               className="threadkit-mobile-close"
               onClick={handleToggle}
-              aria-label="Close"
+              aria-label={t('close')}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -102,13 +104,13 @@ export function NotificationsPanel({
             </button>
           </div>
           <div className="threadkit-notifications-header">
-            <span className="threadkit-notifications-title">Notifications</span>
+            <span className="threadkit-notifications-title">{t('notifications')}</span>
             {unreadCount > 0 && (
               <button
                 className="threadkit-notifications-mark-all"
                 onClick={onMarkAllRead}
               >
-                Mark all read
+                {t('markAllRead')}
               </button>
             )}
           </div>
@@ -116,7 +118,7 @@ export function NotificationsPanel({
           <div className="threadkit-notifications-list">
             {notifications.length === 0 ? (
               <div className="threadkit-notifications-empty">
-                No notifications yet
+                {t('noNotifications')}
               </div>
             ) : (
               notifications.map((notification) => (
@@ -145,7 +147,7 @@ export function NotificationsPanel({
                   </div>
                   <div className="threadkit-notification-content">
                     <span className="threadkit-notification-message">{notification.message}</span>
-                    <span className="threadkit-notification-time">{formatTimeAgo(notification.timestamp)}</span>
+                    <span className="threadkit-notification-time">{formatTimeAgo(notification.timestamp, t)}</span>
                   </div>
                   {!notification.read && <span className="threadkit-notification-dot" />}
                 </button>

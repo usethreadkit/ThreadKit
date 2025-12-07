@@ -12,7 +12,18 @@ export { zh } from './locales/zh';
 export { ko } from './locales/ko';
 export { it } from './locales/it';
 export { nl } from './locales/nl';
+export { pl } from './locales/pl';
 export { ru } from './locales/ru';
+export { tr } from './locales/tr';
+export { fa } from './locales/fa';
+export { vi } from './locales/vi';
+export { cs } from './locales/cs';
+export { id } from './locales/id';
+export { hu } from './locales/hu';
+export { uk } from './locales/uk';
+export { ar } from './locales/ar';
+export { sv } from './locales/sv';
+export { ro } from './locales/ro';
 
 // Utilities for dynamic language selection
 export { getLocale, locales, supportedLocales } from './utils';

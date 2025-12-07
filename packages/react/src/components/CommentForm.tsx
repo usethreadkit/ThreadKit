@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { CommentFormProps } from '../types';
+import { useTranslation } from '../i18n';
 
 const FORMATTING_HELP = [
   { input: '*italics*', output: 'italics', style: 'italic' },
@@ -12,14 +13,17 @@ const FORMATTING_HELP = [
 
 export function CommentForm({
   parentId,
-  placeholder = 'Write a comment...',
+  placeholder,
   onSubmit,
   onCancel,
 }: CommentFormProps) {
+  const t = useTranslation();
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+
+  const placeholderText = placeholder ?? t('writeComment');
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -35,7 +39,7 @@ export function CommentForm({
         await onSubmit(trimmedText, parentId);
         setText('');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to post comment');
+        setError(err instanceof Error ? err.message : t('failedToPost'));
       } finally {
         setIsSubmitting(false);
       }
@@ -49,7 +53,7 @@ export function CommentForm({
         className="threadkit-textarea"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholderText}
         disabled={isSubmitting}
         rows={3}
       />
@@ -62,7 +66,7 @@ export function CommentForm({
           className="threadkit-submit-btn"
           disabled={isSubmitting || !text.trim()}
         >
-          {isSubmitting ? 'Posting...' : 'Post'}
+          {isSubmitting ? t('posting') : t('post')}
         </button>
         {onCancel && (
           <button
@@ -71,7 +75,7 @@ export function CommentForm({
             onClick={onCancel}
             disabled={isSubmitting}
           >
-            Cancel
+            {t('cancel')}
           </button>
         )}
         <div className="threadkit-form-actions-spacer" />
@@ -80,20 +84,20 @@ export function CommentForm({
           className="threadkit-formatting-help-toggle"
           onClick={() => setShowHelp(!showHelp)}
         >
-          formatting help
+          {t('formattingHelp')}
         </button>
       </div>
 
       {showHelp && (
         <div className="threadkit-formatting-help">
           <div className="threadkit-formatting-help-header">
-            Markdown formatting is supported
+            {t('markdownSupported')}
           </div>
           <table className="threadkit-formatting-help-table">
             <thead>
               <tr>
-                <th>you type:</th>
-                <th>you see:</th>
+                <th>{t('youType')}</th>
+                <th>{t('youSee')}</th>
               </tr>
             </thead>
             <tbody>

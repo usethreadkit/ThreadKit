@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
+import { useTranslation } from '../i18n';
 
 interface SignInPromptProps {
   apiUrl: string;
@@ -8,8 +9,10 @@ interface SignInPromptProps {
   placeholder?: string;
 }
 
-export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...' }: SignInPromptProps) {
+export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps) {
+  const t = useTranslation();
   const { state, login, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
+  const placeholderText = placeholder ?? t('writeComment');
   const [text, setText] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -35,27 +38,32 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
     }
   }, [state.step]);
 
-  // Handle OAuth popup message
+  // Handle OAuth popup message via BroadcastChannel (avoids COOP issues)
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Verify origin (use base URL without /v1)
-      const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
-      if (!event.origin.includes(new URL(baseUrl).host)) {
-        return;
-      }
+    console.log('[ThreadKit SignInPrompt] Setting up BroadcastChannel listener');
+    const channel = new BroadcastChannel('threadkit-auth');
 
+    const handleMessage = (event: MessageEvent) => {
+      console.log('[ThreadKit SignInPrompt] BroadcastChannel message received:', event.data);
       if (event.data?.type === 'threadkit:oauth:success') {
+        console.log('[ThreadKit SignInPrompt] OAuth success received!');
         const { token, refresh_token, user } = event.data;
-        oauthWindowRef.current?.close();
+        try { oauthWindowRef.current?.close(); } catch (e) { console.log('[ThreadKit SignInPrompt] Could not close popup:', e); }
+        console.log('[ThreadKit SignInPrompt] Posting auth success to window');
         window.postMessage({ type: 'threadkit:auth:success', token, refresh_token, user }, '*');
       } else if (event.data?.type === 'threadkit:oauth:error') {
-        oauthWindowRef.current?.close();
+        console.log('[ThreadKit SignInPrompt] OAuth error received:', event.data.error);
+        try { oauthWindowRef.current?.close(); } catch (e) { /* COOP may block this */ }
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [apiUrl]);
+    channel.addEventListener('message', handleMessage);
+    return () => {
+      console.log('[ThreadKit SignInPrompt] Cleaning up BroadcastChannel listener');
+      channel.removeEventListener('message', handleMessage);
+      channel.close();
+    };
+  }, []);
 
   const handleBack = useCallback(() => {
     setShowAuthMethods(true);
@@ -80,12 +88,17 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
 
         // Poll for popup close - reset state if user closes without completing
         const pollTimer = setInterval(() => {
-          if (oauthWindowRef.current?.closed) {
-            clearInterval(pollTimer);
-            // Reset to method selection if popup closed without auth completing
-            if (state.step === 'oauth-pending') {
-              handleBack();
+          try {
+            if (oauthWindowRef.current?.closed) {
+              clearInterval(pollTimer);
+              // Reset to method selection if popup closed without auth completing
+              if (state.step === 'oauth-pending') {
+                handleBack();
+              }
             }
+          } catch (e) {
+            // COOP may block access to window.closed - stop polling
+            clearInterval(pollTimer);
           }
         }, 500);
       }
@@ -144,13 +157,13 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
       <div className="threadkit-form">
         <form onSubmit={handleOtpSubmit} className="threadkit-signin-otp-form">
           <button type="button" className="threadkit-signin-back" onClick={handleBack}>
-            ← Back
+            ← {t('back')}
           </button>
           <input
             ref={inputRef}
             type={isEmail ? 'email' : 'tel'}
             className="threadkit-signin-input"
-            placeholder={isEmail ? 'Enter your email' : 'Enter your phone number'}
+            placeholder={isEmail ? t('enterEmail') : t('enterPhone')}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             autoComplete={isEmail ? 'email' : 'tel'}
@@ -160,7 +173,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
             className="threadkit-submit-btn"
             disabled={!inputValue.trim()}
           >
-            Send code
+            {t('sendCode')}
           </button>
         </form>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
@@ -174,14 +187,14 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
       <div className="threadkit-form">
         <form onSubmit={handleVerifySubmit} className="threadkit-signin-otp-form">
           <button type="button" className="threadkit-signin-back" onClick={handleBack}>
-            ← Back
+            ← {t('back')}
           </button>
-          <span className="threadkit-signin-hint">Code sent to {state.otpTarget}</span>
+          <span className="threadkit-signin-hint">{t('codeSentTo')} {state.otpTarget}</span>
           <input
             ref={inputRef}
             type="text"
             className="threadkit-signin-input threadkit-signin-code"
-            placeholder="000000"
+            placeholder={t('otpPlaceholder')}
             value={otpCode}
             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             autoComplete="one-time-code"
@@ -193,7 +206,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
             className="threadkit-submit-btn"
             disabled={otpCode.length !== 6}
           >
-            Verify
+            {t('verify')}
           </button>
         </form>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
@@ -206,12 +219,12 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
     return (
       <div className="threadkit-form">
         <form onSubmit={handleNameSubmit} className="threadkit-signin-otp-form">
-          <span className="threadkit-signin-hint">Choose a display name</span>
+          <span className="threadkit-signin-hint">{t('chooseDisplayName')}</span>
           <input
             ref={inputRef}
             type="text"
             className="threadkit-signin-input"
-            placeholder="Your name"
+            placeholder={t('yourName')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
@@ -221,7 +234,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
             className="threadkit-submit-btn"
             disabled={!name.trim()}
           >
-            Continue
+            {t('continue')}
           </button>
         </form>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
@@ -237,16 +250,16 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
           className="threadkit-textarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholderText}
           rows={3}
         />
 
         <div className="threadkit-form-actions">
           <div className="threadkit-signin-loading-inline">
             <LoadingSpinner className="threadkit-signin-spinner-small" />
-            <span>Signing in with {state.selectedMethod?.name}...</span>
+            <span>{t('signingInWith')} {state.selectedMethod?.name}...</span>
             <button type="button" className="threadkit-signin-cancel-inline" onClick={handleBack}>
-              Cancel
+              {t('cancel')}
             </button>
           </div>
         </div>
@@ -261,7 +274,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
         className="threadkit-textarea"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholderText}
         rows={3}
       />
 
@@ -273,7 +286,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
             className="threadkit-submit-btn"
             onClick={handleSignInClick}
           >
-            Sign in to post
+            {t('signInToPost')}
           </button>
         ) : state.step === 'loading' ? (
           // Loading auth methods
@@ -283,13 +296,13 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder = 'Write a comment...
         ) : (
           // Show auth method buttons
           <div className="threadkit-signin-methods-inline">
-            <span className="threadkit-signin-label-inline">Sign in:</span>
+            <span className="threadkit-signin-label-inline">{t('signInLabel')}</span>
             {state.availableMethods.map((method) => (
               <button
                 key={method.id}
                 className="threadkit-signin-method-btn"
                 onClick={() => handleMethodSelect(method)}
-                title={`Sign in with ${method.name}`}
+                title={`${t('continueWith')} ${method.name}`}
               >
                 {getMethodIcon(method)}
               </button>

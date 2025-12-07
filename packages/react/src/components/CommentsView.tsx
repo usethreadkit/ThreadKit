@@ -3,6 +3,7 @@ import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin
 import { Comment } from './Comment';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
+import { useTranslation } from '../i18n';
 
 interface CommentsViewProps {
   comments: CommentType[];
@@ -31,11 +32,12 @@ interface CommentsViewProps {
   plugins?: ThreadKitPlugin[];
 }
 
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'votes', label: 'top' },
-  { value: 'newest', label: 'new' },
-  { value: 'controversial', label: 'controversial' },
-  { value: 'oldest', label: 'old' },
+type SortOptionKey = 'sortTop' | 'sortNew' | 'sortControversial' | 'sortOld';
+const SORT_OPTIONS: { value: SortBy; key: SortOptionKey }[] = [
+  { value: 'votes', key: 'sortTop' },
+  { value: 'newest', key: 'sortNew' },
+  { value: 'controversial', key: 'sortControversial' },
+  { value: 'oldest', key: 'sortOld' },
 ];
 
 export function CommentsView({
@@ -64,6 +66,8 @@ export function CommentsView({
   toolbarEnd,
   plugins,
 }: CommentsViewProps) {
+  const t = useTranslation();
+
   const handleReply = useCallback(
     (parentId: string) => {
       onReplyStart?.(parentId);
@@ -76,14 +80,14 @@ export function CommentsView({
       <div className="threadkit-toolbar">
         {onSortChange && (
           <div className="threadkit-sort">
-            <span className="threadkit-sort-label">sorted by:</span>
+            <span className="threadkit-sort-label">{t('sortedBy')}</span>
             {SORT_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 className={`threadkit-sort-option ${sortBy === option.value ? 'active' : ''}`}
                 onClick={() => onSortChange(option.value)}
               >
-                {option.label}
+                {t(option.key)}
               </button>
             ))}
           </div>
@@ -93,7 +97,7 @@ export function CommentsView({
       <div className="threadkit-comments-header">
         {currentUser ? (
           <CommentForm
-            placeholder="Write a comment..."
+            placeholder={t('writeComment')}
             onSubmit={onPost}
           />
         ) : (
@@ -103,7 +107,7 @@ export function CommentsView({
 
       {comments.length === 0 ? (
         <div className="threadkit-empty">
-          No comments yet. Be the first to comment!
+          {t('noComments')}
         </div>
       ) : (
         <div className="threadkit-comment-list">

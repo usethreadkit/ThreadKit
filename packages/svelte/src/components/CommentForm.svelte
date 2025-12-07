@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { getTranslation } from '../i18n';
+
+  const t = getTranslation();
+
   interface Props {
     parentId?: string;
     placeholder?: string;
@@ -7,7 +11,8 @@
     onCancel?: () => void;
   }
 
-  let { parentId, placeholder = 'Write a comment...', showCancel = false, onSubmit, onCancel }: Props = $props();
+  let { parentId, placeholder, showCancel = false, onSubmit, onCancel }: Props = $props();
+  const placeholderText = placeholder ?? t('writeComment');
 
   let text = $state('');
   let isSubmitting = $state(false);
@@ -36,7 +41,7 @@
       await onSubmit(trimmedText, parentId);
       text = '';
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to post comment';
+      error = err instanceof Error ? err.message : t('failedToPost');
     } finally {
       isSubmitting = false;
     }
@@ -51,7 +56,7 @@
   <textarea
     class="threadkit-textarea"
     bind:value={text}
-    {placeholder}
+    placeholder={placeholderText}
     disabled={isSubmitting}
     rows={3}
   ></textarea>
@@ -66,7 +71,7 @@
       class="threadkit-submit-btn"
       disabled={isSubmitting || !text.trim()}
     >
-      {isSubmitting ? 'Posting...' : 'Post'}
+      {isSubmitting ? t('posting') : t('post')}
     </button>
     {#if showCancel}
       <button
@@ -75,7 +80,7 @@
         onclick={handleCancel}
         disabled={isSubmitting}
       >
-        Cancel
+        {t('cancel')}
       </button>
     {/if}
     <div class="threadkit-form-actions-spacer"></div>
@@ -84,20 +89,20 @@
       class="threadkit-formatting-help-toggle"
       onclick={() => showHelp = !showHelp}
     >
-      formatting help
+      {t('formattingHelp')}
     </button>
   </div>
 
   {#if showHelp}
     <div class="threadkit-formatting-help">
       <div class="threadkit-formatting-help-header">
-        Markdown formatting is supported
+        {t('markdownSupported')}
       </div>
       <table class="threadkit-formatting-help-table">
         <thead>
           <tr>
-            <th>you type:</th>
-            <th>you see:</th>
+            <th>{t('youType')}</th>
+            <th>{t('youSee')}</th>
           </tr>
         </thead>
         <tbody>
