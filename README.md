@@ -248,6 +248,38 @@ ThreadKit includes powerful moderation tools to keep your community safe:
 - **Reports** — Users can report inappropriate content for review
 - **Role-based permissions** — Owner, Admin, Moderator, and User roles with granular permissions
 
+## Accessibility
+
+ThreadKit prioritizes accessibility, especially through its extensive language support. We currently support **38 languages**, enabling a broad global reach for your community.
+
+ThreadKit puts the developer in control of language management, making it trivial to integrate with your application's accessibility strategy.
+
+-   **Developer-Controlled Language**: You can easily load one of our 38 supported language packs from `@threadkit/i18n` and pass it directly to the `ThreadKit` component via the `translations` prop. This allows you to implement your preferred language detection strategy (e.g., based on user preferences, browser settings, or site configuration).
+-   **Full String Customization**: The `translations` prop also enables you to override any string used within ThreadKit components, giving you complete control over the displayed text.
+
+### Example: Setting Language
+
+```tsx
+import { ThreadKit } from '@threadkit/react';
+import { locales, type LocaleCode } from '@threadkit/i18n';
+import '@threadkit/react/styles';
+
+function App() {
+  // Determine the desired locale (e.g., from user settings, browser, or a dropdown)
+  const currentLocale: LocaleCode = 'es'; // Example: Spanish
+
+  return (
+    <ThreadKit
+      apiKey="your-api-key"
+      pageId="unique-page-id"
+      translations={locales[currentLocale]}
+    />
+  );
+}
+```
+
+For a complete working example, see [`examples/with-i18n`](./examples/with-i18n).
+
 ## Self-Hosting
 
 ThreadKit can be fully self-hosted. The server is written in Rust for performance. **Redis is the only dependency.**
