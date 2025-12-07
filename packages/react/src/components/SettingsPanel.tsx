@@ -23,11 +23,6 @@ interface SettingsPanelProps {
   onDeleteAccount: () => void;
 }
 
-const AVATAR_SEEDS = [
-  'Felix', 'Aneka', 'Milo', 'Jasper', 'Luna', 'Zoe', 'Leo', 'Aria',
-  'Max', 'Ivy', 'Oscar', 'Ruby', 'Charlie', 'Willow', 'Jack', 'Olive',
-];
-
 const DELETE_HOLD_SECONDS = 15;
 
 const DEFAULT_API_URL = 'https://api.usethreadkit.com';
@@ -309,36 +304,6 @@ export function SettingsPanel({
                     </span>
                   )}
                 </div>
-              </div>
-
-              {/* Avatar Selection */}
-              <div className="threadkit-settings-section">
-                <button
-                  className="threadkit-settings-item"
-                  onClick={() => setActiveSection(activeSection === 'avatar' ? null : 'avatar')}
-                >
-                  {t('changeAvatar')}
-                  <span className="threadkit-settings-arrow">{activeSection === 'avatar' ? '▲' : '▼'}</span>
-                </button>
-                {activeSection === 'avatar' && (
-                  <div className="threadkit-avatar-grid">
-                    {AVATAR_SEEDS.map((seed) => (
-                      <button
-                        key={seed}
-                        className="threadkit-avatar-option"
-                        onClick={() => {
-                          onUpdateAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
-                          setActiveSection(null);
-                        }}
-                      >
-                        <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
-                          alt={seed}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Theme Toggle */}

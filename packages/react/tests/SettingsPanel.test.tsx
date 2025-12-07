@@ -203,69 +203,7 @@ describe('SettingsPanel', () => {
     });
   });
 
-  describe('avatar selection', () => {
-    it('shows avatar grid when expanded', async () => {
-      render(
-        <SettingsPanel
-          currentUser={mockUser}
-          theme="light"
-          blockedUsers={[]}
-          onLogin={vi.fn()}
-          onLogout={vi.fn()}
-          onUpdateAvatar={vi.fn()}
-          onUpdateName={vi.fn()}
-          onUnblock={vi.fn()}
-          onThemeChange={vi.fn()}
-          onDeleteAccount={vi.fn()}
-        />
-      );
 
-      await act(async () => {
-        fireEvent.click(screen.getByTitle('Settings'));
-      });
-
-      await act(async () => {
-        fireEvent.click(screen.getByText('Change avatar'));
-      });
-
-      // Should show avatar options
-      const avatarOptions = document.querySelectorAll('.threadkit-avatar-option');
-      expect(avatarOptions.length).toBeGreaterThan(0);
-    });
-
-    it('calls onUpdateAvatar when avatar is selected', async () => {
-      const onUpdateAvatar = vi.fn();
-      render(
-        <SettingsPanel
-          currentUser={mockUser}
-          theme="light"
-          blockedUsers={[]}
-          onLogin={vi.fn()}
-          onLogout={vi.fn()}
-          onUpdateAvatar={onUpdateAvatar}
-          onUpdateName={vi.fn()}
-          onUnblock={vi.fn()}
-          onThemeChange={vi.fn()}
-          onDeleteAccount={vi.fn()}
-        />
-      );
-
-      await act(async () => {
-        fireEvent.click(screen.getByTitle('Settings'));
-      });
-
-      await act(async () => {
-        fireEvent.click(screen.getByText('Change avatar'));
-      });
-
-      const avatarOptions = document.querySelectorAll('.threadkit-avatar-option');
-      await act(async () => {
-        fireEvent.click(avatarOptions[0]);
-      });
-
-      expect(onUpdateAvatar).toHaveBeenCalledWith(expect.stringContaining('dicebear'));
-    });
-  });
 
   describe('name editing', () => {
     it('enters edit mode when edit button is clicked', async () => {
