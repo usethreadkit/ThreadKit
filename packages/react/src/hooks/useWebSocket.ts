@@ -1,28 +1,62 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { WebSocketClient, type Comment, type WebSocketState } from '@threadkit/core';
+import { WebSocketClient, type Comment, type WebSocketState, type WsUser, type TypingUser } from '@threadkit/core';
 
 interface UseWebSocketOptions {
-  url: string;
-  apiUrl: string;
+  /** WebSocket server URL */
+  wsUrl: string;
+  /** API key for authentication */
+  apiKey: string;
+  /** Page ID to subscribe to */
+  pageId: string;
+  /** Whether WebSocket is enabled */
   enabled?: boolean;
-  onCommentAdded?: (comment: Comment) => void;
-  onCommentDeleted?: (commentId: string) => void;
-  onCommentEdited?: (commentId: string, text: string) => void;
-  onCommentPinned?: (commentId: string, pinned: boolean) => void;
-  onUserBanned?: (userId: string) => void;
-  onTyping?: (userId: string, userName: string) => void;
-  onPresenceUpdate?: (count: number) => void;
+  /** Callback when a new comment is received */
+  onCommentAdded?: (pageId: string, comment: Comment) => void;
+  /** Callback when a comment is deleted */
+  onCommentDeleted?: (pageId: string, commentId: string) => void;
+  /** Callback when a comment is edited */
+  onCommentEdited?: (pageId: string, commentId: string, text: string, textHtml: string) => void;
+  /** Callback when a comment's votes are updated */
+  onVoteUpdated?: (pageId: string, commentId: string, upvotes: number, downvotes: number) => void;
+  /** Callback when presence list is received */
+  onPresenceList?: (pageId: string, users: WsUser[]) => void;
+  /** Callback when a user joins */
+  onUserJoined?: (pageId: string, user: WsUser) => void;
+  /** Callback when a user leaves */
+  onUserLeft?: (pageId: string, userId: string) => void;
+  /** Callback when a user is typing */
+  onTyping?: (pageId: string, user: WsUser, replyTo?: string) => void;
+  /** Callback when a notification is received */
+  onNotification?: (type: string, commentId: string, fromUser: WsUser) => void;
+  /** Callback when an error occurs */
+  onError?: (code: string, message: string) => void;
   /**
-   * @deprecated siteId is no longer needed - site is derived from token
+   * @deprecated Use wsUrl instead
+   */
+  apiUrl?: string;
+  /**
+   * @deprecated Use pageId instead
+   */
+  url?: string;
+  /**
+   * @deprecated siteId is no longer needed
    */
   siteId?: string;
 }
 
 interface UseWebSocketReturn {
+  /** Whether connected to WebSocket server */
   connected: boolean;
+  /** Number of users currently viewing the page */
   presenceCount: number;
-  typingUsers: Array<{ userId: string; userName: string }>;
-  sendTyping: () => void;
+  /** List of users currently typing (page-level, for backwards compatibility) */
+  typingUsers: TypingUser[];
+  /** Users typing organized by comment ID (null key = root-level typing) */
+  typingByComment: Map<string | null, TypingUser[]>;
+  /** Send a typing indicator */
+  sendTyping: (replyTo?: string) => void;
+  /** Send a ping to keep connection alive */
+  sendPing: () => void;
 }
 
 /**
@@ -30,24 +64,36 @@ interface UseWebSocketReturn {
  * Thin wrapper around @threadkit/core WebSocketClient.
  */
 export function useWebSocket({
-  url,
-  apiUrl,
+  wsUrl,
+  apiKey,
+  pageId,
   enabled = true,
   onCommentAdded,
   onCommentDeleted,
   onCommentEdited,
-  onCommentPinned,
-  onUserBanned,
+  onVoteUpdated,
+  onPresenceList,
+  onUserJoined,
+  onUserLeft,
   onTyping,
-  onPresenceUpdate,
+  onNotification,
+  onError,
+  // Deprecated props for backwards compatibility
+  apiUrl,
+  url,
 }: UseWebSocketOptions): UseWebSocketReturn {
   // Create client once using ref
   const clientRef = useRef<WebSocketClient | null>(null);
 
-  if (!clientRef.current) {
+  // Compute effective wsUrl (support deprecated apiUrl)
+  const effectiveWsUrl = wsUrl || apiUrl?.replace(/^http/, 'ws') || '';
+  const effectivePageId = pageId || url || '';
+
+  if (!clientRef.current && effectiveWsUrl && apiKey && effectivePageId) {
     clientRef.current = new WebSocketClient({
-      apiUrl,
-      url,
+      wsUrl: effectiveWsUrl,
+      apiKey,
+      pageId: effectivePageId,
       getToken: () => localStorage.getItem('threadkit_token'),
     });
   }
@@ -55,17 +101,22 @@ export function useWebSocket({
   const client = clientRef.current;
 
   // Subscribe to state changes
-  const [state, setState] = useState<WebSocketState>(client.getState());
+  const [state, setState] = useState<WebSocketState>(
+    client?.getState() ?? { connected: false, presenceCount: 0, typingUsers: [], typingByComment: new Map() }
+  );
 
   // Store callbacks in refs to avoid reconnection on callback changes
   const callbacksRef = useRef({
     onCommentAdded,
     onCommentDeleted,
     onCommentEdited,
-    onCommentPinned,
-    onUserBanned,
+    onVoteUpdated,
+    onPresenceList,
+    onUserJoined,
+    onUserLeft,
     onTyping,
-    onPresenceUpdate,
+    onNotification,
+    onError,
   });
 
   // Update refs when callbacks change
@@ -74,16 +125,19 @@ export function useWebSocket({
       onCommentAdded,
       onCommentDeleted,
       onCommentEdited,
-      onCommentPinned,
-      onUserBanned,
+      onVoteUpdated,
+      onPresenceList,
+      onUserJoined,
+      onUserLeft,
       onTyping,
-      onPresenceUpdate,
+      onNotification,
+      onError,
     };
   });
 
   useEffect(() => {
-    if (!enabled) {
-      client.disconnect();
+    if (!enabled || !client) {
+      client?.disconnect();
       return;
     }
 
@@ -91,24 +145,44 @@ export function useWebSocket({
     const unsubState = client.on('stateChange', setState);
 
     // Subscribe to events and forward to callbacks
-    const unsubAdded = client.on('commentAdded', (comment) => {
-      callbacksRef.current.onCommentAdded?.(comment);
+    const unsubAdded = client.on('commentAdded', ({ pageId, comment }) => {
+      callbacksRef.current.onCommentAdded?.(pageId, comment);
     });
 
-    const unsubDeleted = client.on('commentDeleted', ({ commentId }) => {
-      callbacksRef.current.onCommentDeleted?.(commentId);
+    const unsubDeleted = client.on('commentDeleted', ({ pageId, commentId }) => {
+      callbacksRef.current.onCommentDeleted?.(pageId, commentId);
     });
 
-    const unsubEdited = client.on('commentEdited', ({ commentId, text }) => {
-      callbacksRef.current.onCommentEdited?.(commentId, text);
+    const unsubEdited = client.on('commentEdited', ({ pageId, commentId, text, textHtml }) => {
+      callbacksRef.current.onCommentEdited?.(pageId, commentId, text, textHtml);
     });
 
-    const unsubPinned = client.on('commentPinned', ({ commentId, pinned }) => {
-      callbacksRef.current.onCommentPinned?.(commentId, pinned);
+    const unsubVote = client.on('voteUpdated', ({ pageId, commentId, upvotes, downvotes }) => {
+      callbacksRef.current.onVoteUpdated?.(pageId, commentId, upvotes, downvotes);
     });
 
-    const unsubBanned = client.on('userBanned', ({ userId }) => {
-      callbacksRef.current.onUserBanned?.(userId);
+    const unsubPresence = client.on('presenceList', ({ pageId, users }) => {
+      callbacksRef.current.onPresenceList?.(pageId, users);
+    });
+
+    const unsubJoined = client.on('userJoined', ({ pageId, user }) => {
+      callbacksRef.current.onUserJoined?.(pageId, user);
+    });
+
+    const unsubLeft = client.on('userLeft', ({ pageId, userId }) => {
+      callbacksRef.current.onUserLeft?.(pageId, userId);
+    });
+
+    const unsubTyping = client.on('userTyping', ({ pageId, user, replyTo }) => {
+      callbacksRef.current.onTyping?.(pageId, user, replyTo);
+    });
+
+    const unsubNotification = client.on('notification', ({ type, commentId, fromUser }) => {
+      callbacksRef.current.onNotification?.(type, commentId, fromUser);
+    });
+
+    const unsubError = client.on('error', ({ code, message }) => {
+      callbacksRef.current.onError?.(code, message);
     });
 
     // Connect
@@ -119,24 +193,15 @@ export function useWebSocket({
       unsubAdded();
       unsubDeleted();
       unsubEdited();
-      unsubPinned();
-      unsubBanned();
+      unsubVote();
+      unsubPresence();
+      unsubJoined();
+      unsubLeft();
+      unsubTyping();
+      unsubNotification();
+      unsubError();
     };
   }, [client, enabled]);
-
-  // Forward typing events (includes both state update and callback)
-  useEffect(() => {
-    // The state already includes typingUsers, so we just need to call the callback
-    if (onTyping && state.typingUsers.length > 0) {
-      const lastUser = state.typingUsers[state.typingUsers.length - 1];
-      onTyping(lastUser.userId, lastUser.userName);
-    }
-  }, [state.typingUsers, onTyping]);
-
-  // Forward presence updates
-  useEffect(() => {
-    onPresenceUpdate?.(state.presenceCount);
-  }, [state.presenceCount, onPresenceUpdate]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -145,14 +210,23 @@ export function useWebSocket({
     };
   }, []);
 
-  const sendTyping = useCallback(() => {
-    client.sendTyping();
+  const sendTyping = useCallback(
+    (replyTo?: string) => {
+      client?.sendTyping(replyTo);
+    },
+    [client]
+  );
+
+  const sendPing = useCallback(() => {
+    client?.sendPing();
   }, [client]);
 
   return {
     connected: state.connected,
     presenceCount: state.presenceCount,
     typingUsers: state.typingUsers,
+    typingByComment: state.typingByComment,
     sendTyping,
+    sendPing,
   };
 }

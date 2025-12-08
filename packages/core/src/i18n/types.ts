@@ -189,6 +189,11 @@ export interface TranslationStrings {
 
   // Branding
   poweredByThreadKit: string;
+
+  // Real-time updates
+  loadNewComments: string;
+  loadNewReplies: string;
+  isTyping: string;
 }
 
 /**

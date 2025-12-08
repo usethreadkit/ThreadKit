@@ -14,6 +14,7 @@ import type {
   PluginSegment as CorePluginSegment,
   ThreadKitPlugin,
   PartialTranslations,
+  TypingUser,
 } from '@threadkit/core';
 
 // Re-export with original names for backwards compatibility
@@ -137,6 +138,18 @@ export interface ThreadKitProps {
   /** Your API key from ThreadKit dashboard (public key) */
   apiKey: string;
 
+  // WebSocket configuration (for real-time updates)
+  /** WebSocket server URL (e.g., "wss://ws.usethreadkit.com"). If not provided, real-time updates are disabled. */
+  wsUrl?: string;
+  /** Page ID (UUID) for WebSocket subscription. If not provided, WebSocket is disabled. */
+  pageId?: string;
+  /**
+   * How to handle incoming WebSocket comments:
+   * - 'auto': Immediately insert new comments (default for chat mode)
+   * - 'banner': Show "Load X new comments" banner instead (default for comments mode)
+   */
+  realTimeMode?: 'auto' | 'banner';
+
   // SSR support
   /** Pre-fetched comments for SSR - skips initial client fetch if provided */
   initialComments?: Comment[];
@@ -257,6 +270,14 @@ export interface CommentProps {
   highlightedCommentId?: string | null;
   /** Set of collapsed thread IDs (for nested collapse state) */
   collapsedThreads?: Set<string>;
+  /** Number of pending replies to this comment */
+  pendingRepliesCount?: number;
+  /** Map of parent comment ID -> pending replies for that comment (for nested comments) */
+  pendingReplies?: Map<string, Comment[]>;
+  /** Handler to load pending replies for this comment */
+  onLoadPendingReplies?: (parentId: string) => void;
+  /** Map of comment ID (or null for root) -> users typing for that context */
+  typingByComment?: Map<string | null, TypingUser[]>;
   /** Called to post a reply (text, parentId) */
   onPost?: (text: string, parentId?: string) => Promise<void>;
   onReply?: (parentId: string) => void;

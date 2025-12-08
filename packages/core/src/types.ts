@@ -195,12 +195,22 @@ export interface CommentStoreState {
   comments: Comment[];
   loading: boolean;
   error: ThreadKitError | null;
+  /** Page ID from the server (for WebSocket subscription) */
+  pageId: string | null;
+}
+
+export interface TypingUser {
+  userId: string;
+  userName: string;
 }
 
 export interface WebSocketState {
   connected: boolean;
   presenceCount: number;
-  typingUsers: Array<{ userId: string; userName: string }>;
+  /** All users typing (page-level, for backwards compatibility) */
+  typingUsers: TypingUser[];
+  /** Users typing by comment ID (null key = root-level typing) */
+  typingByComment: Map<string | null, TypingUser[]>;
 }
 
 // ============================================================================

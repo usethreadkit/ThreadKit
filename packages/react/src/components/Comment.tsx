@@ -4,8 +4,11 @@ import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
 import { UserHoverCard } from './UserHoverCard';
+import { NewRepliesIndicator } from './NewRepliesIndicator';
+import { TypingIndicator } from './TypingIndicator';
 import { renderMarkdown } from '../utils/markdown';
 import { useTranslation } from '../i18n';
+import { useScoreDisplay } from '../contexts/ScoreDisplayContext';
 
 type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
 const REPORT_REASON_KEYS: ReportReasonKey[] = [
@@ -30,6 +33,10 @@ export function Comment({
   totalSiblings = 1,
   highlightedCommentId,
   collapsedThreads,
+  pendingRepliesCount = 0,
+  pendingReplies,
+  onLoadPendingReplies,
+  typingByComment,
   onPost,
   onReply,
   onVote,
@@ -46,6 +53,7 @@ export function Comment({
   plugins,
 }: CommentProps) {
   const t = useTranslation();
+  const { mode: scoreDisplayMode, toggleMode: toggleScoreDisplay } = useScoreDisplay();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [confirmingAction, setConfirmingAction] = useState<'block' | 'delete' | 'ban' | null>(null);
@@ -164,13 +172,23 @@ export function Comment({
             </UserHoverCard>
             {' '}
             <span className="threadkit-meta" data-testid="comment-meta-score">
-              {score} {score !== 1 ? t('points') : t('point')}
+              <span
+                className="threadkit-score"
+                onClick={toggleScoreDisplay}
+                title={scoreDisplayMode === 'score' ? `+${upvotes}/-${downvotes}` : undefined}
+              >
+                {scoreDisplayMode === 'score' ? (
+                  <>
+                    {score} {score !== 1 ? t('points') : t('point')}
+                  </>
+                ) : (
+                  <span className="threadkit-score-breakdown">
+                    +{upvotes}/-{downvotes}
+                  </span>
+                )}
+              </span>
               {' '}
               {formatTimestamp(comment.timestamp)}
-              {' '}
-              <span className="threadkit-score-breakdown">
-                (+{upvotes}/-{downvotes})
-              </span>
             </span>
 
             {comment.edited && <span className="threadkit-edited">*</span>}
@@ -482,6 +500,23 @@ export function Comment({
             </div>
           )}
 
+          {/* Typing indicator - show who is replying to this comment (excluding current user) */}
+          {typingByComment && (
+            <TypingIndicator
+              typingUsers={(typingByComment.get(comment.id) || []).filter(
+                (u) => !currentUser || u.userId !== currentUser.id
+              )}
+            />
+          )}
+
+          {/* New replies indicator */}
+          {pendingRepliesCount > 0 && onLoadPendingReplies && (
+            <NewRepliesIndicator
+              count={pendingRepliesCount}
+              onClick={() => onLoadPendingReplies(comment.id)}
+            />
+          )}
+
           {/* Child comments */}
           {comment.children.length > 0 && (
             <div className="threadkit-replies">
@@ -501,6 +536,10 @@ export function Comment({
                   collapsed={collapsedThreads?.has(child.id)}
                   highlightedCommentId={highlightedCommentId}
                   collapsedThreads={collapsedThreads}
+                  pendingRepliesCount={pendingReplies?.get(child.id)?.length ?? 0}
+                  pendingReplies={pendingReplies}
+                  onLoadPendingReplies={onLoadPendingReplies}
+                  typingByComment={typingByComment}
                   onPost={onPost}
                   onReply={onReply}
                   onVote={onVote}

@@ -193,4 +193,9 @@ export const defaultTranslations: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Load {n} new {n, plural, one {comment} other {comments}}',
+  loadNewReplies: '{n} new {n, plural, one {reply} other {replies}}',
+  isTyping: '{name} is replying...',
 };

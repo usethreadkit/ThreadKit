@@ -14,6 +14,7 @@ export type {
   WebSocketMessage,
   WebSocketMessageType,
   WebSocketState,
+  TypingUser,
   PluginRenderInstruction,
   PluginSegment,
   ThreadKitPlugin,
@@ -45,7 +46,7 @@ export { CommentStore } from './stores/CommentStore';
 export type { CommentStoreConfig, CommentStoreEvents } from './stores/CommentStore';
 
 export { WebSocketClient } from './stores/WebSocketClient';
-export type { WebSocketClientConfig, WebSocketClientEvents } from './stores/WebSocketClient';
+export type { WebSocketClientConfig, WebSocketClientEvents, WsUser } from './stores/WebSocketClient';
 
 // Auth
 export { AuthManager } from './auth/AuthManager';

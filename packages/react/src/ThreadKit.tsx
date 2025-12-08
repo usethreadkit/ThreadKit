@@ -75,6 +75,9 @@ function ThreadKitInner({
   showTyping = false,
   apiUrl = DEFAULT_API_URL,
   apiKey,
+  wsUrl,
+  pageId: _pageId, // Deprecated - pageId now comes from API response
+  realTimeMode: realTimeModeProp,
   initialComments,
   hideBranding = false,
   plugins,
@@ -136,6 +139,7 @@ function ThreadKitInner({
     comments,
     loading,
     error,
+    pageId: fetchedPageId,
     postComment,
     deleteComment,
     editComment,
@@ -153,10 +157,23 @@ function ThreadKitInner({
     getPostHeaders,
   });
 
+  // Use pageId from API response for WebSocket subscription
+  const effectivePageId = fetchedPageId || '';
+
   // State for imperative API
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const [collapsedThreads, setCollapsedThreads] = useState<Set<string>>(new Set());
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // Track recently posted comment IDs to avoid duplicate additions from WebSocket
+  const recentlyPostedIds = useRef<Set<string>>(new Set());
+
+  // Real-time mode: default to 'banner' for comments mode, 'auto' for chat mode
+  const realTimeMode = realTimeModeProp ?? (mode === 'chat' ? 'auto' : 'banner');
+
+  // Pending comments for banner mode
+  const [pendingRootComments, setPendingRootComments] = useState<Comment[]>([]);
+  const [pendingReplies, setPendingReplies] = useState<Map<string, Comment[]>>(new Map());
 
   // Imperative handle for parent component control
   useImperativeHandle(innerRef, () => ({
@@ -213,61 +230,108 @@ function ThreadKitInner({
     }
   }, [loading, comments]);
 
-  const handleCommentAdded = useCallback(
-    (comment: Comment) => {
-      addComment(comment);
-      // onCommentReceived is for WebSocket messages (from any user)
+  // WebSocket handlers
+  const handleWsCommentAdded = useCallback(
+    (_pageId: string, comment: Comment) => {
+      // Skip comments we just posted (already added via HTTP response)
+      if (recentlyPostedIds.current.has(comment.id)) {
+        recentlyPostedIds.current.delete(comment.id);
+        return;
+      }
+      // Also skip if this is our own comment (backup check)
+      if (currentUser && comment.userId === currentUser.id) {
+        return;
+      }
+
+      // Always call onCommentReceived for sound effects etc.
       onCommentReceived?.(comment);
+
+      // Handle based on realTimeMode
+      if (realTimeMode === 'auto') {
+        addComment(comment);
+      } else {
+        // Banner mode: queue comments instead of adding directly
+        if (!comment.parentId) {
+          // Root comment - add to pending root comments
+          setPendingRootComments(prev => [...prev, comment]);
+        } else {
+          // Reply - add to pending replies for parent
+          setPendingReplies(prev => {
+            const next = new Map(prev);
+            const existing = next.get(comment.parentId!) || [];
+            next.set(comment.parentId!, [...existing, comment]);
+            return next;
+          });
+        }
+      }
     },
-    [addComment, onCommentReceived]
+    [addComment, onCommentReceived, currentUser, realTimeMode]
   );
 
-  const handleCommentDeleted = useCallback(
-    (commentId: string) => {
+  const handleWsCommentDeleted = useCallback(
+    (_pageId: string, commentId: string) => {
       removeComment(commentId);
+      onCommentDeleted?.(commentId);
     },
-    [removeComment]
+    [removeComment, onCommentDeleted]
   );
 
-  const handleCommentEdited = useCallback(
-    (commentId: string, text: string) => {
+  const handleWsCommentEdited = useCallback(
+    (_pageId: string, commentId: string, text: string, _textHtml: string) => {
       updateComment(commentId, { text, edited: true });
+      onCommentEdited?.(commentId, text);
+    },
+    [updateComment, onCommentEdited]
+  );
+
+  const handleWsVoteUpdated = useCallback(
+    (_pageId: string, commentId: string, upvotes: number, downvotes: number) => {
+      updateComment(commentId, { upvotes, downvotes });
     },
     [updateComment]
   );
 
-  const handleCommentPinned = useCallback(
-    (commentId: string, pinned: boolean) => {
-      updateComment(commentId, { pinned });
-    },
-    [updateComment]
-  );
-
-  const handleUserBanned = useCallback(
-    (userId: string) => {
-      // Remove all comments from banned user
-      comments
-        .filter((c) => c.userId === userId)
-        .forEach((c) => removeComment(c.id));
-    },
-    [comments, removeComment]
-  );
-
-  const { presenceCount, typingUsers, sendTyping } = useWebSocket({
-    url,
-    apiUrl,
-    enabled: true,
-    onCommentAdded: handleCommentAdded,
-    onCommentDeleted: handleCommentDeleted,
-    onCommentEdited: handleCommentEdited,
-    onCommentPinned: handleCommentPinned,
-    onUserBanned: handleUserBanned,
+  // WebSocket connection (enabled when wsUrl provided and pageId available from API)
+  const { connected: wsConnected, presenceCount, typingUsers, typingByComment, sendTyping } = useWebSocket({
+    wsUrl: wsUrl || '',
+    apiKey,
+    pageId: effectivePageId,
+    enabled: Boolean(wsUrl && effectivePageId),
+    onCommentAdded: handleWsCommentAdded,
+    onCommentDeleted: handleWsCommentDeleted,
+    onCommentEdited: handleWsCommentEdited,
+    onVoteUpdated: handleWsVoteUpdated,
   });
+
+  // Handler to load pending root comments (banner click)
+  const handleLoadPendingComments = useCallback(() => {
+    // Add all pending comments to the list (prepend)
+    pendingRootComments.forEach(comment => addComment(comment));
+    setPendingRootComments([]);
+  }, [pendingRootComments, addComment]);
+
+  // Handler to load pending replies for a specific comment
+  const handleLoadPendingReplies = useCallback((parentId: string) => {
+    const pending = pendingReplies.get(parentId);
+    if (pending) {
+      pending.forEach(comment => addComment(comment));
+      setPendingReplies(prev => {
+        const next = new Map(prev);
+        next.delete(parentId);
+        return next;
+      });
+    }
+  }, [pendingReplies, addComment]);
 
   const handlePost = useCallback(
     async (text: string, parentId?: string) => {
       try {
         const comment = await postComment(text, parentId);
+
+        // Track this comment ID to skip the WebSocket echo
+        recentlyPostedIds.current.add(comment.id);
+        setTimeout(() => recentlyPostedIds.current.delete(comment.id), 30000);
+
         addComment(comment);
         onCommentPosted?.(comment);
       } catch (err) {
@@ -633,6 +697,7 @@ function ThreadKitInner({
           showLastN={showLastN}
           autoScroll={autoScroll}
           showPresence={showPresence}
+          wsConnected={wsConnected}
           presenceCount={presenceCount}
           typingUsers={showTyping ? typingUsers : []}
           onSend={handlePost}
@@ -657,6 +722,11 @@ function ThreadKitInner({
           collapsedThreads={collapsedThreads}
           apiUrl={apiUrl}
           apiKey={apiKey}
+          pendingRootCount={pendingRootComments.length}
+          pendingReplies={pendingReplies}
+          onLoadPendingComments={handleLoadPendingComments}
+          onLoadPendingReplies={handleLoadPendingReplies}
+          typingByComment={typingByComment}
           onSortChange={setCurrentSort}
           onPost={handlePost}
           onVote={handleVote}

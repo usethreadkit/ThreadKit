@@ -208,10 +208,14 @@
   font-size: 11px;
 }
 
+.threadkit-score {
+  cursor: pointer;
+  user-select: none;
+}
+
 .threadkit-score-breakdown {
   color: var(--threadkit-text-muted);
   font-size: 11px;
-  margin-left: 2px;
 }
 
 .threadkit-edited {
@@ -881,6 +885,91 @@
   word-break: break-all;
 }
 
+/* ===== Real-time Updates ===== */
+
+.threadkit-new-comments-banner {
+  width: 100%;
+  padding: 8px 16px;
+  background: var(--threadkit-primary);
+  color: white;
+  border: none;
+  border-radius: var(--threadkit-radius);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 16px;
+  transition: background-color 0.15s ease;
+}
+
+.threadkit-new-comments-banner:hover {
+  background: var(--threadkit-primary-hover);
+}
+
+.threadkit-new-replies-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--threadkit-bg-secondary);
+  color: var(--threadkit-primary);
+  border: 1px solid var(--threadkit-primary);
+  border-radius: var(--threadkit-radius);
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.threadkit-new-replies-indicator:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+/* ===== Typing Indicator ===== */
+
+.threadkit-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  color: var(--threadkit-text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.threadkit-typing-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.threadkit-typing-dots span {
+  width: 4px;
+  height: 4px;
+  background: var(--threadkit-text-muted);
+  border-radius: 50%;
+  animation: threadkit-typing-bounce 1.4s infinite ease-in-out;
+}
+
+.threadkit-typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.threadkit-typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.threadkit-typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes threadkit-typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
 /* ===== Branding ===== */
 
 .threadkit-branding {
@@ -1133,6 +1222,62 @@
 
 .threadkit-username-inline-input-wrapper .threadkit-username-checking {
   color: var(--threadkit-text-muted);
+}
+
+/* Inline OTP form (for email/phone sign-in steps) */
+.threadkit-otp-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.threadkit-signin-back-inline {
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--threadkit-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.threadkit-signin-back-inline:hover {
+  color: var(--threadkit-text);
+}
+
+.threadkit-otp-inline-hint {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  white-space: nowrap;
+}
+
+.threadkit-otp-inline-input {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--threadkit-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  outline: none;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.threadkit-otp-inline-input:focus {
+  border-bottom-color: var(--threadkit-primary);
+}
+
+.threadkit-otp-inline-input::placeholder {
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-otp-code-input {
+  min-width: 80px;
+  max-width: 100px;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: monospace;
 }
 
 .threadkit-settings-section {

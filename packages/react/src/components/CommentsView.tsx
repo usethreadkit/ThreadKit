@@ -1,9 +1,13 @@
 import { useCallback } from 'react';
 import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin } from '../types';
+import type { TypingUser } from '@threadkit/core';
 import { Comment } from './Comment';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
+import { ErrorBoundary } from './ErrorBoundary';
+import { NewCommentsBanner } from './NewCommentsBanner';
 import { useTranslation } from '../i18n';
+import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
 
 interface CommentsViewProps {
   comments: CommentType[];
@@ -17,6 +21,16 @@ interface CommentsViewProps {
   collapsedThreads?: Set<string>;
   apiUrl: string;
   apiKey: string;
+  /** Number of pending root-level comments waiting to be loaded */
+  pendingRootCount?: number;
+  /** Map of parent comment ID -> pending replies for that comment */
+  pendingReplies?: Map<string, CommentType[]>;
+  /** Handler to load all pending root comments */
+  onLoadPendingComments?: () => void;
+  /** Handler to load pending replies for a specific comment */
+  onLoadPendingReplies?: (parentId: string) => void;
+  /** Map of comment ID (or null for root) -> users typing for that context */
+  typingByComment?: Map<string | null, TypingUser[]>;
   onSortChange?: (sort: SortBy) => void;
   onPost: (text: string, parentId?: string) => Promise<void>;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -53,6 +67,11 @@ export function CommentsView({
   collapsedThreads,
   apiUrl,
   apiKey,
+  pendingRootCount = 0,
+  pendingReplies,
+  onLoadPendingComments,
+  onLoadPendingReplies,
+  typingByComment,
   onSortChange,
   onPost,
   onVote,
@@ -79,73 +98,87 @@ export function CommentsView({
   );
 
   return (
-    <div className="threadkit-comments">
-      <div className="threadkit-toolbar">
-        {onSortChange && (
-          <div className="threadkit-sort">
-            <span className="threadkit-sort-label">{t('sortedBy')}</span>
-            {SORT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                className={`threadkit-sort-option ${sortBy === option.value ? 'active' : ''}`}
-                onClick={() => onSortChange(option.value)}
-              >
-                {t(option.key)}
-              </button>
+    <ScoreDisplayProvider>
+      <div className="threadkit-comments">
+        <div className="threadkit-toolbar">
+          {onSortChange && (
+            <div className="threadkit-sort">
+              <span className="threadkit-sort-label">{t('sortedBy')}</span>
+              {SORT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={`threadkit-sort-option ${sortBy === option.value ? 'active' : ''}`}
+                  onClick={() => onSortChange(option.value)}
+                >
+                  {t(option.key)}
+                </button>
+              ))}
+            </div>
+          )}
+          {toolbarEnd}
+        </div>
+        <div className="threadkit-comments-header">
+          {currentUser && !needsUsername ? (
+            <CommentForm
+              placeholder={t('writeComment')}
+              onSubmit={onPost}
+            />
+          ) : (
+            <SignInPrompt apiUrl={apiUrl} apiKey={apiKey} />
+          )}
+        </div>
+
+        {pendingRootCount > 0 && onLoadPendingComments && (
+          <NewCommentsBanner
+            count={pendingRootCount}
+            onClick={onLoadPendingComments}
+          />
+        )}
+
+        {comments.length === 0 ? (
+          <div className="threadkit-empty">
+            {t('noComments')}
+          </div>
+        ) : (
+          <div className="threadkit-comment-list">
+            {comments.map((comment, index) => (
+              <ErrorBoundary key={comment.id}>
+                <Comment
+                  comment={comment}
+                  currentUser={currentUser}
+                  needsUsername={needsUsername}
+                  apiUrl={apiUrl}
+                  apiKey={apiKey}
+                  maxDepth={maxDepth}
+                  index={index}
+                  totalSiblings={comments.length}
+                  highlighted={highlightedCommentId === comment.id}
+                  collapsed={collapsedThreads?.has(comment.id)}
+                  pendingRepliesCount={pendingReplies?.get(comment.id)?.length ?? 0}
+                  onLoadPendingReplies={onLoadPendingReplies}
+                  typingByComment={typingByComment}
+                  onPost={onPost}
+                  onReply={handleReply}
+                  onVote={allowVoting ? onVote : undefined}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onBan={onBan}
+                  onPin={onPin}
+                  onBlock={onBlock}
+                  onReport={onReport}
+                  onPermalink={onPermalink}
+                  onCollapse={onCollapse}
+                  getUserProfile={getUserProfile}
+                  plugins={plugins}
+                  highlightedCommentId={highlightedCommentId}
+                  collapsedThreads={collapsedThreads}
+                  pendingReplies={pendingReplies}
+                />
+              </ErrorBoundary>
             ))}
           </div>
         )}
-        {toolbarEnd}
       </div>
-      <div className="threadkit-comments-header">
-        {currentUser && !needsUsername ? (
-          <CommentForm
-            placeholder={t('writeComment')}
-            onSubmit={onPost}
-          />
-        ) : (
-          <SignInPrompt apiUrl={apiUrl} apiKey={apiKey} />
-        )}
-      </div>
-
-      {comments.length === 0 ? (
-        <div className="threadkit-empty">
-          {t('noComments')}
-        </div>
-      ) : (
-        <div className="threadkit-comment-list">
-          {comments.map((comment, index) => (
-            <Comment
-              key={comment.id}
-              comment={comment}
-              currentUser={currentUser}
-              needsUsername={needsUsername}
-              apiUrl={apiUrl}
-              apiKey={apiKey}
-              maxDepth={maxDepth}
-              index={index}
-              totalSiblings={comments.length}
-              highlighted={highlightedCommentId === comment.id}
-              collapsed={collapsedThreads?.has(comment.id)}
-              onPost={onPost}
-              onReply={handleReply}
-              onVote={allowVoting ? onVote : undefined}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              onBan={onBan}
-              onPin={onPin}
-              onBlock={onBlock}
-              onReport={onReport}
-              onPermalink={onPermalink}
-              onCollapse={onCollapse}
-              getUserProfile={getUserProfile}
-              plugins={plugins}
-              highlightedCommentId={highlightedCommentId}
-              collapsedThreads={collapsedThreads}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    </ScoreDisplayProvider>
   );
 }
