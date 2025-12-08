@@ -35,7 +35,7 @@ pub fn router() -> Router<AppState> {
         .route("/comments/{id}", put(update_comment).delete(delete_comment))
         .route("/comments/{id}/vote", post(vote_comment))
         .route("/comments/{id}/report", post(report_comment))
-        .route("/votes", get(get_my_votes))
+        .route("/pages/my_votes", get(get_my_votes))
 }
 
 // ============================================================================
@@ -965,7 +965,7 @@ pub async fn report_comment(
 /// Get the current user's votes for a page
 #[utoipa::path(
     get,
-    path = "/votes",
+    path = "/pages/my_votes",
     tag = "comments",
     params(GetVotesQuery),
     responses(

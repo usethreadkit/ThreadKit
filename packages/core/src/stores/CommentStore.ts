@@ -139,7 +139,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
           'Authorization': `Bearer ${token}`,
         };
         votesPromise = fetch(
-          `${apiUrl}/votes?page_url=${encodeURIComponent(url)}`,
+          `${apiUrl}/pages/my_votes?page_url=${encodeURIComponent(url)}`,
           { headers: votesHeaders }
         );
       }

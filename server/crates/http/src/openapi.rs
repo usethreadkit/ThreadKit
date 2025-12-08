@@ -106,8 +106,6 @@ Single-letter keys for efficiency:
     "d": 1,
     "x": 1704067200,
     "m": 1704067200,
-    "v": ["uid1"],
-    "w": ["uid2"],
     "r": [...]
   }],
   "u": 1704067200
@@ -130,13 +128,13 @@ Single-letter keys for efficiency:
 | `k` | author karma |
 | `t` | text content |
 | `h` | html content |
-| `u` | upvotes |
-| `d` | downvotes |
+| `u` | upvotes (count) |
+| `d` | downvotes (count) |
 | `x` | created_at |
 | `m` | modified_at |
-| `v` | upvoters (array) |
-| `w` | downvoters (array) |
 | `r` | replies (nested comments) |
+
+**User votes:** Fetch via `GET /pages/my_votes?page_url=...` - returns `{comment_id: "up"|"down"}` map
 
 **Deleted comments**: `a` = `d0000000-0000-0000-0000-000000000000`, `n` = `[deleted]`, content cleared, replies preserved.
 
