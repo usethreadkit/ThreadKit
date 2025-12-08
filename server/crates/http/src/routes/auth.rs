@@ -435,9 +435,6 @@ pub async fn verify_otp(
         return Err((StatusCode::BAD_REQUEST, "Invalid verification code".into()));
     }
 
-    // Delete used code
-    let _ = state.redis.delete_verification_code(key).await;
-
     // Find or create user
     let existing_user_id = if req.email.is_some() {
         state.redis.get_user_by_email(key).await
@@ -541,6 +538,9 @@ pub async fn verify_otp(
         24 * 365 * 100, // ~100 years
     )
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Delete used OTP code only after successful authentication
+    let _ = state.redis.delete_verification_code(key).await;
 
     Ok(Json(AuthResponse {
         token,

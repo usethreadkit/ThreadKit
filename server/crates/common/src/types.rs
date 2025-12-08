@@ -814,6 +814,8 @@ pub struct CreateCommentResponse {
 /// Response for GET /comments - uses compact tree format
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct GetCommentsResponse {
+    /// Page ID for WebSocket subscription
+    pub page_id: Uuid,
     /// Comments in compact tree format (single-letter keys)
     pub tree: PageTree,
     /// Total comment count

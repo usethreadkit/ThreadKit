@@ -125,7 +125,7 @@ async fn main() -> Result<()> {
         loop {
             interval.tick().await;
             let metrics = metrics_state.get_metrics();
-            tracing::info!(
+            tracing::debug!(
                 active_connections = metrics.active_connections,
                 total_connections = metrics.total_connections,
                 messages_received = metrics.total_messages_received,

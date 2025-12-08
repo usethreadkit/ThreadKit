@@ -13,6 +13,63 @@ ThreadKit is an open-source, self-hostable comment system for websites and appli
 4. Load comments: `GET /comments?page_url=your-page-url`
 5. Post comments: `POST /comments` (requires auth or anonymous enabled)
 
+## WebSocket API
+
+For real-time updates (new comments, typing indicators, presence), connect to the WebSocket server.
+
+### Connection
+
+```
+ws://server:8081/ws?api_key=tk_pub_xxx&token=<jwt>
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `api_key` | Yes | Your public API key |
+| `token` | No | JWT token for authenticated users |
+
+### Protocol
+
+All messages use JSON-RPC 2.0 notification format:
+
+```json
+{"jsonrpc": "2.0", "method": "<method>", "params": {...}}
+```
+
+### Client → Server
+
+| Method | Params | Description |
+|--------|--------|-------------|
+| `subscribe` | `page_id: UUID` | Subscribe to page events |
+| `unsubscribe` | `page_id: UUID` | Unsubscribe from page |
+| `typing` | `page_id: UUID, reply_to?: UUID` | Send typing indicator |
+| `ping` | `{}` | Heartbeat |
+
+### Server → Client
+
+| Method | Params | Description |
+|--------|--------|-------------|
+| `connected` | `user_id?: UUID` | Connection established |
+| `presence` | `page_id, users[]` | Current users on page |
+| `user_joined` | `page_id, user` | User joined page |
+| `user_left` | `page_id, user_id` | User left page |
+| `typing` | `page_id, user, reply_to?` | User is typing |
+| `new_comment` | `page_id, comment` | New comment posted |
+| `edit_comment` | `page_id, comment_id, content, content_html` | Comment edited |
+| `delete_comment` | `page_id, comment_id` | Comment deleted |
+| `vote_update` | `page_id, comment_id, upvotes, downvotes` | Votes changed |
+| `notification` | `type, comment_id, from_user` | User notification |
+| `pong` | `{}` | Heartbeat response |
+| `error` | `code, message` | Error occurred |
+
+### Limits
+
+| Limit | Value |
+|-------|-------|
+| Messages/second | 10 |
+| Idle timeout | 5 minutes |
+| Max subscriptions | 10 |
+
 ## Authentication
 
 - **OAuth**: Google and GitHub sign-in

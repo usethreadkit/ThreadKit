@@ -29,9 +29,10 @@ use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::App
 #[command(about = "ThreadKit HTTP API server")]
 #[command(version)]
 struct Args {
-    /// Create a new site: --create-site NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY]
+    /// Create a new site: --create-site NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY] [SITE_ID]
     /// Outputs the site ID on success, or an error message on failure.
-    #[arg(long, value_names = ["NAME", "DOMAIN", "MODERATION_MODE", "PUBLIC_KEY", "SECRET_KEY"], num_args = 2..=5)]
+    /// If SITE_ID is provided, uses that UUID instead of generating a new one.
+    #[arg(long, value_names = ["NAME", "DOMAIN", "MODERATION_MODE", "PUBLIC_KEY", "SECRET_KEY", "SITE_ID"], num_args = 2..=6)]
     create_site: Option<Vec<String>>,
 
     /// Path to .env file (e.g., .env.loadtest)
@@ -430,6 +431,7 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
     let api_key_secret = site_args.get(4)
         .cloned()
         .unwrap_or_else(|| format!("tk_sec_{}", generate_key()));
+    let provided_site_id = site_args.get(5).cloned();
 
     // Validate moderation mode
     let moderation = match moderation_mode.to_lowercase().as_str() {
@@ -466,8 +468,18 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         }
     };
 
-    // Generate site ID
-    let site_id = Uuid::now_v7();
+    // Use provided site ID or generate a new one
+    let site_id = if let Some(ref id_str) = provided_site_id {
+        match Uuid::parse_str(id_str) {
+            Ok(id) => id,
+            Err(_) => {
+                eprintln!("error: invalid site ID '{}' (must be a valid UUID)", id_str);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        Uuid::now_v7()
+    };
 
     // Create site config
     let site_config = SiteConfig {

@@ -245,6 +245,7 @@ pub async fn get_comments(
 
     let serialize_start = Instant::now();
     let response = GetCommentsResponse {
+        page_id,
         tree,
         total,
         pageviews,
