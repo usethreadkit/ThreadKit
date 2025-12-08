@@ -8,6 +8,7 @@ export type {
   Comment,
   User,
   UserProfile,
+  SocialLinks,
   ThreadKitMode,
   SortBy,
   WebSocketMessage,

@@ -9,6 +9,7 @@ import type {
   SortBy as CoreSortBy,
   WebSocketMessage as CoreWebSocketMessage,
   ThreadKitErrorCode as CoreThreadKitErrorCode,
+  SocialLinks as CoreSocialLinks,
   PluginRenderInstruction,
   PluginSegment as CorePluginSegment,
   ThreadKitPlugin,
@@ -23,6 +24,7 @@ export type ThreadKitMode = CoreThreadKitMode;
 export type SortBy = CoreSortBy;
 export type WebSocketMessage = CoreWebSocketMessage;
 export type ThreadKitErrorCode = CoreThreadKitErrorCode;
+export type SocialLinks = CoreSocialLinks;
 
 // Re-export these as-is
 export type { PluginRenderInstruction };

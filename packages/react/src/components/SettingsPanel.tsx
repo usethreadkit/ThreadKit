@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { User } from '../types';
+import type { User, SocialLinks } from '../types';
 import { useTranslation } from '../i18n';
 import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
 import { Avatar } from './Avatar';

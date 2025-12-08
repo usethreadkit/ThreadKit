@@ -458,6 +458,23 @@ function ThreadKitInner({
     console.log('Update name:', name);
   }, []);
 
+  const handleUpdateSocialLinks = useCallback(async (socialLinks: import('./types').SocialLinks) => {
+    try {
+      const token = localStorage.getItem('threadkit_token');
+      await fetch(`${apiUrl}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ social_links: socialLinks }),
+      });
+    } catch (err) {
+      onError?.(err instanceof Error ? err : new Error('Failed to update social links'));
+    }
+  }, [apiUrl, apiKey, onError]);
+
   const handleDeleteAccount = useCallback(async () => {
     try {
       const token = localStorage.getItem('threadkit_token');
@@ -598,6 +615,7 @@ function ThreadKitInner({
         onLogout={handleLogout}
         onUpdateAvatar={handleUpdateAvatar}
         onUpdateName={handleUpdateName}
+        onUpdateSocialLinks={handleUpdateSocialLinks}
         onUnblock={handleUnblock}
         onThemeChange={setCurrentTheme}
         onDeleteAccount={handleDeleteAccount}
