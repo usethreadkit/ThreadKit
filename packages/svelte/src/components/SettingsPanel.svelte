@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { User, SocialLinks } from '@threadkit/core';
-  import { t } from '../i18n'; // Assuming 't' is directly available or imported from the i18n context
-  import { Avatar } from './Avatar.svelte'; // Assuming Avatar component exists
+  import { getTranslation } from '../i18n';
+  import Avatar from './Avatar.svelte';
+
+  const t = getTranslation();
 
   export let currentUser: User | undefined;
   export let onLogin: () => void;

@@ -429,6 +429,7 @@
       onCollapse={handleCollapse}
       {plugins}
     />
+    {/if}
   {/if}
 
   {#if !hideBranding}

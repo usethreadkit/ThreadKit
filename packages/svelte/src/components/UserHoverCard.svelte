@@ -165,23 +165,24 @@
                     {/if}
                   </div>
                 {/if}
-                <div class="threadkit-hover-card-stats">          <div class="threadkit-hover-card-stat">
-            <span class="threadkit-hover-card-stat-value">
-              {formatNumber(displayProfile.karma)}
-            </span>
-            <span class="threadkit-hover-card-stat-label">{t('karma')}</span>
-          </div>
-          <div class="threadkit-hover-card-stat">
-            <span class="threadkit-hover-card-stat-value">
-              {formatNumber(displayProfile.totalComments)}
-            </span>
-            <span class="threadkit-hover-card-stat-label">{t('comments')}</span>
-          </div>
-        </div>
-        <div class="threadkit-hover-card-joined">
-          {t('joined')} {formatDate(displayProfile.joinDate)}
-        </div>
-      </div>
+                <div class="threadkit-hover-card-stats">
+                  <div class="threadkit-hover-card-stat">
+                    <span class="threadkit-hover-card-stat-value">
+                      {formatNumber(displayProfile.karma)}
+                    </span>
+                    <span class="threadkit-hover-card-stat-label">{t('karma')}</span>
+                  </div>
+                  <div class="threadkit-hover-card-stat">
+                    <span class="threadkit-hover-card-stat-value">
+                      {formatNumber(displayProfile.totalComments)}
+                    </span>
+                    <span class="threadkit-hover-card-stat-label">{t('comments')}</span>
+                  </div>
+                </div>
+                <div class="threadkit-hover-card-joined">
+                  {t('joined')} {formatDate(displayProfile.joinDate)}
+                </div>
+              </div>
     </div>
   </div>
 {/if}
