@@ -17,7 +17,6 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   const [text, setText] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -110,14 +109,16 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     [otpCode, verifyOtp]
   );
 
-  const handleNameSubmit = useCallback(
+  const handleOtpNameSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (name.trim()) {
-        verifyOtp(otpCode.trim(), name.trim());
+      // For otp-name step, we use the username as the display name
+      // The username will be validated and checked for uniqueness
+      if (username.trim() && isUsernameAvailable && !usernameError) {
+        verifyOtp(otpCode.trim(), username.trim());
       }
     },
-    [name, otpCode, verifyOtp]
+    [username, otpCode, isUsernameAvailable, usernameError, verifyOtp]
   );
 
   // Check username availability with debouncing
@@ -244,93 +245,138 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     return <span className="threadkit-signin-method-icon">{method.name[0]}</span>;
   };
 
-  // OTP input (email/phone) - show as overlay/inline form
+  // OTP input (email/phone) - show textarea with inline email/phone input
   if (state.step === 'otp-input') {
     const isEmail = state.selectedMethod?.id === 'email';
     return (
       <div className="threadkit-form">
-        <form onSubmit={handleOtpSubmit} className="threadkit-signin-otp-form">
-          <button type="button" className="threadkit-signin-back" onClick={handleBack}>
-            ← {t('back')}
-          </button>
-          <input
-            ref={inputRef}
-            type={isEmail ? 'email' : 'tel'}
-            className="threadkit-signin-input"
-            placeholder={isEmail ? t('enterEmail') : t('enterPhone')}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            autoComplete={isEmail ? 'email' : 'tel'}
-          />
-          <button
-            type="submit"
-            className="threadkit-submit-btn"
-            disabled={!inputValue.trim()}
-          >
-            {t('sendCode')}
-          </button>
-        </form>
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          rows={3}
+        />
+
+        <div className="threadkit-form-actions">
+          <form onSubmit={handleOtpSubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <input
+              ref={inputRef}
+              type={isEmail ? 'email' : 'tel'}
+              className="threadkit-otp-inline-input"
+              placeholder={isEmail ? t('enterEmail') : t('enterPhone')}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              autoComplete={isEmail ? 'email' : 'tel'}
+            />
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={!inputValue.trim()}
+            >
+              {t('sendCode')}
+            </button>
+          </form>
+        </div>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
       </div>
     );
   }
 
-  // OTP verify
+  // OTP verify - show textarea with inline code input
   if (state.step === 'otp-verify') {
     return (
       <div className="threadkit-form">
-        <form onSubmit={handleVerifySubmit} className="threadkit-signin-otp-form">
-          <button type="button" className="threadkit-signin-back" onClick={handleBack}>
-            ← {t('back')}
-          </button>
-          <span className="threadkit-signin-hint">{t('codeSentTo')} {state.otpTarget}</span>
-          <input
-            ref={inputRef}
-            type="text"
-            className="threadkit-signin-input threadkit-signin-code"
-            placeholder={t('otpPlaceholder')}
-            value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            maxLength={6}
-          />
-          <button
-            type="submit"
-            className="threadkit-submit-btn"
-            disabled={otpCode.length !== 6}
-          >
-            {t('verify')}
-          </button>
-        </form>
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          rows={3}
+        />
+
+        <div className="threadkit-form-actions">
+          <form onSubmit={handleVerifySubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <span className="threadkit-otp-inline-hint">{t('codeSentTo')} {state.otpTarget}</span>
+            <input
+              ref={inputRef}
+              type="text"
+              className="threadkit-otp-inline-input threadkit-otp-code-input"
+              placeholder={t('otpPlaceholder')}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+            />
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={otpCode.length !== 6}
+            >
+              {t('verify')}
+            </button>
+          </form>
+        </div>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
       </div>
     );
   }
 
-  // Name input for new OTP accounts
+  // Username input for new OTP accounts - show textarea with inline username input
   if (state.step === 'otp-name') {
+    const canSubmit = username.trim().length >= 1 && isUsernameAvailable === true && !usernameError;
     return (
       <div className="threadkit-form">
-        <form onSubmit={handleNameSubmit} className="threadkit-signin-otp-form">
-          <span className="threadkit-signin-hint">{t('chooseDisplayName')}</span>
-          <input
-            ref={inputRef}
-            type="text"
-            className="threadkit-signin-input"
-            placeholder={t('yourName')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-          />
-          <button
-            type="submit"
-            className="threadkit-submit-btn"
-            disabled={!name.trim()}
-          >
-            {t('continue')}
-          </button>
-        </form>
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          rows={3}
+        />
+
+        <div className="threadkit-form-actions">
+          <form onSubmit={handleOtpNameSubmit} className="threadkit-username-inline-form">
+            <span className="threadkit-username-inline-label">{t('chooseUsername')}:</span>
+            <div className="threadkit-username-inline-input-wrapper">
+              <input
+                ref={inputRef}
+                type="text"
+                className="threadkit-username-inline-input"
+                placeholder={t('usernamePlaceholder')}
+                value={username}
+                onChange={handleUsernameChange}
+                autoComplete="username"
+                maxLength={MAX_USERNAME_LENGTH}
+              />
+              {isCheckingUsername && (
+                <span className="threadkit-username-status threadkit-username-checking">{t('checking')}</span>
+              )}
+              {!isCheckingUsername && isUsernameAvailable === true && !usernameError && (
+                <span className="threadkit-username-status threadkit-username-available">✓</span>
+              )}
+              {!isCheckingUsername && (isUsernameAvailable === false || usernameError) && (
+                <span className="threadkit-username-status threadkit-username-taken">
+                  {usernameError || t('usernameTaken')}
+                </span>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={!canSubmit}
+            >
+              {t('continue')}
+            </button>
+          </form>
+        </div>
         {state.error && <p className="threadkit-signin-error">{state.error}</p>}
       </div>
     );

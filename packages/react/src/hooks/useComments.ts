@@ -23,6 +23,8 @@ interface UseCommentsReturn {
   comments: Comment[];
   loading: boolean;
   error: Error | null;
+  /** Page ID from the server (for WebSocket subscription) */
+  pageId: string | null;
   postComment: (text: string, parentId?: string) => Promise<Comment>;
   deleteComment: (commentId: string) => Promise<void>;
   editComment: (commentId: string, newText: string) => Promise<void>;
@@ -97,6 +99,7 @@ export function useComments({
     comments: state.comments,
     loading: state.loading,
     error: state.error,
+    pageId: state.pageId,
     postComment: store.post.bind(store),
     deleteComment: store.delete.bind(store),
     editComment: store.edit.bind(store),

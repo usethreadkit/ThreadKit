@@ -77,15 +77,22 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
 }
 
 export function renderMarkdown(text: string, options: MarkdownOptions = {}): React.ReactNode {
-  // Apply plugin text transformations first
-  let processedText = text;
-  if (options.plugins) {
-    for (const plugin of options.plugins) {
-      if (plugin.transformText) {
-        processedText = plugin.transformText(processedText);
+  // Guard against undefined/null text
+  if (text == null) {
+    console.error('[ThreadKit] renderMarkdown called with undefined/null text');
+    return null;
+  }
+
+  try {
+    // Apply plugin text transformations first
+    let processedText = String(text);
+    if (options.plugins) {
+      for (const plugin of options.plugins) {
+        if (plugin.transformText) {
+          processedText = plugin.transformText(processedText);
+        }
       }
     }
-  }
 
   // Collect rendered segments from ALL plugins
   if (options.plugins && options.plugins.length > 0) {
@@ -190,7 +197,12 @@ export function renderMarkdown(text: string, options: MarkdownOptions = {}): Rea
     }
   }
 
-  return renderMarkdownLines(processedText, options);
+    return renderMarkdownLines(processedText, options);
+  } catch (err) {
+    console.error('[ThreadKit] Error rendering markdown:', err);
+    // Fallback: return plain text
+    return <span>{String(text)}</span>;
+  }
 }
 
 function renderMarkdownLines(text: string, options: MarkdownOptions): React.ReactNode {

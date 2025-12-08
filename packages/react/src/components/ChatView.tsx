@@ -13,6 +13,8 @@ interface ChatViewProps {
   autoScroll?: boolean;
   reactions?: string[];
   showPresence?: boolean;
+  /** Whether the WebSocket is connected */
+  wsConnected?: boolean;
   presenceCount?: number;
   typingUsers?: Array<{ userId: string; userName: string }>;
   onSend: (text: string) => Promise<void>;
@@ -390,6 +392,7 @@ export function ChatView({
   showLastN = 100,
   autoScroll = true,
   showPresence = false,
+  wsConnected = false,
   presenceCount = 0,
   typingUsers = [],
   onSend,
@@ -472,7 +475,7 @@ export function ChatView({
         </button>
       </form>
 
-      {showPresence && (
+      {showPresence && wsConnected && (
         <div className="threadkit-chat-presence">
           {presenceCount} {presenceCount === 1 ? t('personOnline') : t('peopleOnline')}
         </div>

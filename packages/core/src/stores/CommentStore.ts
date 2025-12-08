@@ -69,12 +69,14 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
         comments: sortComments(config.initialComments, this.sortBy),
         loading: false,
         error: null,
+        pageId: null,
       };
     } else {
       this.state = {
         comments: [],
         loading: false,
         error: null,
+        pageId: null,
       };
     }
   }
@@ -178,6 +180,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       this.setState({
         comments: sortComments(comments, this.sortBy),
         loading: false,
+        pageId: data.page_id,
       });
     } catch (err) {
       const error =

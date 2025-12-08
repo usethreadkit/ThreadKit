@@ -215,17 +215,17 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
           <form className="tk-auth-form" onSubmit={handleNameSubmit}>
             <h2 className="tk-auth-title">{t('welcome')}</h2>
             <p className="tk-auth-subtitle">
-              {t('chooseDisplayName')}
+              {t('chooseUsername')}
             </p>
 
             <input
               ref={inputRef}
               type="text"
               className="tk-auth-input"
-              placeholder={t('yourName')}
+              placeholder={t('usernamePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
+              autoComplete="username"
             />
 
             {state.error && (
