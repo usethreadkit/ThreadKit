@@ -66,11 +66,20 @@ struct Args {
     /// Keys: name, domain, moderation_mode, api_key_public, api_key_secret
     #[arg(long, value_names = ["SITE_ID", "KEY", "VALUE"], num_args = 3)]
     edit_site: Option<Vec<String>>,
+
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+
+    // Initialize Sentry if DSN is configured
+    let _sentry_guard = std::env::var("SENTRY_DSN_HTTP").ok().map(|dsn| {
+        sentry::init((dsn, sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        }))
+    });
 
     // Initialize tracing (CLI --log takes precedence over RUST_LOG env var)
     let log_filter = args

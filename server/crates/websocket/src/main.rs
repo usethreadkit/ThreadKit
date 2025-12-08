@@ -45,11 +45,20 @@ struct Args {
     /// Disable rate limiting (for load testing)
     #[arg(long)]
     no_rate_limit: bool,
+
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+
+    // Initialize Sentry if DSN is configured
+    let _sentry_guard = std::env::var("SENTRY_DSN_WS").ok().map(|dsn| {
+        sentry::init((dsn, sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        }))
+    });
 
     // Raise file descriptor limit for high connection counts
     raise_fd_limit();
