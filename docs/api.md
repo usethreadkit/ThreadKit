@@ -523,38 +523,307 @@ DELETE /v1/sites/:id/moderators/:user_id
 
 ## WebSocket API
 
-Connect to WebSocket for real-time updates:
+The WebSocket API uses **JSON-RPC 2.0 notifications** (no response expected) for real-time updates.
+
+### Connection
 
 ```
 ws://server:8081/ws?api_key=tk_pub_xxx&token=<jwt>
 ```
 
-### Client → Server Messages
+**Query Parameters:**
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `api_key` | Yes | Your public API key |
+| `token` | No | JWT token for authenticated users |
+
+### Protocol
+
+All messages use JSON-RPC 2.0 notification format:
 
 ```json
-{ "type": "subscribe", "page_id": "uuid" }
-{ "type": "unsubscribe", "page_id": "uuid" }
-{ "type": "typing", "page_id": "uuid" }
-{ "type": "stop_typing", "page_id": "uuid" }
-{ "type": "ping" }
+{
+  "jsonrpc": "2.0",
+  "method": "<method_name>",
+  "params": { ... }
+}
+```
+
+### Client → Server Messages
+
+#### Subscribe to Page
+
+Subscribe to receive real-time events for a page:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "subscribe",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+#### Unsubscribe from Page
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "unsubscribe",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+#### Typing Indicator
+
+Send while the user is typing (recommended: every 1 second while typing):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "typing",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "reply_to": "660e8400-e29b-41d4-a716-446655440001"
+  }
+}
+```
+
+#### Ping (Heartbeat)
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "ping",
+  "params": {}
+}
 ```
 
 ### Server → Client Messages
 
+#### Connection Established
+
+Sent immediately after WebSocket connection is accepted:
+
 ```json
-{ "type": "connected", "user_id": "uuid" }
-{ "type": "new_comment", "comment": { ... } }
-{ "type": "edit_comment", "comment_id": "uuid", "content": "...", "content_html": "..." }
-{ "type": "delete_comment", "comment_id": "uuid" }
-{ "type": "vote_update", "comment_id": "uuid", "upvotes": 10, "downvotes": 2 }
-{ "type": "typing", "page_id": "uuid", "user": { ... } }
-{ "type": "stop_typing", "page_id": "uuid", "user_id": "uuid" }
-{ "type": "presence", "page_id": "uuid", "users": [ ... ] }
-{ "type": "user_joined", "page_id": "uuid", "user": { ... } }
-{ "type": "user_left", "page_id": "uuid", "user_id": "uuid" }
-{ "type": "notification", "notification_type": "reply", "comment_id": "uuid", "from_user": { ... } }
-{ "type": "pong" }
-{ "type": "error", "message": "..." }
+{
+  "jsonrpc": "2.0",
+  "method": "connected",
+  "params": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+#### Presence List
+
+Sent after subscribing to a page, contains current users on the page:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "presence",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "users": [
+      {
+        "id": "uuid",
+        "name": "John Doe",
+        "avatar_url": "https://..."
+      }
+    ]
+  }
+}
+```
+
+#### User Joined
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "user_joined",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user": {
+      "id": "uuid",
+      "name": "John Doe",
+      "avatar_url": "https://..."
+    }
+  }
+}
+```
+
+#### User Left
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "user_left",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "uuid"
+  }
+}
+```
+
+#### Typing Indicator
+
+Sent when another user is typing. Auto-expires after 3 seconds of no refresh:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "typing",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user": {
+      "id": "uuid",
+      "name": "John Doe",
+      "avatar_url": "https://..."
+    },
+    "reply_to": "660e8400-e29b-41d4-a716-446655440001"
+  }
+}
+```
+
+#### New Comment
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "new_comment",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "comment": { ... }
+  }
+}
+```
+
+#### Edit Comment
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "edit_comment",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "comment_id": "uuid",
+    "content": "Updated text",
+    "content_html": "<p>Updated text</p>"
+  }
+}
+```
+
+#### Delete Comment
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "delete_comment",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "comment_id": "uuid"
+  }
+}
+```
+
+#### Vote Update
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "vote_update",
+  "params": {
+    "page_id": "550e8400-e29b-41d4-a716-446655440000",
+    "comment_id": "uuid",
+    "upvotes": 10,
+    "downvotes": 2
+  }
+}
+```
+
+#### Notification
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notification",
+  "params": {
+    "type": "reply",
+    "comment_id": "uuid",
+    "from_user": {
+      "id": "uuid",
+      "name": "John Doe",
+      "avatar_url": "https://..."
+    }
+  }
+}
+```
+
+**Notification types:** `reply`, `mention`, `upvote`
+
+#### Pong (Heartbeat Response)
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "pong",
+  "params": {}
+}
+```
+
+#### Error
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "error",
+  "params": {
+    "code": "rate_limit",
+    "message": "Too many messages"
+  }
+}
+```
+
+**Error codes:**
+| Code | Description |
+|------|-------------|
+| `rate_limit` | Too many messages per second |
+| `subscription_limit` | Too many subscribed pages (max 10) |
+| `invalid_json` | Invalid JSON-RPC message |
+| `invalid_method` | Unknown method |
+
+### Connection Limits
+
+| Limit | Value |
+|-------|-------|
+| Messages per second | 10 |
+| Idle timeout | 5 minutes |
+| Max subscriptions per connection | 10 |
+
+### Metrics Endpoint
+
+The WebSocket server exposes metrics at `/metrics`:
+
+```http
+GET /metrics
+```
+
+**Response:**
+```json
+{
+  "active_connections": 1234,
+  "total_connections": 50000,
+  "messages_received": 1000000,
+  "messages_sent": 2000000,
+  "batcher_flushes": 10000,
+  "batcher_writes_batched": 50000,
+  "batcher_reads_batched": 100000,
+  "page_channels": 500
+}
 ```
 
 ---

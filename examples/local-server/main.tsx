@@ -7,11 +7,12 @@ type Mode = 'comments' | 'chat';
 type Theme = 'light' | 'dark';
 
 // Configuration for local development
-// Make sure your server is running at localhost:8080
-// Set these values to match your server/.env file
-const LOCAL_API_KEY = 'tk_pub_ehz9km0uaflkemuokmevz639try3a8w8';
-const SITE_ID = '019af799-195f-7b61-954b-b998f9a29877';
+// These are the default values for the local-server example.
+// Run: cargo run --release --bin threadkit-http -- --create-site "Local Dev" localhost none tk_pub_local_example_key tk_sec_local_example_key 00000000-0000-0000-0000-000000000001
+const LOCAL_API_KEY = 'tk_pub_local_example_key';
+const SITE_ID = '00000000-0000-0000-0000-000000000001';
 const API_URL = 'http://localhost:8080/v1';
+const WS_URL = 'ws://localhost:8081';
 
 function App() {
   const [mode, setMode] = useState<Mode>('comments');
@@ -41,11 +42,13 @@ function App() {
               Start Redis: <code>redis-server</code>
             </li>
             <li>
-              Start the server: <code>cd server && cargo run --release --bin threadkit-http</code>
+              Create site (first time only):
+              <pre style={{ margin: '4px 0', padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, overflow: 'auto' }}>
+cd server && cargo run --release --bin threadkit-http -- \{'\n'}  --create-site "Local Dev" localhost none \{'\n'}  tk_pub_local_example_key tk_sec_local_example_key \{'\n'}  00000000-0000-0000-0000-000000000001
+              </pre>
             </li>
             <li>
-              Update <code>LOCAL_API_KEY</code> in this file to match your{' '}
-              <code>API_KEY_PUBLIC</code> from <code>server/.env</code>
+              Start the server: <code>cd server && cargo run --release --bin threadkit-http</code>
             </li>
           </ol>
         </div>
@@ -105,6 +108,7 @@ function App() {
           showPresence={mode === 'chat'}
           showTyping={mode === 'chat'}
           apiUrl={API_URL}
+          wsUrl={WS_URL}
           debug={true}
           onError={(error) => console.error('ThreadKit error:', error)}
         />
@@ -128,6 +132,9 @@ function App() {
         </div>
         <p>
           API Endpoint: <code>{API_URL}</code>
+        </p>
+        <p>
+          WebSocket: <code>{WS_URL}</code>
         </p>
         <p>
           View API docs:{' '}

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ThreadKit API",
-    "description": "\nThreadKit is an open-source, self-hostable comment system for websites and applications.\n\n## Quick Start\n\n1. Get an API key from your dashboard (or generate one if self-hosting)\n2. Include the API key in all requests via the `X-API-Key` header\n3. Authenticate users via OAuth, email/password, or enable anonymous posting\n4. Load comments: `GET /comments?page_url=your-page-url`\n5. Post comments: `POST /comments` (requires auth or anonymous enabled)\n\n## Authentication\n\n- **OAuth**: Google and GitHub sign-in\n- **Email/Password**: Registration with email verification\n- **Anonymous**: Guest posting\n- **Wallet**: Ethereum and Solana signature verification\n\nAll auth methods can be enabled/disabled in site configuration.\n\nAuthenticated endpoints require `Authorization: Bearer <token>` header.\n\n## Comment Tree\n\nComments are returned as a compact tree with single-letter keys:\n\n```json\n{\"tree\": {\"c\": [...], \"u\": 1234567}, \"total\": 42}\n```\n\n- `c` = comments array, `u` = updated_at timestamp\n- Each comment has `r` (replies) for nested threading\n- See `TreeComment` schema for full structure\n\n## Caching\n\nThe `/comments` endpoint supports ETag caching:\n\n- Response includes `ETag` header\n- Send `If-None-Match: \"<etag>\"` to get `304 Not Modified`\n- Works with Cloudflare and CDNs for instant responses\n\n## Rate Limits\n\n- Read: 100/second per API key\n- Write: 10/second per API key\n\n---\n\n## Redis Schema\n\n### Users\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `user:{user_id}` | Hash | User data (id, name, email, avatar_url, karma, created_at, etc.) |\n| `user:{user_id}:password` | String | Argon2 password hash |\n| `user:{user_id}:comments` | ZSet | User's comments across all sites. Values: `page_id:comment_id` |\n| `user:{user_id}:votes` | ZSet | Comments user has voted on. Values: `page_id:comment_id` |\n| `user:{user_id}:notifications` | ZSet | User notifications (score = timestamp) |\n| `user:{user_id}:unread` | String | Count of unread notifications |\n| `user:{user_id}:blocked` | Set | User IDs this user has blocked |\n| `user:{user_id}:blocked_by` | Set | User IDs who have blocked this user |\n| `email:{email}` | String | Maps email to user_id |\n| `phone:{phone}` | String | Maps phone to user_id |\n| `username:{username}` | String | Maps username to user_id |\n| `provider:{provider}:{id}` | String | Maps OAuth provider ID to user_id |\n| `wallet:{chain}:{address}` | String | Maps wallet address to user_id |\n\n### Sessions & Auth\n\n| Key | Type | TTL | Description |\n|-----|------|-----|-------------|\n| `session:{session_id}` | Hash | - | Session data (user_id, created_at, user_agent, ip) |\n| `verify:{key}` | String | 10m | Email/phone verification code |\n| `web3nonce:{chain}:{address}` | String | 10m | Web3 signature nonce |\n\n### Pages\n\n`page_id` is deterministic: `UUID(hash(site_id + page_url))`\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `page:{page_id}:tree` | JSON | Full page tree (comments, votes, authors) |\n| `page:{page_id}:views` | String | Pageview counter |\n\n### Page Tree Structure\n\nSingle-letter keys for efficiency:\n\n```json\n{\n  \"c\": [{\n    \"i\": \"uuid\",\n    \"a\": \"author_uuid\",\n    \"n\": \"username\",\n    \"p\": \"avatar_url\",\n    \"k\": 100,\n    \"t\": \"comment text\",\n    \"h\": \"<p>html</p>\",\n    \"u\": 5,\n    \"d\": 1,\n    \"x\": 1704067200,\n    \"m\": 1704067200,\n    \"v\": [\"uid1\"],\n    \"w\": [\"uid2\"],\n    \"r\": [...]\n  }],\n  \"u\": 1704067200\n}\n```\n\n**Tree root:**\n| Key | Description |\n|-----|-------------|\n| `c` | comments array |\n| `u` | updated_at (timestamp) |\n\n**Comment object:**\n| Key | Description |\n|-----|-------------|\n| `i` | id (UUID) |\n| `a` | author_id |\n| `n` | author name |\n| `p` | avatar (picture) |\n| `k` | author karma |\n| `t` | text content |\n| `h` | html content |\n| `u` | upvotes |\n| `d` | downvotes |\n| `x` | created_at |\n| `m` | modified_at |\n| `v` | upvoters (array) |\n| `w` | downvoters (array) |\n| `r` | replies (nested comments) |\n\n**Deleted comments**: `a` = `d0000000-0000-0000-0000-000000000000`, `n` = `[deleted]`, content cleared, replies preserved.\n\n**Anonymous comments**: `a` = `a0000000-0000-0000-0000-000000000000`\n\n### Sites\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `site:{site_id}:config` | JSON | Site configuration |\n| `site:{site_id}:admins` | Set | Admin user IDs |\n| `site:{site_id}:moderators` | Set | Moderator user IDs |\n| `site:{site_id}:blocked` | Set | Blocked user IDs |\n| `site:{site_id}:shadowbanned` | Set | Shadowbanned user IDs |\n| `site:{site_id}:modqueue` | ZSet | Pending comments (`page_id:comment_id`) |\n| `site:{site_id}:reports` | ZSet | Reported comments |\n| `site:{site_id}:locked_pages` | Set | Pages where posting is disabled |\n| `site:{site_id}:usage:{YYYY-MM}` | Hash | Monthly usage stats |\n\n### API Keys\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `apikey:{key}:site` | String | Maps API key to site_id |\n\n### Design\n\n**Read path**: Single `GET page:{id}:tree` returns all comments. Server filters, sorts, strips vote arrays.\n\n**Write path**: Update page tree JSON + user/site indexes.\n\n**Performance**: O(1) page load (~1-5ms for 1000 comments) instead of N+1 queries.\n",
+    "description": "\nThreadKit is an open-source, self-hostable comment system for websites and applications.\n\n## Quick Start\n\n1. Get an API key from your dashboard (or generate one if self-hosting)\n2. Include the API key in all requests via the `X-API-Key` header\n3. Authenticate users via OAuth, email/password, or enable anonymous posting\n4. Load comments: `GET /comments?page_url=your-page-url`\n5. Post comments: `POST /comments` (requires auth or anonymous enabled)\n\n## WebSocket API\n\nFor real-time updates (new comments, typing indicators, presence), connect to the WebSocket server.\n\n### Connection\n\n```\nws://server:8081/ws?api_key=tk_pub_xxx&token=<jwt>\n```\n\n| Parameter | Required | Description |\n|-----------|----------|-------------|\n| `api_key` | Yes | Your public API key |\n| `token` | No | JWT token for authenticated users |\n\n### Protocol\n\nAll messages use JSON-RPC 2.0 notification format:\n\n```json\n{\"jsonrpc\": \"2.0\", \"method\": \"<method>\", \"params\": {...}}\n```\n\n### Client → Server\n\n| Method | Params | Description |\n|--------|--------|-------------|\n| `subscribe` | `page_id: UUID` | Subscribe to page events |\n| `unsubscribe` | `page_id: UUID` | Unsubscribe from page |\n| `typing` | `page_id: UUID, reply_to?: UUID` | Send typing indicator |\n| `ping` | `{}` | Heartbeat |\n\n### Server → Client\n\n| Method | Params | Description |\n|--------|--------|-------------|\n| `connected` | `user_id?: UUID` | Connection established |\n| `presence` | `page_id, users[]` | Current users on page |\n| `user_joined` | `page_id, user` | User joined page |\n| `user_left` | `page_id, user_id` | User left page |\n| `typing` | `page_id, user, reply_to?` | User is typing |\n| `new_comment` | `page_id, comment` | New comment posted |\n| `edit_comment` | `page_id, comment_id, content, content_html` | Comment edited |\n| `delete_comment` | `page_id, comment_id` | Comment deleted |\n| `vote_update` | `page_id, comment_id, upvotes, downvotes` | Votes changed |\n| `notification` | `type, comment_id, from_user` | User notification |\n| `pong` | `{}` | Heartbeat response |\n| `error` | `code, message` | Error occurred |\n\n### Limits\n\n| Limit | Value |\n|-------|-------|\n| Messages/second | 10 |\n| Idle timeout | 5 minutes |\n| Max subscriptions | 10 |\n\n## Authentication\n\n- **OAuth**: Google and GitHub sign-in\n- **Email/Password**: Registration with email verification\n- **Anonymous**: Guest posting\n- **Wallet**: Ethereum and Solana signature verification\n\nAll auth methods can be enabled/disabled in site configuration.\n\nAuthenticated endpoints require `Authorization: Bearer <token>` header.\n\n## Comment Tree\n\nComments are returned as a compact tree with single-letter keys:\n\n```json\n{\"tree\": {\"c\": [...], \"u\": 1234567}, \"total\": 42}\n```\n\n- `c` = comments array, `u` = updated_at timestamp\n- Each comment has `r` (replies) for nested threading\n- See `TreeComment` schema for full structure\n\n## Caching\n\nThe `/comments` endpoint supports ETag caching:\n\n- Response includes `ETag` header\n- Send `If-None-Match: \"<etag>\"` to get `304 Not Modified`\n- Works with Cloudflare and CDNs for instant responses\n\n## Rate Limits\n\n- Read: 100/second per API key\n- Write: 10/second per API key\n\n---\n\n## Redis Schema\n\n### Users\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `user:{user_id}` | Hash | User data (id, name, email, avatar_url, karma, created_at, etc.) |\n| `user:{user_id}:password` | String | Argon2 password hash |\n| `user:{user_id}:comments` | ZSet | User's comments across all sites. Values: `page_id:comment_id` |\n| `user:{user_id}:votes` | ZSet | Comments user has voted on. Values: `page_id:comment_id` |\n| `user:{user_id}:notifications` | ZSet | User notifications (score = timestamp) |\n| `user:{user_id}:unread` | String | Count of unread notifications |\n| `user:{user_id}:blocked` | Set | User IDs this user has blocked |\n| `user:{user_id}:blocked_by` | Set | User IDs who have blocked this user |\n| `email:{email}` | String | Maps email to user_id |\n| `phone:{phone}` | String | Maps phone to user_id |\n| `username:{username}` | String | Maps username to user_id |\n| `provider:{provider}:{id}` | String | Maps OAuth provider ID to user_id |\n| `wallet:{chain}:{address}` | String | Maps wallet address to user_id |\n\n### Sessions & Auth\n\n| Key | Type | TTL | Description |\n|-----|------|-----|-------------|\n| `session:{session_id}` | Hash | - | Session data (user_id, created_at, user_agent, ip) |\n| `verify:{key}` | String | 10m | Email/phone verification code |\n| `web3nonce:{chain}:{address}` | String | 10m | Web3 signature nonce |\n\n### Pages\n\n`page_id` is deterministic: `UUID(hash(site_id + page_url))`\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `page:{page_id}:tree` | JSON | Full page tree (comments, votes, authors) |\n| `page:{page_id}:views` | String | Pageview counter |\n\n### Page Tree Structure\n\nSingle-letter keys for efficiency:\n\n```json\n{\n  \"c\": [{\n    \"i\": \"uuid\",\n    \"a\": \"author_uuid\",\n    \"n\": \"username\",\n    \"p\": \"avatar_url\",\n    \"k\": 100,\n    \"t\": \"comment text\",\n    \"h\": \"<p>html</p>\",\n    \"u\": 5,\n    \"d\": 1,\n    \"x\": 1704067200,\n    \"m\": 1704067200,\n    \"r\": [...]\n  }],\n  \"u\": 1704067200\n}\n```\n\n**Tree root:**\n| Key | Description |\n|-----|-------------|\n| `c` | comments array |\n| `u` | updated_at (timestamp) |\n\n**Comment object:**\n| Key | Description |\n|-----|-------------|\n| `i` | id (UUID) |\n| `a` | author_id |\n| `n` | author name |\n| `p` | avatar (picture) |\n| `k` | author karma |\n| `t` | text content |\n| `h` | html content |\n| `u` | upvotes (count) |\n| `d` | downvotes (count) |\n| `x` | created_at |\n| `m` | modified_at |\n| `r` | replies (nested comments) |\n\n**User votes:** Fetch via `GET /pages/my_votes?page_url=...` - returns `{comment_id: \"up\"|\"down\"}` map\n\n**Deleted comments**: `a` = `d0000000-0000-0000-0000-000000000000`, `n` = `[deleted]`, content cleared, replies preserved.\n\n**Anonymous comments**: `a` = `a0000000-0000-0000-0000-000000000000`\n\n### Sites\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `site:{site_id}:config` | JSON | Site configuration |\n| `site:{site_id}:admins` | Set | Admin user IDs |\n| `site:{site_id}:moderators` | Set | Moderator user IDs |\n| `site:{site_id}:blocked` | Set | Blocked user IDs |\n| `site:{site_id}:shadowbanned` | Set | Shadowbanned user IDs |\n| `site:{site_id}:modqueue` | ZSet | Pending comments (`page_id:comment_id`) |\n| `site:{site_id}:reports` | ZSet | Reported comments |\n| `site:{site_id}:locked_pages` | Set | Pages where posting is disabled |\n| `site:{site_id}:usage:{YYYY-MM}` | Hash | Monthly usage stats |\n\n### API Keys\n\n| Key | Type | Description |\n|-----|------|-------------|\n| `apikey:{key}:site` | String | Maps API key to site_id |\n\n### Design\n\n**Read path**: Single `GET page:{id}:tree` returns all comments. Server filters, sorts, strips vote arrays.\n\n**Write path**: Update page tree JSON + user/site indexes.\n\n**Performance**: O(1) page load (~1-5ms for 1000 comments) instead of N+1 queries.\n",
     "contact": {
       "name": "ThreadKit"
     },
@@ -18,6 +18,88 @@
     }
   ],
   "paths": {
+    "/auth/ethereum/nonce": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get a nonce for Ethereum wallet authentication",
+        "operationId": "ethereum_nonce",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Wallet address (0x... for Ethereum, base58 for Solana)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NonceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address format"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/ethereum/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Ethereum wallet signature and authenticate",
+        "operationId": "ethereum_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Web3VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid signature or expired nonce"
+          },
+          "401": {
+            "description": "Signature verification failed"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
     "/auth/forgot": {
       "post": {
         "tags": [
@@ -288,6 +370,88 @@
         ]
       }
     },
+    "/auth/solana/nonce": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get a nonce for Solana wallet authentication",
+        "operationId": "solana_nonce",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Wallet address (0x... for Ethereum, base58 for Solana)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NonceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address format"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/auth/solana/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Solana wallet signature and authenticate",
+        "operationId": "solana_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Web3VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid signature or expired nonce"
+          },
+          "401": {
+            "description": "Signature verification failed"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
     "/auth/verify": {
       "post": {
         "tags": [
@@ -375,21 +539,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "api_key",
+            "in": "query",
+            "description": "API key (required since OAuth is initiated via navigation, not fetch)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "302": {
             "description": "Redirect to OAuth provider"
           },
+          "400": {
+            "description": "Invalid API key"
+          },
           "404": {
             "description": "Provider not configured"
           }
-        },
-        "security": [
-          {
-            "api_key": []
-          }
-        ]
+        }
       }
     },
     "/auth/{provider}/callback": {
@@ -397,7 +568,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "OAuth callback (exchanges code for tokens)",
+        "summary": "OAuth callback (exchanges code for tokens)\nReturns an HTML page that posts credentials to the parent window",
         "operationId": "oauth_callback",
         "parameters": [
           {
@@ -433,14 +604,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OAuth successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
-            }
+            "description": "OAuth successful - returns HTML that posts to parent window"
           },
           "400": {
             "description": "Invalid OAuth response"
@@ -456,7 +620,7 @@
         "tags": [
           "comments"
         ],
-        "summary": "Get comments for a page (single Redis GET - fast!)",
+        "summary": "Get comments for a page",
         "operationId": "get_comments",
         "parameters": [
           {
@@ -1173,6 +1337,49 @@
         ]
       }
     },
+    "/pages/my_votes": {
+      "get": {
+        "tags": [
+          "comments"
+        ],
+        "summary": "Get the current user's votes for a page",
+        "operationId": "get_my_votes",
+        "parameters": [
+          {
+            "name": "page_url",
+            "in": "query",
+            "description": "URL of the page to get votes for",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's votes for the page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetVotesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/pages/{page_id}/posting": {
       "get": {
         "tags": [
@@ -1395,6 +1602,79 @@
         "security": [
           {
             "secret_key": []
+          }
+        ]
+      }
+    },
+    "/sites/{id}/comments": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get all comments on the site (moderator+)",
+        "description": "Returns a paginated list of all comments on the site, sorted by creation time (newest first).\nUseful for site-wide moderation views.",
+        "operationId": "get_site_comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Site ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of comments to skip (default: 0)",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of comments to return (default: 50, max: 100)",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "default": 50,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of site comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteCommentsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a moderator"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
           }
         ]
       }
@@ -1637,6 +1917,90 @@
         ]
       }
     },
+    "/turnstile/challenge": {
+      "get": {
+        "tags": [
+          "turnstile"
+        ],
+        "summary": "Serve the Turnstile challenge page (opened in popup)",
+        "description": "This page loads the Cloudflare Turnstile widget and sends the token\nback to the parent window via postMessage when complete.",
+        "operationId": "challenge_page",
+        "responses": {
+          "200": {
+            "description": "HTML page with Turnstile widget"
+          },
+          "503": {
+            "description": "Turnstile not configured"
+          }
+        }
+      }
+    },
+    "/turnstile/config": {
+      "get": {
+        "tags": [
+          "turnstile"
+        ],
+        "summary": "Get Turnstile configuration for this site",
+        "operationId": "get_config",
+        "responses": {
+          "200": {
+            "description": "Turnstile configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnstileConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/turnstile/verify": {
+      "post": {
+        "tags": [
+          "turnstile"
+        ],
+        "summary": "Verify a Turnstile token server-side",
+        "description": "This endpoint verifies the token with Cloudflare's API.\nUsed by the server when processing comment submissions.",
+        "operationId": "verify_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Turnstile not configured"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
     "/users/check-username": {
       "post": {
         "tags": [
@@ -1808,6 +2172,60 @@
         ]
       }
     },
+    "/users/me/comments": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get current user's comments on this site",
+        "operationId": "get_my_comments",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max items to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCommentsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "tags": [
@@ -1917,6 +2335,67 @@
           },
           {
             "bearer": []
+          }
+        ]
+      }
+    },
+    "/users/{id}/comments": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get a user's public comments on this site",
+        "operationId": "get_user_comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max items to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCommentsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "api_key": []
           }
         ]
       }
@@ -2054,6 +2533,13 @@
           "available": {
             "type": "boolean",
             "description": "Whether the username is available"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Validation error if username format is invalid"
           }
         }
       },
@@ -2142,6 +2628,25 @@
           }
         }
       },
+      "CommentItem": {
+        "type": "object",
+        "description": "A comment item with page context",
+        "required": [
+          "page_id",
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/TreeComment",
+            "description": "The comment"
+          },
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID where the comment exists"
+          }
+        }
+      },
       "CommentStatus": {
         "type": "string",
         "enum": [
@@ -2181,6 +2686,7 @@
       },
       "CreateCommentRequest": {
         "type": "object",
+        "description": "Request to create a new comment",
         "required": [
           "page_url",
           "content"
@@ -2213,6 +2719,7 @@
       },
       "CreateCommentResponse": {
         "type": "object",
+        "description": "Response when a comment is created",
         "required": [
           "comment"
         ],
@@ -2284,10 +2791,16 @@
         "type": "object",
         "description": "Response for GET /comments - uses compact tree format",
         "required": [
+          "page_id",
           "tree",
           "total"
         ],
         "properties": {
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID for WebSocket subscription"
+          },
           "pageviews": {
             "type": [
               "integer",
@@ -2304,6 +2817,24 @@
           "tree": {
             "$ref": "#/components/schemas/PageTree",
             "description": "Comments in compact tree format (single-letter keys)"
+          }
+        }
+      },
+      "GetVotesResponse": {
+        "type": "object",
+        "required": [
+          "votes"
+        ],
+        "properties": {
+          "votes": {
+            "type": "object",
+            "description": "Map of comment ID to vote direction (\"up\" or \"down\")",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2341,7 +2872,9 @@
           "email_verified",
           "phone_verified",
           "karma",
-          "unread_notifications"
+          "unread_notifications",
+          "username_set",
+          "social_links"
         ],
         "properties": {
           "avatar_url": {
@@ -2387,10 +2920,18 @@
             "type": "boolean",
             "description": "Whether phone is verified"
           },
+          "social_links": {
+            "$ref": "#/components/schemas/SocialLinks",
+            "description": "Social media links"
+          },
           "unread_notifications": {
             "type": "integer",
             "format": "int64",
             "description": "Number of unread notifications"
+          },
+          "username_set": {
+            "type": "boolean",
+            "description": "Whether the user has explicitly chosen their username"
           }
         }
       },
@@ -2413,6 +2954,33 @@
               "format": "uuid"
             },
             "description": "Path to the comment (array of UUIDs from root to target)"
+          }
+        }
+      },
+      "NonceResponse": {
+        "type": "object",
+        "required": [
+          "nonce",
+          "message",
+          "issued_at",
+          "expiration_time"
+        ],
+        "properties": {
+          "expiration_time": {
+            "type": "string",
+            "description": "When the nonce expires"
+          },
+          "issued_at": {
+            "type": "string",
+            "description": "When the nonce was issued"
+          },
+          "message": {
+            "type": "string",
+            "description": "The message to sign"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Nonce for this authentication request"
           }
         }
       },
@@ -2833,6 +3401,104 @@
           }
         }
       },
+      "SiteCommentItem": {
+        "type": "object",
+        "required": [
+          "page_id",
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/TreeComment",
+            "description": "The comment data"
+          },
+          "page_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Page ID where the comment was posted"
+          }
+        }
+      },
+      "SiteCommentsResponse": {
+        "type": "object",
+        "required": [
+          "comments",
+          "has_more"
+        ],
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteCommentItem"
+            },
+            "description": "List of comments"
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether there are more comments available"
+          }
+        }
+      },
+      "SocialLinks": {
+        "type": "object",
+        "description": "Social media links for a user's profile",
+        "properties": {
+          "discord": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "facebook": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "github": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instagram": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "snapchat": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "telegram": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tiktok": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "twitter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "whatsapp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "SortOrder": {
         "type": "string",
         "enum": [
@@ -2924,26 +3590,32 @@
             "format": "int64",
             "description": "upvotes count"
           },
-          "v": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "upvoters (array of user IDs)"
-          },
-          "w": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "downvoters (array of user IDs)"
-          },
           "x": {
             "type": "integer",
             "format": "int64",
             "description": "created_at (unix timestamp)"
+          }
+        }
+      },
+      "TurnstileConfigResponse": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "enforce_on",
+          "server_configured"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether Turnstile is enabled for this site"
+          },
+          "enforce_on": {
+            "type": "string",
+            "description": "When Turnstile is required"
+          },
+          "server_configured": {
+            "type": "boolean",
+            "description": "Whether the server has Turnstile configured (has secret key)"
           }
         }
       },
@@ -2989,6 +3661,37 @@
               "null"
             ],
             "description": "New username"
+          },
+          "social_links": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SocialLinks",
+                "description": "Social media links"
+              }
+            ]
+          }
+        }
+      },
+      "UserCommentsResponse": {
+        "type": "object",
+        "required": [
+          "comments",
+          "has_more"
+        ],
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentItem"
+            },
+            "description": "List of comments"
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "Whether there are more comments available"
           }
         }
       },
@@ -3021,6 +3724,16 @@
           },
           "name": {
             "type": "string"
+          },
+          "social_links": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SocialLinks"
+              }
+            ]
           }
         }
       },
@@ -3030,7 +3743,9 @@
           "id",
           "name",
           "email_verified",
-          "phone_verified"
+          "phone_verified",
+          "username_set",
+          "social_links"
         ],
         "properties": {
           "avatar_url": {
@@ -3063,6 +3778,14 @@
           },
           "phone_verified": {
             "type": "boolean"
+          },
+          "social_links": {
+            "$ref": "#/components/schemas/SocialLinks",
+            "description": "Social media links"
+          },
+          "username_set": {
+            "type": "boolean",
+            "description": "Whether the user has explicitly chosen their username.\nIf false, the user should be prompted to set their username."
           }
         }
       },
@@ -3102,26 +3825,31 @@
       "VerifyRequest": {
         "type": "object",
         "required": [
-          "code"
+          "token"
         ],
         "properties": {
-          "code": {
+          "token": {
             "type": "string",
-            "description": "Verification code"
+            "description": "The token from Turnstile widget"
+          }
+        }
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "error_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Error codes if verification failed"
           },
-          "email": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Email to verify"
-          },
-          "phone": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Phone to verify"
+          "success": {
+            "type": "boolean",
+            "description": "Whether the verification was successful"
           }
         }
       },
@@ -3184,6 +3912,28 @@
             ]
           }
         }
+      },
+      "Web3VerifyRequest": {
+        "type": "object",
+        "required": [
+          "address",
+          "message",
+          "signature"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Wallet address"
+          },
+          "message": {
+            "type": "string",
+            "description": "Signed message (the message field from NonceResponse)"
+          },
+          "signature": {
+            "type": "string",
+            "description": "Signature from wallet (hex for Ethereum, base58 for Solana)"
+          }
+        }
       }
     }
   },
@@ -3222,6 +3972,10 @@
     {
       "name": "admin",
       "description": "Site administration (admin+)"
+    },
+    {
+      "name": "turnstile",
+      "description": "Cloudflare Turnstile CAPTCHA"
     }
   ]
 }

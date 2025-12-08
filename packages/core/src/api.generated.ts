@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/auth/ethereum/nonce": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a nonce for Ethereum wallet authentication */
+        get: operations["ethereum_nonce"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/ethereum/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Ethereum wallet signature and authenticate */
+        post: operations["ethereum_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/forgot": {
         parameters: {
             query?: never;
@@ -140,6 +174,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/solana/nonce": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a nonce for Solana wallet authentication */
+        get: operations["solana_nonce"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/solana/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Solana wallet signature and authenticate */
+        post: operations["solana_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/verify": {
         parameters: {
             query?: never;
@@ -198,7 +266,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** OAuth callback (exchanges code for tokens) */
+        /**
+         * OAuth callback (exchanges code for tokens)
+         *     Returns an HTML page that posts credentials to the parent window
+         */
         get: operations["oauth_callback"];
         put?: never;
         post?: never;
@@ -215,7 +286,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get comments for a page (single Redis GET - fast!) */
+        /** Get comments for a page */
         get: operations["get_comments"];
         put?: never;
         /** Create a new comment */
@@ -434,6 +505,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pages/my_votes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the current user's votes for a page */
+        get: operations["get_my_votes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pages/{page_id}/posting": {
         parameters: {
             query?: never;
@@ -487,6 +575,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sites/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all comments on the site (moderator+)
+         * @description Returns a paginated list of all comments on the site, sorted by creation time (newest first).
+         *     Useful for site-wide moderation views.
+         */
+        get: operations["get_site_comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites/{id}/moderators": {
         parameters: {
             query?: never;
@@ -534,6 +643,65 @@ export interface paths {
         /** Enable or disable site-wide posting (admin+) */
         put: operations["set_site_posting"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/turnstile/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Serve the Turnstile challenge page (opened in popup)
+         * @description This page loads the Cloudflare Turnstile widget and sends the token
+         *     back to the parent window via postMessage when complete.
+         */
+        get: operations["challenge_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/turnstile/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Turnstile configuration for this site */
+        get: operations["get_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/turnstile/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a Turnstile token server-side
+         * @description This endpoint verifies the token with Cloudflare's API.
+         *     Used by the server when processing comment submissions.
+         */
+        post: operations["verify_token"];
         delete?: never;
         options?: never;
         head?: never;
@@ -593,6 +761,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/me/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current user's comments on this site */
+        get: operations["get_my_comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{id}": {
         parameters: {
             query?: never;
@@ -623,6 +808,23 @@ export interface paths {
         post: operations["block_user"];
         /** Unblock a user */
         delete: operations["unblock_user"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a user's public comments on this site */
+        get: operations["get_user_comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -681,6 +883,8 @@ export interface components {
         CheckUsernameResponse: {
             /** @description Whether the username is available */
             available: boolean;
+            /** @description Validation error if username format is invalid */
+            error?: string | null;
         };
         Comment: {
             /** Format: uuid */
@@ -711,12 +915,23 @@ export interface components {
             /** Format: int64 */
             upvotes: number;
         };
+        /** @description A comment item with page context */
+        CommentItem: {
+            /** @description The comment */
+            comment: components["schemas"]["TreeComment"];
+            /**
+             * Format: uuid
+             * @description Page ID where the comment exists
+             */
+            page_id: string;
+        };
         /** @enum {string} */
         CommentStatus: "pending" | "approved" | "rejected" | "deleted";
         CommentWithAuthor: components["schemas"]["Comment"] & {
             author: components["schemas"]["UserPublic"];
             user_vote?: null | components["schemas"]["VoteDirection"];
         };
+        /** @description Request to create a new comment */
         CreateCommentRequest: {
             /** @description Display name for anonymous comments (required if not authenticated) */
             author_name?: string | null;
@@ -730,6 +945,7 @@ export interface components {
              */
             parent_path?: string[];
         };
+        /** @description Response when a comment is created */
         CreateCommentResponse: {
             /** @description The created comment in compact tree format */
             comment: components["schemas"]["TreeComment"];
@@ -755,6 +971,11 @@ export interface components {
         /** @description Response for GET /comments - uses compact tree format */
         GetCommentsResponse: {
             /**
+             * Format: uuid
+             * @description Page ID for WebSocket subscription
+             */
+            page_id: string;
+            /**
              * Format: int64
              * @description Pageview count (if enabled)
              */
@@ -766,6 +987,12 @@ export interface components {
             total: number;
             /** @description Comments in compact tree format (single-letter keys) */
             tree: components["schemas"]["PageTree"];
+        };
+        GetVotesResponse: {
+            /** @description Map of comment ID to vote direction ("up" or "down") */
+            votes: {
+                [key: string]: string;
+            };
         };
         LoginRequest: {
             /** @description Email address */
@@ -798,11 +1025,15 @@ export interface components {
             phone?: string | null;
             /** @description Whether phone is verified */
             phone_verified: boolean;
+            /** @description Social media links */
+            social_links: components["schemas"]["SocialLinks"];
             /**
              * Format: int64
              * @description Number of unread notifications
              */
             unread_notifications: number;
+            /** @description Whether the user has explicitly chosen their username */
+            username_set: boolean;
         };
         ModerateCommentRequest: {
             /**
@@ -812,6 +1043,16 @@ export interface components {
             page_id: string;
             /** @description Path to the comment (array of UUIDs from root to target) */
             path: string[];
+        };
+        NonceResponse: {
+            /** @description When the nonce expires */
+            expiration_time: string;
+            /** @description When the nonce was issued */
+            issued_at: string;
+            /** @description The message to sign */
+            message: string;
+            /** @description Nonce for this authentication request */
+            nonce: string;
         };
         Notification: {
             /** Format: uuid */
@@ -948,6 +1189,33 @@ export interface components {
             /** @description Set to true to disable posting, false to enable */
             disabled: boolean;
         };
+        SiteCommentItem: {
+            /** @description The comment data */
+            comment: components["schemas"]["TreeComment"];
+            /**
+             * Format: uuid
+             * @description Page ID where the comment was posted
+             */
+            page_id: string;
+        };
+        SiteCommentsResponse: {
+            /** @description List of comments */
+            comments: components["schemas"]["SiteCommentItem"][];
+            /** @description Whether there are more comments available */
+            has_more: boolean;
+        };
+        /** @description Social media links for a user's profile */
+        SocialLinks: {
+            discord?: string | null;
+            facebook?: string | null;
+            github?: string | null;
+            instagram?: string | null;
+            snapchat?: string | null;
+            telegram?: string | null;
+            tiktok?: string | null;
+            twitter?: string | null;
+            whatsapp?: string | null;
+        };
         /** @enum {string} */
         SortOrder: "new" | "top" | "hot";
         /** @description Compact comment stored in page tree (single-letter keys) */
@@ -993,15 +1261,19 @@ export interface components {
              * @description upvotes count
              */
             u: number;
-            /** @description upvoters (array of user IDs) */
-            v?: string[];
-            /** @description downvoters (array of user IDs) */
-            w?: string[];
             /**
              * Format: int64
              * @description created_at (unix timestamp)
              */
             x: number;
+        };
+        TurnstileConfigResponse: {
+            /** @description Whether Turnstile is enabled for this site */
+            enabled: boolean;
+            /** @description When Turnstile is required */
+            enforce_on: string;
+            /** @description Whether the server has Turnstile configured (has secret key) */
+            server_configured: boolean;
         };
         UpdateCommentRequest: {
             /** @description New comment content (markdown) */
@@ -1016,6 +1288,13 @@ export interface components {
             avatar_url?: string | null;
             /** @description New username */
             name?: string | null;
+            social_links?: null | components["schemas"]["SocialLinks"];
+        };
+        UserCommentsResponse: {
+            /** @description List of comments */
+            comments: components["schemas"]["CommentItem"][];
+            /** @description Whether there are more comments available */
+            has_more: boolean;
         };
         UserPublic: {
             avatar_url?: string | null;
@@ -1026,6 +1305,7 @@ export interface components {
             /** Format: int64 */
             karma: number;
             name: string;
+            social_links?: null | components["schemas"]["SocialLinks"];
         };
         UserResponse: {
             avatar_url?: string | null;
@@ -1036,6 +1316,13 @@ export interface components {
             name: string;
             phone?: string | null;
             phone_verified: boolean;
+            /** @description Social media links */
+            social_links: components["schemas"]["SocialLinks"];
+            /**
+             * @description Whether the user has explicitly chosen their username.
+             *     If false, the user should be prompted to set their username.
+             */
+            username_set: boolean;
         };
         VerifyOtpRequest: {
             /** @description OTP code */
@@ -1048,12 +1335,14 @@ export interface components {
             phone?: string | null;
         };
         VerifyRequest: {
-            /** @description Verification code */
-            code: string;
-            /** @description Email to verify */
-            email?: string | null;
-            /** @description Phone to verify */
-            phone?: string | null;
+            /** @description The token from Turnstile widget */
+            token: string;
+        };
+        VerifyResponse: {
+            /** @description Error codes if verification failed */
+            error_codes?: string[];
+            /** @description Whether the verification was successful */
+            success: boolean;
         };
         /** @enum {string} */
         VoteDirection: "up" | "down";
@@ -1072,6 +1361,14 @@ export interface components {
             upvotes: number;
             user_vote?: null | components["schemas"]["VoteDirection"];
         };
+        Web3VerifyRequest: {
+            /** @description Wallet address */
+            address: string;
+            /** @description Signed message (the message field from NonceResponse) */
+            message: string;
+            /** @description Signature from wallet (hex for Ethereum, base58 for Solana) */
+            signature: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1081,6 +1378,74 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ethereum_nonce: {
+        parameters: {
+            query: {
+                /** @description Wallet address (0x... for Ethereum, base58 for Solana) */
+                address: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nonce generated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NonceResponse"];
+                };
+            };
+            /** @description Invalid address format */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ethereum_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Web3VerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentication successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Invalid signature or expired nonce */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Signature verification failed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     forgot_password: {
         parameters: {
             query?: never;
@@ -1320,6 +1685,74 @@ export interface operations {
             };
         };
     };
+    solana_nonce: {
+        parameters: {
+            query: {
+                /** @description Wallet address (0x... for Ethereum, base58 for Solana) */
+                address: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nonce generated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NonceResponse"];
+                };
+            };
+            /** @description Invalid address format */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    solana_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Web3VerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Authentication successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Invalid signature or expired nonce */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Signature verification failed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     verify: {
         parameters: {
             query?: never;
@@ -1382,7 +1815,10 @@ export interface operations {
     };
     oauth_start: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description API key (required since OAuth is initiated via navigation, not fetch) */
+                api_key: string;
+            };
             header?: never;
             path: {
                 /** @description OAuth provider (google, github) */
@@ -1394,6 +1830,13 @@ export interface operations {
         responses: {
             /** @description Redirect to OAuth provider */
             302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid API key */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1425,14 +1868,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OAuth successful */
+            /** @description OAuth successful - returns HTML that posts to parent window */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AuthResponse"];
-                };
+                content?: never;
             };
             /** @description Invalid OAuth response */
             400: {
@@ -1976,6 +2417,36 @@ export interface operations {
             };
         };
     };
+    get_my_votes: {
+        parameters: {
+            query: {
+                /** @description URL of the page to get votes for */
+                page_url: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User's votes for the page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetVotesResponse"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_page_posting_status: {
         parameters: {
             query?: never;
@@ -2131,6 +2602,41 @@ export interface operations {
                 content?: never;
             };
             /** @description Not the owner */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_site_comments: {
+        parameters: {
+            query?: {
+                /** @description Number of comments to skip (default: 0) */
+                offset?: number | null;
+                /** @description Maximum number of comments to return (default: 50, max: 100) */
+                limit?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Site ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of site comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteCommentsResponse"];
+                };
+            };
+            /** @description Not a moderator */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2309,6 +2815,82 @@ export interface operations {
             };
         };
     };
+    challenge_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page with Turnstile widget */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Turnstile not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Turnstile configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TurnstileConfigResponse"];
+                };
+            };
+        };
+    };
+    verify_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyResponse"];
+                };
+            };
+            /** @description Turnstile not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     check_username: {
         parameters: {
             query?: never;
@@ -2459,6 +3041,38 @@ export interface operations {
             };
         };
     };
+    get_my_comments: {
+        parameters: {
+            query?: {
+                /** @description Pagination offset */
+                offset?: number;
+                /** @description Max items to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User's comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCommentsResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_user: {
         parameters: {
             query?: never;
@@ -2538,6 +3152,41 @@ export interface operations {
         responses: {
             /** @description User unblocked */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_user_comments: {
+        parameters: {
+            query?: {
+                /** @description Pagination offset */
+                offset?: number;
+                /** @description Max items to return */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User's comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCommentsResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
