@@ -43,8 +43,8 @@ export function OAuthCallback() {
             { type: 'threadkit:oauth:success', token, refresh_token: refreshToken, user },
             '*'
           );
-          // Close popup after a short delay
-          setTimeout(() => window.close(), 100);
+          // Close popup immediately
+          window.close();
         } else {
           // Not in a popup, store tokens and redirect
           localStorage.setItem('threadkit_token', token);
