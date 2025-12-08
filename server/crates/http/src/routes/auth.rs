@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use threadkit_common::{
     auth::{self, generate_verification_code},
-    types::{AuthProvider, User, VerificationCode, VerificationType},
+    types::{AuthProvider, SocialLinks, User, VerificationCode, VerificationType},
     web3,
 };
 
@@ -93,6 +93,8 @@ pub struct UserResponse {
     /// Whether the user has explicitly chosen their username.
     /// If false, the user should be prompted to set their username.
     pub username_set: bool,
+    /// Social media links
+    pub social_links: SocialLinks,
 }
 
 impl From<User> for UserResponse {
@@ -106,6 +108,7 @@ impl From<User> for UserResponse {
             email_verified: u.email_verified,
             phone_verified: u.phone_verified,
             username_set: u.username_set,
+            social_links: u.social_links,
         }
     }
 }
@@ -494,6 +497,7 @@ pub async fn verify_otp(
             shadow_banned: false,
             created_at: now,
             username_set: true, // User explicitly chose this username
+            social_links: SocialLinks::default(),
         };
 
         state.redis.set_user(&user).await
@@ -680,6 +684,7 @@ pub async fn register(
         shadow_banned: false,
         created_at: now,
         username_set: true, // User explicitly chose this username in registration
+        social_links: SocialLinks::default(),
     };
 
     state.redis.set_user(&user).await
@@ -1367,6 +1372,7 @@ async fn oauth_callback_inner(
             shadow_banned: false,
             created_at: now,
             username_set: false, // New users must confirm their username
+            social_links: SocialLinks::default(),
         };
 
         state.redis.set_user(&user).await
@@ -1719,6 +1725,7 @@ async fn get_or_create_web3_user(
         shadow_banned: false,
         created_at: now,
         username_set: false, // Web3 users need to choose a proper username
+        social_links: SocialLinks::default(),
     };
 
     state

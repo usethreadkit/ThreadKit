@@ -257,6 +257,7 @@ Single-letter keys for efficiency:
     components(
         schemas(
             // Common types
+            threadkit_common::types::SocialLinks,
             threadkit_common::types::UserPublic,
             threadkit_common::types::Comment,
             threadkit_common::types::CommentStatus,

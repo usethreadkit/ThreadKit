@@ -7,6 +7,29 @@ use uuid::Uuid;
 // User Types
 // ============================================================================
 
+/// Social media links for a user's profile
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema)]
+pub struct SocialLinks {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub twitter: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facebook: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub whatsapp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub telegram: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instagram: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tiktok: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snapchat: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discord: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
@@ -26,6 +49,9 @@ pub struct User {
     /// False for OAuth users who were assigned a name from their provider.
     #[serde(default = "default_username_set")]
     pub username_set: bool,
+    /// Social media links
+    #[serde(default)]
+    pub social_links: SocialLinks,
 }
 
 fn default_username_set() -> bool {
@@ -51,16 +77,30 @@ pub struct UserPublic {
     pub avatar_url: Option<String>,
     pub karma: i64,
     pub created_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub social_links: Option<SocialLinks>,
 }
 
 impl From<User> for UserPublic {
     fn from(user: User) -> Self {
+        // Only include social_links if at least one field is set
+        let has_social_links = user.social_links.twitter.is_some()
+            || user.social_links.github.is_some()
+            || user.social_links.facebook.is_some()
+            || user.social_links.whatsapp.is_some()
+            || user.social_links.telegram.is_some()
+            || user.social_links.instagram.is_some()
+            || user.social_links.tiktok.is_some()
+            || user.social_links.snapchat.is_some()
+            || user.social_links.discord.is_some();
+
         UserPublic {
             id: user.id,
             name: user.name,
             avatar_url: user.avatar_url,
             karma: user.karma,
             created_at: user.created_at,
+            social_links: if has_social_links { Some(user.social_links) } else { None },
         }
     }
 }

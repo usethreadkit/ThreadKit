@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use threadkit_common::types::{DeletedAccountStats, Notification, TreeComment, UserPublic};
+use threadkit_common::types::{DeletedAccountStats, Notification, SocialLinks, TreeComment, UserPublic};
 
 use crate::{
     extractors::{ApiKey, AuthUser, MaybeAuthUser},
@@ -54,6 +54,8 @@ pub struct MeResponse {
     pub unread_notifications: i64,
     /// Whether the user has explicitly chosen their username
     pub username_set: bool,
+    /// Social media links
+    pub social_links: SocialLinks,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -62,6 +64,8 @@ pub struct UpdateMeRequest {
     pub name: Option<String>,
     /// New avatar URL
     pub avatar_url: Option<String>,
+    /// Social media links
+    pub social_links: Option<SocialLinks>,
 }
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -163,6 +167,7 @@ pub async fn get_me(
         karma: user.karma,
         unread_notifications: unread,
         username_set: user.username_set,
+        social_links: user.social_links,
     }))
 }
 
@@ -224,6 +229,10 @@ pub async fn update_me(
         user.avatar_url = Some(avatar_url);
     }
 
+    if let Some(social_links) = req.social_links {
+        user.social_links = social_links;
+    }
+
     state
         .redis
         .set_user(&user)
@@ -247,6 +256,7 @@ pub async fn update_me(
         karma: user.karma,
         unread_notifications: unread,
         username_set: user.username_set,
+        social_links: user.social_links,
     }))
 }
 
