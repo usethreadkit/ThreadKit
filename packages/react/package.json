@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/react",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Privacy-first commenting and chat system for React",
   "type": "module",
   "main": "./dist/index.js",
