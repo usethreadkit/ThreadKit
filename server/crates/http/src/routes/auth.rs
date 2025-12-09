@@ -510,6 +510,7 @@ pub async fn verify_otp(
             created_at: now,
             username_set: true, // User explicitly chose this username
             social_links: SocialLinks::default(),
+            total_comments: 0,
         };
 
         state.redis.set_user(&user).await
@@ -639,6 +640,7 @@ pub async fn anonymous_login(
         created_at: now,
         username_set: true, // Anonymous users don't need to set username
         social_links: SocialLinks::default(),
+        total_comments: 0,
     };
 
     state.redis.set_user(&user).await
@@ -844,6 +846,7 @@ pub async fn register(
         created_at: now,
         username_set: true, // User explicitly chose this username in registration
         social_links: SocialLinks::default(),
+        total_comments: 0,
     };
 
     state.redis.set_user(&user).await
@@ -1488,11 +1491,16 @@ async fn oauth_callback_inner(
     let existing_user_id = state.redis.get_user_by_provider(&provider, &provider_id).await
         .map_err(|e| e.to_string())?;
 
-    let site_id: Uuid = query.state
-        .as_ref()
-        .and_then(|s| s.parse().ok())
-        .or_else(|| state.config.standalone().map(|s| s.site_id))
-        .ok_or("Invalid state")?;
+    let site_id: Uuid = if let Some(state_str) = query.state.as_ref() {
+        state_str.parse().map_err(|_| "Invalid state")?
+    } else if let Some(standalone) = state.config.standalone() {
+        let site_config = state.redis.get_site_config_by_api_key(&standalone.project_id_public).await
+            .map_err(|e| e.to_string())?
+            .ok_or("Site config not found")?;
+        site_config.id
+    } else {
+        return Err("Invalid state".into());
+    };
 
     let user = if let Some(user_id) = existing_user_id {
         state.redis.get_user(user_id).await
@@ -1526,6 +1534,7 @@ async fn oauth_callback_inner(
             created_at: now,
             username_set: false, // New users must confirm their username
             social_links: SocialLinks::default(),
+            total_comments: 0,
         };
 
         state.redis.set_user(&user).await
@@ -1879,6 +1888,7 @@ async fn get_or_create_web3_user(
         created_at: now,
         username_set: false, // Web3 users need to choose a proper username
         social_links: SocialLinks::default(),
+        total_comments: 0,
     };
 
     state

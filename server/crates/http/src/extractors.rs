@@ -113,13 +113,13 @@ where
 
             let site_config = state
                 .redis
-                .get_site_config(standalone.site_id)
+                .get_site_config_by_api_key(project_id)
                 .await
                 .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get site config".to_string()))?
                 .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Site config not found".to_string()))?;
 
             let info = ProjectIdInfo {
-                site_id: standalone.site_id,
+                site_id: site_config.id,
                 key_type,
                 settings: site_config.settings,
                 domain: site_config.domain,

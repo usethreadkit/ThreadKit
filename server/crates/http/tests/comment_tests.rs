@@ -401,3 +401,165 @@ async fn test_create_comment_requires_auth() {
 
     response.assert_status(StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn test_comment_count_increments() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("counter", "counter@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+    let user_id = auth["user"]["id"].as_str().unwrap();
+
+    // Get initial user profile
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name.clone(), key_value.clone())
+        .await;
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+    assert_eq!(user["total_comments"], 0);
+
+    // Post one comment
+    ctx.create_comment(token, "https://example.com/count1", "First comment", None)
+        .await;
+
+    // Wait a bit for background task to complete
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    // Check count is now 1
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name.clone(), key_value.clone())
+        .await;
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+    assert_eq!(user["total_comments"], 1);
+
+    // Post another comment
+    ctx.create_comment(token, "https://example.com/count1", "Second comment", None)
+        .await;
+
+    // Wait for background task
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    // Check count is now 2
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name, key_value)
+        .await;
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+    assert_eq!(user["total_comments"], 2);
+}
+
+#[tokio::test]
+async fn test_multiple_comments_increment_count() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("multi", "multi@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+    let user_id = auth["user"]["id"].as_str().unwrap();
+
+    // Post multiple comments
+    for i in 1..=5 {
+        ctx.create_comment(
+            token,
+            "https://example.com/multi",
+            &format!("Comment {}", i),
+            None,
+        )
+        .await;
+    }
+
+    // Wait for background tasks
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Verify count is 5
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name, key_value)
+        .await;
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+    assert_eq!(user["total_comments"], 5);
+}
+
+#[tokio::test]
+async fn test_user_endpoint_returns_total_comments() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("getter", "getter@example.com", "password123")
+        .await;
+    let user_id = auth["user"]["id"].as_str().unwrap();
+
+    // Get user with 0 comments
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name, key_value)
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+
+    // Verify all expected fields are present
+    assert!(user["id"].is_string());
+    assert!(user["name"].is_string());
+    assert!(user["karma"].is_number());
+    assert!(user["created_at"].is_number());
+    assert_eq!(user["total_comments"], 0);
+}
+
+#[tokio::test]
+async fn test_user_endpoint_with_multiple_comments() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("prolific", "prolific@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+    let user_id = auth["user"]["id"].as_str().unwrap();
+
+    // Post 3 comments
+    for i in 1..=3 {
+        ctx.create_comment(
+            token,
+            "https://example.com/prolific",
+            &format!("Comment {}", i),
+            None,
+        )
+        .await;
+    }
+
+    // Wait for background tasks
+    tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+
+    // Get user profile
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
+    let response = ctx
+        .server
+        .get(&format!("/v1/users/{}", user_id))
+        .add_header(key_name, key_value)
+        .await;
+
+    response.assert_status(StatusCode::OK);
+    let user: serde_json::Value = response.json();
+    assert_eq!(user["total_comments"], 3);
+    assert_eq!(user["name"], "prolific");
+}

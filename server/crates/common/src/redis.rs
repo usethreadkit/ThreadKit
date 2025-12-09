@@ -940,6 +940,24 @@ impl RedisClient {
         Ok(new_karma)
     }
 
+    /// Increment user's total comment count
+    pub async fn increment_user_comment_count(&self, user_id: Uuid) -> Result<i64> {
+        let new_count: i64 = self
+            .client
+            .hincrby(format!("user:{}", user_id), "total_comments", 1)
+            .await?;
+        Ok(new_count)
+    }
+
+    /// Decrement user's total comment count
+    pub async fn decrement_user_comment_count(&self, user_id: Uuid) -> Result<i64> {
+        let new_count: i64 = self
+            .client
+            .hincrby(format!("user:{}", user_id), "total_comments", -1)
+            .await?;
+        Ok(new_count)
+    }
+
     // ========================================================================
     // User-to-User Blocking
     // ========================================================================
@@ -1327,6 +1345,20 @@ impl RedisClient {
     pub async fn get_site_config(&self, site_id: Uuid) -> Result<Option<SiteConfig>> {
         let value: Option<String> = self.client.get(format!("site:{}:config", site_id)).await?;
         Ok(value.and_then(|v| serde_json::from_str(&v).ok()))
+    }
+
+    /// Look up site config by API key (public or secret)
+    pub async fn get_site_config_by_api_key(&self, api_key: &str) -> Result<Option<SiteConfig>> {
+        // First, look up the site_id from the API key index
+        let site_id_str: Option<String> = self.client.get(format!("apikey:{}:site", api_key)).await?;
+
+        if let Some(site_id_str) = site_id_str {
+            if let Ok(site_id) = site_id_str.parse::<Uuid>() {
+                return self.get_site_config(site_id).await;
+            }
+        }
+
+        Ok(None)
     }
 
     /// Count how many site configs exist in Redis

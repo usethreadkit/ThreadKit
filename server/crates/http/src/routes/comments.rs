@@ -569,6 +569,14 @@ pub async fn create_comment(
                 }));
             }
 
+            // Increment user comment count (if authenticated)
+            if let Some(user_id) = auth.user_id {
+                let redis = redis.clone();
+                futures.push(Box::pin(async move {
+                    let _ = redis.increment_user_comment_count(user_id).await;
+                }));
+            }
+
             // Notification (if reply to another user)
             if let Some(parent_author_id) = notify_user_id {
                 let redis = redis.clone();

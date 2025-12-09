@@ -10,6 +10,7 @@ use axum::{
 use clap::Parser;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use serde::Serialize;
+use std::env;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::{
@@ -98,6 +99,13 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // Load .env file early so that --create-site and --edit-site can access env vars
+    if let Some(path) = &args.env {
+        dotenvy::from_filename(path).ok();
+    } else {
+        dotenvy::dotenv().ok();
+    }
+
     // Handle --create-site mode - generate new site and exit
     if let Some(ref site_args) = args.create_site {
         return create_site(&args, site_args).await;
@@ -139,7 +147,6 @@ async fn main() -> Result<()> {
 
     // Print API keys in standalone mode
     if let Some(standalone) = config.standalone() {
-        tracing::info!("Site ID: {}", standalone.site_id);
         tracing::info!("Public key: {}", standalone.project_id_public);
         tracing::info!("Secret key: {}", standalone.project_id_secret);
     }
@@ -430,11 +437,19 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
     let site_name = &site_args[0];
     let site_domain = &site_args[1];
     let moderation_mode = site_args.get(2).map(|s| s.as_str()).unwrap_or("none");
+
+    // Read API keys from CLI args, then env vars, then generate if needed
     let project_id_public = site_args.get(3)
         .cloned()
-        .unwrap_or_else(|| format!("tk_pub_{}", generate_key()));
+        .or_else(|| env::var("PROJECT_ID_PUBLIC").ok().filter(|s| !s.is_empty()))
+        .unwrap_or_else(|| "tk_pub_your_public_key".to_string());
+
     let project_id_secret = site_args.get(4)
         .cloned()
+        .or_else(|| env::var("THREADKIT_SECRET_KEY")
+            .or_else(|_| env::var("PROJECT_ID_SECRET"))
+            .ok()
+            .filter(|s| !s.is_empty() && s != "tk_sec_your_secret_key"))
         .unwrap_or_else(|| format!("tk_sec_{}", generate_key()));
 
     // Validate moderation mode
@@ -528,8 +543,29 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         std::process::exit(1);
     }
 
-    // Output just the site ID
-    println!("{}", site_id);
+    // Output the configuration
+    println!("\n✓ Site created successfully!\n");
+    println!("Add this to your .env file:\n");
+    println!("THREADKIT_SECRET_KEY={}", site_config.project_id_secret);
+    println!("\nOptional (for local development):");
+    println!("PROJECT_ID_PUBLIC={}", site_config.project_id_public);
+    println!("\nSite ID: {}", site_id);
+
+    // Show enabled auth methods
+    let auth = &site_config.settings.auth;
+    let mut enabled_methods = Vec::new();
+    if auth.email { enabled_methods.push("email"); }
+    if auth.google { enabled_methods.push("google"); }
+    if auth.github { enabled_methods.push("github"); }
+    if auth.phone { enabled_methods.push("phone"); }
+    if auth.anonymous { enabled_methods.push("anonymous"); }
+    if auth.ethereum { enabled_methods.push("ethereum"); }
+    if auth.solana { enabled_methods.push("solana"); }
+
+    if !enabled_methods.is_empty() {
+        println!("\nEnabled auth methods: {}", enabled_methods.join(", "));
+    }
+
     Ok(())
 }
 

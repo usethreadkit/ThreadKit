@@ -148,10 +148,10 @@ pub async fn rate_limit(
             (Some(info.site_id), Some(info.settings.rate_limits))
         } else if let Some(standalone) = state.config.standalone() {
             if project_id == &standalone.project_id_public || project_id == &standalone.project_id_secret {
-                if let Ok(Some(config)) = state.redis.get_site_config(standalone.site_id).await {
-                    (Some(standalone.site_id), Some(config.settings.rate_limits))
+                if let Ok(Some(config)) = state.redis.get_site_config_by_api_key(&standalone.project_id_public).await {
+                    (Some(config.id), Some(config.settings.rate_limits))
                 } else {
-                    (Some(standalone.site_id), None)
+                    (None, None)
                 }
             } else {
                 (None, None)

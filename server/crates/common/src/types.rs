@@ -52,6 +52,9 @@ pub struct User {
     /// Social media links
     #[serde(default)]
     pub social_links: SocialLinks,
+    /// Total number of comments posted by this user
+    #[serde(default)]
+    pub total_comments: i64,
 }
 
 fn default_username_set() -> bool {
@@ -79,6 +82,7 @@ pub struct UserPublic {
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub social_links: Option<SocialLinks>,
+    pub total_comments: i64,
 }
 
 impl From<User> for UserPublic {
@@ -101,6 +105,7 @@ impl From<User> for UserPublic {
             karma: user.karma,
             created_at: user.created_at,
             social_links: if has_social_links { Some(user.social_links) } else { None },
+            total_comments: user.total_comments,
         }
     }
 }

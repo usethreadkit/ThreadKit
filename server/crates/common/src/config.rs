@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use std::env;
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -139,12 +138,8 @@ pub enum Mode {
 
 #[derive(Debug, Clone)]
 pub struct StandaloneConfig {
-    pub site_id: Uuid,
     pub project_id_public: String,
     pub project_id_secret: String,
-    pub site_name: String,
-    pub site_domain: String,
-    pub moderation_mode: ModerationMode,
     /// Additional allowed origins beyond the primary domain
     /// Supports wildcards like "*.example.com" for subdomains
     pub allowed_origins: Vec<String>,
@@ -190,49 +185,37 @@ impl Config {
         let mode = match env::var("MODE").unwrap_or_else(|_| "standalone".to_string()).as_str() {
             "saas" => Mode::Saas,
             _ => {
-                // In standalone mode, require SITE_ID and API keys
-                let site_id = env::var("SITE_ID")
-                    .ok()
-                    .and_then(|s| if s.is_empty() { None } else { s.parse().ok() });
-
+                // In standalone mode, only require THREADKIT_SECRET_KEY (site_id is looked up from Redis)
+                // PROJECT_ID_PUBLIC is optional and defaults to the placeholder from --create-site output
                 let project_id_public = env::var("PROJECT_ID_PUBLIC")
                     .ok()
-                    .filter(|s| !s.is_empty() && s != "tk_pub_your_public_key");
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| "tk_pub_your_public_key".to_string());
 
-                let project_id_secret = env::var("PROJECT_ID_SECRET")
+                let project_id_secret = env::var("THREADKIT_SECRET_KEY")
+                    .or_else(|_| env::var("PROJECT_ID_SECRET"))  // backward compat
                     .ok()
                     .filter(|s| !s.is_empty() && s != "tk_sec_your_secret_key");
 
                 // Check if required config is missing
-                if site_id.is_none() || project_id_public.is_none() || project_id_secret.is_none() {
+                if project_id_secret.is_none() {
                     anyhow::bail!(
                         "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
                          Missing required configuration for standalone mode.\n\n\
                          Required environment variables:\n\
-                           SITE_ID         - Your site's unique identifier (UUID)\n\
-                           PROJECT_ID_PUBLIC  - Public API key (tk_pub_...)\n\
-                           PROJECT_ID_SECRET  - Secret API key (tk_sec_...)\n\n\
+                           THREADKIT_SECRET_KEY  - Secret API key (tk_sec_...)\n\n\
+                         Optional:\n\
+                           PROJECT_ID_PUBLIC  - Public API key (tk_pub_..., defaults to placeholder)\n\n\
                          To create a new site, run:\n\
                            threadkit-http --create-site NAME DOMAIN\n\n\
-                         Then add the site ID and keys to your .env file.\n\
+                         Then add the THREADKIT_SECRET_KEY (and optionally PROJECT_ID_PUBLIC) to your .env file.\n\
                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                     );
                 }
 
                 Mode::Standalone(StandaloneConfig {
-                    site_id: site_id.unwrap(),
-                    project_id_public: project_id_public.unwrap(),
+                    project_id_public,
                     project_id_secret: project_id_secret.unwrap(),
-                    site_name: env::var("SITE_NAME").unwrap_or_else(|_| "My Site".to_string()),
-                    site_domain: env::var("SITE_DOMAIN").unwrap_or_else(|_| "localhost".to_string()),
-                    moderation_mode: match env::var("MODERATION_MODE")
-                        .unwrap_or_default()
-                        .as_str()
-                    {
-                        "pre" => ModerationMode::Pre,
-                        "post" => ModerationMode::Post,
-                        _ => ModerationMode::None,
-                    },
                     allowed_origins: env::var("ALLOWED_ORIGINS")
                         .map(|s| s.split(',').map(|o| o.trim().to_string()).filter(|o| !o.is_empty()).collect())
                         .unwrap_or_default(),

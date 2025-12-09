@@ -46,49 +46,51 @@ impl AppState {
             tracing::info!("Content moderation enabled");
         }
 
-        // In standalone mode, verify site exists in Redis and update settings
+        // In standalone mode, look up site from API key
         if let Some(standalone) = config.standalone() {
-            use threadkit_common::types::{AuthSettings, ModerationMode, ContentModerationSettings};
-            use threadkit_common::config::ModerationMode as ConfigModerationMode;
-
-            // Check if site exists in Redis
-            let existing_site = redis.get_site_config(standalone.site_id).await?;
+            // Look up site config by API key
+            let existing_site = redis.get_site_config_by_api_key(&standalone.project_id_public).await?;
 
             if existing_site.is_none() {
                 // Site not found - this could be:
                 // 1. First run without using --create-site
                 // 2. Redis was cleared
-                // 3. Wrong SITE_ID in .env
+                // 3. Wrong API keys in .env
                 anyhow::bail!(
                     "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
-                     Site not found in Redis.\n\n\
-                     Site ID: {}\n\n\
+                     Site not found in Redis for the provided API key.\n\n\
+                     API Key: {}\n\n\
                      This can happen if:\n\
                        1. This is a fresh installation (create a site first)\n\
                        2. Redis was cleared and needs re-initialization\n\
-                       3. The SITE_ID in your .env is incorrect\n\n\
+                       3. The API keys in your .env are incorrect\n\n\
                      To create a new site, run:\n\
                        threadkit-http --create-site NAME DOMAIN\n\n\
-                     Then update your .env with the generated site ID.\n\
+                     Then add the generated API keys to your .env file.\n\
                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-                    standalone.site_id
+                    standalone.project_id_public
                 );
             }
 
-            let mut existing = existing_site.unwrap();
+            let existing = existing_site.unwrap();
 
-            // Verify API keys match what's in Redis
-            if existing.project_id_public != standalone.project_id_public {
+            // Verify both API keys match
+            if existing.project_id_public != standalone.project_id_public
+                || existing.project_id_secret != standalone.project_id_secret {
                 anyhow::bail!(
                     "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
                      API key mismatch!\n\n\
-                     The PROJECT_ID_PUBLIC in your .env doesn't match the one stored in Redis.\n\n\
-                     .env:   {}\n\
-                     Redis:  {}\n\n\
-                     Please update your .env with the correct API key.\n\
+                     The API keys in your .env don't match the ones stored in Redis.\n\n\
+                     .env public:   {}\n\
+                     Redis public:  {}\n\n\
+                     .env secret:   {}\n\
+                     Redis secret:  {}\n\n\
+                     Please update your .env with the correct API keys.\n\
                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
                     standalone.project_id_public,
-                    existing.project_id_public
+                    existing.project_id_public,
+                    standalone.project_id_secret,
+                    existing.project_id_secret
                 );
             }
 
@@ -96,7 +98,7 @@ impl AppState {
             // All settings are managed via --create-site and --edit-site commands.
             // NOTE: OAuth methods are filtered at runtime in auth_methods() based on whether
             // secrets are configured, so we don't need to update the settings here.
-            tracing::info!("Loaded site config from Redis");
+            tracing::info!("Loaded site config from Redis: {} ({})", existing.name, existing.id);
         }
 
         // Build ETag cache: 1M entries max, 5 min TTI

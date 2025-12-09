@@ -7,9 +7,7 @@ type Mode = 'comments' | 'chat';
 type Theme = 'light' | 'dark';
 
 // Configuration for local development
-// These are the default values for the local-server example.
-// Run: cargo run --release --bin threadkit-http -- --create-site "Local Dev" localhost none tk_pub_local_example_key tk_sec_local_example_key 00000000-0000-0000-0000-000000000001
-const LOCAL_PROJECT_ID = 'tk_pub_local_example_key';
+const LOCAL_PROJECT_ID = 'tk_pub_your_public_key';
 const API_URL = 'http://localhost:8080/v1';
 const WS_URL = 'ws://localhost:8081';
 
@@ -43,7 +41,11 @@ function App() {
             <li>
               Create site (first time only):
               <pre style={{ margin: '4px 0', padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, overflow: 'auto' }}>
-cd server && cargo run --release --bin threadkit-http -- \{'\n'}  --create-site "Local Dev" localhost none \{'\n'}  tk_pub_local_example_key tk_sec_local_example_key \{'\n'}  00000000-0000-0000-0000-000000000001
+                cargo run --release --bin threadkit-http -- \
+                <br />
+                --create-site "My Site" example.com \
+                <br />
+                --enable-auth email,google,github,anonymous
               </pre>
             </li>
             <li>

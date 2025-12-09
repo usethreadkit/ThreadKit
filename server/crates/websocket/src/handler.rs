@@ -356,13 +356,13 @@ async fn validate_project_id(state: &WsState, project_id: &str) -> Result<Projec
 
         let site_config = state
             .redis
-            .get_site_config(standalone.site_id)
+            .get_site_config_by_api_key(&standalone.project_id_public)
             .await
             .map_err(|e| e.to_string())?
             .ok_or("Site config not found")?;
 
         let info = ProjectIdInfo {
-            site_id: standalone.site_id,
+            site_id: site_config.id,
             key_type,
             settings: site_config.settings,
             domain: site_config.domain,
