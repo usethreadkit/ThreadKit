@@ -25,7 +25,7 @@ pub use threadkit_common::types::{
 use super::turnstile::verify_with_cloudflare;
 
 use crate::{
-    extractors::{ApiKey, AuthUser, AuthUserWithRole, MaybeAuthUser, MaybeAuthUserWithRole},
+    extractors::{ProjectId, AuthUser, AuthUserWithRole, MaybeAuthUser, MaybeAuthUserWithRole},
     state::AppState,
 };
 
@@ -126,11 +126,11 @@ pub struct GetVotesResponse {
         (status = 304, description = "Not modified (ETag match)"),
         (status = 400, description = "Invalid request")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn get_comments(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     maybe_auth: MaybeAuthUser,
     headers: axum::http::HeaderMap,
     Query(query): Query<GetCommentsQuery>,
@@ -141,7 +141,7 @@ pub async fn get_comments(
     let request_start = Instant::now();
 
     // Generate page_id from URL
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &query.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &query.page_url);
 
     // Check in-memory ETag cache FIRST (avoids Redis entirely for unchanged pages)
     if let Some(if_none_match) = headers.get("if-none-match").and_then(|v| v.to_str().ok()) {
@@ -165,7 +165,7 @@ pub async fn get_comments(
     // Uses pipeline to batch both increments into a single Redis round trip
     {
         let redis = state.redis.clone();
-        let site_id = api_key.0.site_id;
+        let site_id = project_id.0.site_id;
         tokio::spawn(async move {
             let _ = redis.increment_pageview_with_usage(page_id, site_id).await;
         });
@@ -173,7 +173,7 @@ pub async fn get_comments(
 
     // Prepare concurrent fetches - we need blocked_users and pageviews in parallel with tree
     let user_id_for_blocked = maybe_auth.0.as_ref().map(|u| u.user_id);
-    let show_pageviews = api_key.0.settings.display.show_pageviews;
+    let show_pageviews = project_id.0.settings.display.show_pageviews;
 
     // Run all Redis reads concurrently using tokio::join!
     let redis_start = Instant::now();
@@ -291,18 +291,18 @@ pub async fn get_comments(
         (status = 403, description = "User is blocked or Turnstile verification failed"),
         (status = 404, description = "Parent comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn create_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: MaybeAuthUserWithRole,
     headers: axum::http::HeaderMap,
     Json(req): Json<CreateCommentRequest>,
 ) -> Result<Json<CreateCommentResponse>, (StatusCode, String)> {
     // Check if anonymous comments are allowed
     let is_anonymous = !auth.is_authenticated();
-    if is_anonymous && !api_key.0.settings.auth.anonymous {
+    if is_anonymous && !project_id.0.settings.auth.anonymous {
         return Err((
             StatusCode::UNAUTHORIZED,
             "Authentication required. Anonymous comments are not enabled.".into(),
@@ -326,17 +326,17 @@ pub async fn create_comment(
     auth.require_username_set()?;
 
     // Check if site-wide posting is disabled
-    if api_key.0.settings.posting_disabled {
+    if project_id.0.settings.posting_disabled {
         return Err((StatusCode::FORBIDDEN, "Posting is currently disabled".into()));
     }
 
     // Generate page_id
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
     // Check if page-level posting is disabled
     let page_locked = state
         .redis
-        .is_page_locked(api_key.0.site_id, page_id)
+        .is_page_locked(project_id.0.site_id, page_id)
         .await
         .unwrap_or(false);
 
@@ -348,7 +348,7 @@ pub async fn create_comment(
     }
 
     // Turnstile verification (if configured)
-    verify_turnstile(&state, &api_key, is_anonymous, &headers).await?;
+    verify_turnstile(&state, &project_id, is_anonymous, &headers).await?;
 
     // Validate comment length
     let max_length = state.config.max_comment_length;
@@ -366,7 +366,7 @@ pub async fn create_comment(
     let is_shadowbanned = if let Some(user_id) = auth.user_id {
         state
             .redis
-            .is_shadowbanned(api_key.0.site_id, user_id)
+            .is_shadowbanned(project_id.0.site_id, user_id)
             .await
             .unwrap_or(false)
     } else {
@@ -379,7 +379,7 @@ pub async fn create_comment(
     // timeout, API outage), the comment is allowed through. This prioritizes availability
     // over strict moderation. The alternative (fail-closed) would reject all comments when
     // moderation is down, which provides worse UX for legitimate users.
-    let content_moderation_settings = &api_key.0.settings.content_moderation;
+    let content_moderation_settings = &project_id.0.settings.content_moderation;
     let moderation_result = state
         .moderation
         .check(&req.content, content_moderation_settings)
@@ -421,7 +421,7 @@ pub async fn create_comment(
         if moderation_flagged && content_moderation_settings.action == ModerationAction::Queue {
             Some(CommentStatus::Pending)
         } else {
-            match api_key.0.settings.moderation_mode {
+            match project_id.0.settings.moderation_mode {
                 ModerationMode::Pre => Some(CommentStatus::Pending),
                 _ => None, // None means approved (default)
             }
@@ -508,7 +508,7 @@ pub async fn create_comment(
     // These don't block the response - the comment is already saved
     {
         let redis = state.redis.clone();
-        let site_id = api_key.0.site_id;
+        let site_id = project_id.0.site_id;
         let is_pending = status == Some(CommentStatus::Pending);
         let parent_path = req.parent_path.clone();
 
@@ -628,11 +628,11 @@ pub async fn create_comment(
         (status = 403, description = "Not your comment"),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn update_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<UpdateCommentRequest>,
@@ -645,7 +645,7 @@ pub async fn update_comment(
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
     }
 
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
     let mut tree = state
         .redis
@@ -705,11 +705,11 @@ pub async fn update_comment(
         (status = 403, description = "Not authorized"),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn delete_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<DeleteRequest>,
@@ -722,7 +722,7 @@ pub async fn delete_comment(
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
     }
 
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
     let mut tree = state
         .redis
@@ -774,11 +774,11 @@ pub async fn delete_comment(
         (status = 200, description = "Vote recorded", body = VoteResponse),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn vote_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<VoteRequest>,
@@ -791,7 +791,7 @@ pub async fn vote_comment(
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
     }
 
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
     // Get existing vote from per-page vote structure
     let existing_vote = state
@@ -922,11 +922,11 @@ pub async fn vote_comment(
         (status = 204, description = "Report submitted"),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn report_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUser,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<ReportRequest>,
@@ -936,7 +936,7 @@ pub async fn report_comment(
         return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
     }
 
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &req.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
     // Verify comment exists
     let tree = state
@@ -959,7 +959,7 @@ pub async fn report_comment(
 
     state
         .redis
-        .add_report_v2(api_key.0.site_id, page_id, &report)
+        .add_report_v2(project_id.0.site_id, page_id, &report)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -976,15 +976,15 @@ pub async fn report_comment(
         (status = 200, description = "User's votes for the page", body = GetVotesResponse),
         (status = 401, description = "Authentication required")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_my_votes(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUser,
     Query(query): Query<GetVotesQuery>,
 ) -> Result<Json<GetVotesResponse>, (StatusCode, String)> {
-    let page_id = RedisClient::generate_page_id(api_key.0.site_id, &query.page_url);
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &query.page_url);
 
     let votes = state
         .redis
@@ -1014,11 +1014,11 @@ pub async fn get_my_votes(
 /// Verify Turnstile if required for current user type
 async fn verify_turnstile(
     state: &AppState,
-    api_key: &ApiKey,
+    project_id: &ProjectId,
     is_anonymous: bool,
     headers: &axum::http::HeaderMap,
 ) -> Result<(), (StatusCode, String)> {
-    let turnstile_settings = &api_key.0.settings.turnstile;
+    let turnstile_settings = &project_id.0.settings.turnstile;
     if !turnstile_settings.enabled || turnstile_settings.enforce_on == TurnstileEnforcement::None {
         return Ok(());
     }

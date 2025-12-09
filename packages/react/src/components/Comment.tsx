@@ -24,7 +24,7 @@ export function Comment({
   currentUser,
   needsUsername = false,
   apiUrl,
-  apiKey,
+  projectId,
   depth = 0,
   maxDepth = 5,
   collapsed: initialCollapsed = false,
@@ -482,10 +482,10 @@ export function Comment({
           {/* Reply form */}
           {showReplyForm && (
             <div className="threadkit-reply-form">
-              {(!currentUser || needsUsername) && apiUrl && apiKey ? (
+              {(!currentUser || needsUsername) && apiUrl && projectId ? (
                 <SignInPrompt
                   apiUrl={apiUrl}
-                  apiKey={apiKey}
+                  projectId={projectId}
                   placeholder={t('writeReply')}
                 />
               ) : (
@@ -527,7 +527,7 @@ export function Comment({
                   currentUser={currentUser}
                   needsUsername={needsUsername}
                   apiUrl={apiUrl}
-                  apiKey={apiKey}
+                  projectId={projectId}
                   depth={depth + 1}
                   maxDepth={maxDepth}
                   index={childIndex}
