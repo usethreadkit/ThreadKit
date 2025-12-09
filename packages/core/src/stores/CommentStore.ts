@@ -20,7 +20,7 @@ export interface CommentStoreConfig {
   /** Page URL/identifier for this comment thread */
   url: string;
   /** API key (public key) - required */
-  apiKey: string;
+  projectId: string;
   /** Function to get the current auth token (injected, not hardcoded) */
   getToken: () => string | null;
   /** Function to get the current user ID (for vote tracking) */
@@ -117,11 +117,11 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
     try {
       this.setState({ loading: true, error: null });
 
-      const { apiUrl, url, apiKey } = this.config;
+      const { apiUrl, url, projectId } = this.config;
       const token = this.config.getToken();
 
       const headers: Record<string, string> = {
-        'X-API-Key': apiKey,
+        'projectid': projectId,
       };
 
       // Map our SortBy to server's SortOrder
@@ -137,7 +137,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       let votesPromise: Promise<Response> | null = null;
       if (token) {
         const votesHeaders: Record<string, string> = {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           'Authorization': `Bearer ${token}`,
         };
         votesPromise = fetch(
@@ -198,12 +198,12 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Post a new comment
    */
   async post(text: string, parentId?: string): Promise<Comment> {
-    const { apiUrl, url, apiKey } = this.config;
+    const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': projectId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -252,12 +252,12 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Delete a comment
    */
   async delete(commentId: string): Promise<void> {
-    const { apiUrl, url, apiKey } = this.config;
+    const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': projectId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -288,12 +288,12 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Vote on a comment
    */
   async vote(commentId: string, type: 'up' | 'down'): Promise<VoteResponse> {
-    const { apiUrl, url, apiKey } = this.config;
+    const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': projectId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -328,12 +328,12 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Edit a comment
    */
   async edit(commentId: string, newText: string): Promise<void> {
-    const { apiUrl, url, apiKey } = this.config;
+    const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': projectId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -369,12 +369,12 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
     reason: 'spam' | 'harassment' | 'hate_speech' | 'misinformation' | 'other',
     details?: string
   ): Promise<void> {
-    const { apiUrl, url, apiKey } = this.config;
+    const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': projectId,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

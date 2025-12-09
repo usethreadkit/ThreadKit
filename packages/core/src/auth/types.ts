@@ -99,5 +99,5 @@ export interface AuthPluginCallbacks {
   onError: (error: string) => void;
   onCancel: () => void;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
 }

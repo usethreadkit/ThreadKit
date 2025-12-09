@@ -18,7 +18,7 @@ export interface AuthManagerConfig {
   /** API base URL */
   apiUrl: string;
   /** API key (public key) */
-  apiKey: string;
+  projectId: string;
   /** Token storage implementation */
   storage: TokenStorage;
   /** Callback when user changes (login/logout) */
@@ -126,7 +126,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Initialize auth manager - load and validate stored tokens
    */
   async initialize(): Promise<void> {
-    const { storage, apiUrl, apiKey, onUserChange } = this.config;
+    const { storage, apiUrl, projectId, onUserChange } = this.config;
     const token = storage.getToken();
     const refreshToken = storage.getRefreshToken();
 
@@ -145,7 +145,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       // Validate token and get user info
       const res = await fetch(`${apiUrl}/users/me`, {
         headers: {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           Authorization: `Bearer ${token}`,
         },
       });
@@ -180,12 +180,12 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Start login - fetch available methods and show selection
    */
   async startLogin(): Promise<void> {
-    const { apiUrl, apiKey } = this.config;
+    const { apiUrl, projectId } = this.config;
     this.setStep('loading');
 
     try {
       const res = await fetch(`${apiUrl}/auth/methods`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { 'projectid': projectId },
       });
 
       if (!res.ok) {
@@ -243,7 +243,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Send OTP to email/phone
    */
   async sendOtp(target: string): Promise<void> {
-    const { apiUrl, apiKey } = this.config;
+    const { apiUrl, projectId } = this.config;
     this.setState({ otpTarget: target, step: 'loading', error: null });
 
     try {
@@ -253,7 +253,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       const res = await fetch(`${apiUrl}/auth/send-otp`, {
         method: 'POST',
         headers: {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
@@ -277,7 +277,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Verify OTP code
    */
   async verifyOtp(code: string, name?: string): Promise<void> {
-    const { apiUrl, apiKey, storage, onUserChange } = this.config;
+    const { apiUrl, projectId, storage, onUserChange } = this.config;
     this.setStep('loading');
 
     try {
@@ -293,7 +293,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       const res = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST',
         headers: {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
@@ -426,7 +426,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Update the user's username (for users who haven't set one yet)
    */
   async updateUsername(username: string): Promise<void> {
-    const { apiUrl, apiKey, onUserChange } = this.config;
+    const { apiUrl, projectId, onUserChange } = this.config;
     const token = this.state.token;
 
     if (!token) {
@@ -440,7 +440,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       const res = await fetch(`${apiUrl}/users/me`, {
         method: 'PUT',
         headers: {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
@@ -598,13 +598,13 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
    * Refresh tokens
    */
   private async refreshTokens(refreshToken: string): Promise<void> {
-    const { apiUrl, apiKey, storage, onUserChange } = this.config;
+    const { apiUrl, projectId, storage, onUserChange } = this.config;
 
     try {
       const res = await fetch(`${apiUrl}/auth/refresh`, {
         method: 'POST',
         headers: {
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refresh_token: refreshToken }),

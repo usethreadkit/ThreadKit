@@ -11,7 +11,7 @@ export interface WebSocketClientConfig {
   /** WebSocket server URL (e.g., "wss://api.usethreadkit.com") */
   wsUrl: string;
   /** API key for authentication */
-  apiKey: string;
+  projectId: string;
   /** Page ID (UUID) for this comment thread */
   pageId: string;
   /** Function to get the current auth token */
@@ -21,7 +21,7 @@ export interface WebSocketClientConfig {
   /** How long to show typing indicator before auto-removing (default: 3000ms) */
   typingTimeout?: number;
   /**
-   * @deprecated Use wsUrl and apiKey instead
+   * @deprecated Use wsUrl and projectId instead
    */
   apiUrl?: string;
   /**
@@ -146,7 +146,7 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
       const wsUrl = this.config.wsUrl || this.config.apiUrl?.replace(/^http/, 'ws') || '';
       const token = this.config.getToken();
       const params = new URLSearchParams();
-      params.set('api_key', this.config.apiKey);
+      params.set('api_key', this.config.projectId);
       if (token) {
         params.set('token', token);
       }
