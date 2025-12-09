@@ -5,7 +5,7 @@ interface UseWebSocketOptions {
   /** WebSocket server URL */
   wsUrl: string;
   /** API key for authentication */
-  apiKey: string;
+  projectId: string;
   /** Page ID to subscribe to */
   pageId: string;
   /** Whether WebSocket is enabled */
@@ -65,7 +65,7 @@ interface UseWebSocketReturn {
  */
 export function useWebSocket({
   wsUrl,
-  apiKey,
+  projectId,
   pageId,
   enabled = true,
   onCommentAdded,
@@ -89,10 +89,10 @@ export function useWebSocket({
   const effectiveWsUrl = wsUrl || apiUrl?.replace(/^http/, 'ws') || '';
   const effectivePageId = pageId || url || '';
 
-  if (!clientRef.current && effectiveWsUrl && apiKey && effectivePageId) {
+  if (!clientRef.current && effectiveWsUrl && projectId && effectivePageId) {
     clientRef.current = new WebSocketClient({
       wsUrl: effectiveWsUrl,
-      apiKey,
+      projectId,
       pageId: effectivePageId,
       getToken: () => localStorage.getItem('threadkit_token'),
     });

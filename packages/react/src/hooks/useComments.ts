@@ -7,7 +7,7 @@ export { ThreadKitError, type ThreadKitErrorCode } from '@threadkit/core';
 interface UseCommentsOptions {
   url: string;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   sortBy: SortBy;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];
@@ -42,7 +42,7 @@ interface UseCommentsReturn {
 export function useComments({
   url,
   apiUrl,
-  apiKey,
+  projectId,
   sortBy,
   initialComments,
   getPostHeaders,
@@ -54,7 +54,7 @@ export function useComments({
     storeRef.current = new CommentStore({
       apiUrl,
       url,
-      apiKey,
+      projectId,
       sortBy,
       initialComments,
       getToken: () => localStorage.getItem('threadkit_token'),

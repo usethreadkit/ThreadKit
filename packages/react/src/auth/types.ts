@@ -67,7 +67,7 @@ export interface AuthPluginRenderProps {
   onError: (error: string) => void;
   onCancel: () => void;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
 }
 
 export interface AuthPlugin {

@@ -95,10 +95,6 @@ export interface ThreadKitCSSVariables {
 export interface ThreadKitProps {
   /** The URL/page identifier for this comment thread */
   url: string;
-  /**
-   * @deprecated siteId is no longer needed - site is derived from API key
-   */
-  siteId?: string;
   /** Display mode: 'comments' for threaded, 'chat' for live stream */
   mode?: ThreadKitMode;
   /** Theme: 'light' or 'dark' */
@@ -135,8 +131,8 @@ export interface ThreadKitProps {
   // API configuration
   /** API base URL (default: https://api.usethreadkit.com) */
   apiUrl?: string;
-  /** Your API key from ThreadKit dashboard (public key) */
-  apiKey: string;
+  /** Your project ID from ThreadKit dashboard (public key starting with tk_pub_) */
+  projectId: string;
 
   // WebSocket configuration (for real-time updates)
   /** WebSocket server URL (e.g., "wss://ws.usethreadkit.com"). If not provided, real-time updates are disabled. */
@@ -258,8 +254,8 @@ export interface CommentProps {
   needsUsername?: boolean;
   /** API URL for SignInPrompt (required if needsUsername can be true) */
   apiUrl?: string;
-  /** API Key for SignInPrompt (required if needsUsername can be true) */
-  apiKey?: string;
+  /** Project ID for SignInPrompt (required if needsUsername can be true) */
+  projectId?: string;
   depth?: number;
   maxDepth?: number;
   collapsed?: boolean;

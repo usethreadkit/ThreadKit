@@ -106,7 +106,7 @@ describe('AuthContext', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       'http://test.com/auth/methods',
       expect.objectContaining({
-        headers: expect.objectContaining({ 'X-API-Key': 'test-key' }),
+        headers: expect.objectContaining({ 'projectid': 'test-key' }),
       })
     );
   });

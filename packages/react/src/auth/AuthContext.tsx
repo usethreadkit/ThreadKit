@@ -31,7 +31,7 @@ export function useAuth() {
 interface AuthProviderProps {
   children: ReactNode;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   onUserChange?: (user: User | null) => void;
 }
 
@@ -46,7 +46,7 @@ function toReactState(coreState: CoreAuthState) {
 export function AuthProvider({
   children,
   apiUrl,
-  apiKey,
+  projectId,
   onUserChange,
 }: AuthProviderProps) {
   const debug = useDebug();
@@ -57,7 +57,7 @@ export function AuthProvider({
   if (!managerRef.current) {
     managerRef.current = new AuthManager({
       apiUrl,
-      apiKey,
+      projectId,
       storage: new BrowserTokenStorage(),
       onUserChange: onUserChange as ((user: AuthUser | null) => void) | undefined,
       debug: debug ? (...args) => console.log(...args) : undefined,
@@ -178,7 +178,7 @@ export function AuthProvider({
               onError: handlePluginError,
               onCancel: handlePluginCancel,
               apiUrl,
-              apiKey,
+              projectId,
             });
           }
           return null;

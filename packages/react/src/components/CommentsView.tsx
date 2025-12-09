@@ -20,7 +20,7 @@ interface CommentsViewProps {
   highlightedCommentId?: string | null;
   collapsedThreads?: Set<string>;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   /** Number of pending root-level comments waiting to be loaded */
   pendingRootCount?: number;
   /** Map of parent comment ID -> pending replies for that comment */
@@ -66,7 +66,7 @@ export function CommentsView({
   highlightedCommentId,
   collapsedThreads,
   apiUrl,
-  apiKey,
+  projectId,
   pendingRootCount = 0,
   pendingReplies,
   onLoadPendingComments,
@@ -124,7 +124,7 @@ export function CommentsView({
               onSubmit={onPost}
             />
           ) : (
-            <SignInPrompt apiUrl={apiUrl} apiKey={apiKey} />
+            <SignInPrompt apiUrl={apiUrl} projectId={projectId} />
           )}
         </div>
 
@@ -148,7 +148,7 @@ export function CommentsView({
                   currentUser={currentUser}
                   needsUsername={needsUsername}
                   apiUrl={apiUrl}
-                  apiKey={apiKey}
+                  projectId={projectId}
                   maxDepth={maxDepth}
                   index={index}
                   totalSiblings={comments.length}
