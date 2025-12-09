@@ -554,14 +554,45 @@ async fn send_otp_email_resend(config: &threadkit_common::config::ResendConfig, 
     let client = reqwest::Client::new();
     let from_email = format!("ThreadKit <noreply@{}>", config.from_domain);
 
+    let html = format!(r#"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; margin: 0; padding: 0;">
+  <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; margin: 40px auto; padding: 40px; max-width: 480px;">
+    <div style="text-align: center; margin: 0 0 32px;">
+      <img src="https://usethreadkit.com/email-logo.png" width="48" height="48" alt="ThreadKit" style="margin: 0 auto;">
+      <p style="color: #18181b; font-size: 20px; font-weight: 700; text-align: center; margin: 12px 0 0;">ThreadKit</p>
+    </div>
+
+    <p style="color: #3f3f46; font-size: 15px; line-height: 24px; text-align: center; margin: 0 0 16px;">
+      Your sign in code:
+    </p>
+
+    <p style="background-color: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; color: #18181b; font-size: 32px; font-weight: 700; letter-spacing: 4px; padding: 20px; text-align: center; font-family: monospace; margin: 24px 0;">
+      {code}
+    </p>
+
+    <p style="color: #71717a; font-size: 14px; text-align: center; margin: 0;">
+      This code expires in 10 minutes.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 32px 0;">
+
+    <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0;">
+      <a href="https://usethreadkit.com" style="color: #71717a; text-decoration: underline;">ThreadKit</a>
+    </p>
+  </div>
+</body>
+</html>"#, code = code);
+
     let body = serde_json::json!({
         "from": from_email,
         "to": [email],
-        "subject": "Your login code",
-        "html": format!(
-            "<h1>Your login code</h1><p>Enter this code to sign in:</p><h2 style=\"font-family: monospace; font-size: 32px; letter-spacing: 4px;\">{}</h2><p>This code expires in 10 minutes.</p>",
-            code
-        )
+        "subject": format!("{} - Sign in to ThreadKit", code),
+        "html": html
     });
 
     let response = client
