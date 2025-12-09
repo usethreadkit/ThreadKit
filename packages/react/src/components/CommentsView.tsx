@@ -4,7 +4,6 @@ import type { TypingUser } from '@threadkit/core';
 import { Comment } from './Comment';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
-import { ErrorBoundary } from './ErrorBoundary';
 import { NewCommentsBanner } from './NewCommentsBanner';
 import { useTranslation } from '../i18n';
 import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
@@ -142,39 +141,38 @@ export function CommentsView({
         ) : (
           <div className="threadkit-comment-list">
             {comments.map((comment, index) => (
-              <ErrorBoundary key={comment.id}>
-                <Comment
-                  comment={comment}
-                  currentUser={currentUser}
-                  needsUsername={needsUsername}
-                  apiUrl={apiUrl}
-                  projectId={projectId}
-                  maxDepth={maxDepth}
-                  index={index}
-                  totalSiblings={comments.length}
-                  highlighted={highlightedCommentId === comment.id}
-                  collapsed={collapsedThreads?.has(comment.id)}
-                  pendingRepliesCount={pendingReplies?.get(comment.id)?.length ?? 0}
-                  onLoadPendingReplies={onLoadPendingReplies}
-                  typingByComment={typingByComment}
-                  onPost={onPost}
-                  onReply={handleReply}
-                  onVote={allowVoting ? onVote : undefined}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  onBan={onBan}
-                  onPin={onPin}
-                  onBlock={onBlock}
-                  onReport={onReport}
-                  onPermalink={onPermalink}
-                  onCollapse={onCollapse}
+              <Comment
+                key={comment.id}
+                comment={comment}
+                currentUser={currentUser}
+                needsUsername={needsUsername}
+                apiUrl={apiUrl}
+                projectId={projectId}
+                maxDepth={maxDepth}
+                index={index}
+                totalSiblings={comments.length}
+                highlighted={highlightedCommentId === comment.id}
+                collapsed={collapsedThreads?.has(comment.id)}
+                pendingRepliesCount={pendingReplies?.get(comment.id)?.length ?? 0}
+                onLoadPendingReplies={onLoadPendingReplies}
+                typingByComment={typingByComment}
+                onPost={onPost}
+                onReply={handleReply}
+                onVote={allowVoting ? onVote : undefined}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onBan={onBan}
+                onPin={onPin}
+                onBlock={onBlock}
+                onReport={onReport}
+                onPermalink={onPermalink}
+                onCollapse={onCollapse}
                   getUserProfile={getUserProfile}
                   plugins={plugins}
                   highlightedCommentId={highlightedCommentId}
                   collapsedThreads={collapsedThreads}
                   pendingReplies={pendingReplies}
                 />
-              </ErrorBoundary>
             ))}
           </div>
         )}
