@@ -100,12 +100,26 @@ export function findComment(comments: Comment[], id: string): Comment | null {
 
 /**
  * Add a comment to the tree, handling both root and reply cases.
+ * @param sortBy - How to sort after insertion. Use 'newest' to always show at top (for user's own comments)
  */
 export function addToTree(
   comments: Comment[],
   newComment: Comment,
   sortBy: SortBy
 ): Comment[] {
+  // Check if comment already exists (prevent duplicates from WebSocket echo)
+  const commentExists = (nodes: Comment[]): boolean => {
+    for (const node of nodes) {
+      if (node.id === newComment.id) return true;
+      if (commentExists(node.children)) return true;
+    }
+    return false;
+  };
+
+  if (commentExists(comments)) {
+    return comments; // Already exists, skip adding
+  }
+
   if (newComment.parentId) {
     // Add as child to parent
     const addToParent = (nodes: Comment[]): Comment[] => {
