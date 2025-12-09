@@ -67,6 +67,11 @@ struct Args {
     #[arg(long, value_names = ["SITE_ID", "KEY", "VALUE"], num_args = 3)]
     edit_site: Option<Vec<String>>,
 
+    /// Enable auth methods (comma-separated): google,github,email,phone,anonymous,ethereum,solana
+    /// Example: --enable-auth email,anonymous
+    #[arg(long, value_delimiter = ',')]
+    enable_auth: Option<Vec<String>>,
+
 }
 
 #[tokio::main]
@@ -484,6 +489,18 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
     // Generate a new site ID
     let site_id = Uuid::now_v7();
 
+    // Parse auth methods from CLI flag (default to email only)
+    let auth_methods: Vec<String> = args.enable_auth.clone().unwrap_or_else(|| vec!["email".to_string()]);
+    let auth = AuthSettings {
+        google: auth_methods.iter().any(|m| m == "google"),
+        github: auth_methods.iter().any(|m| m == "github"),
+        email: auth_methods.iter().any(|m| m == "email"),
+        phone: auth_methods.iter().any(|m| m == "phone"),
+        anonymous: auth_methods.iter().any(|m| m == "anonymous" || m == "anon"),
+        ethereum: auth_methods.iter().any(|m| m == "ethereum" || m == "eth"),
+        solana: auth_methods.iter().any(|m| m == "solana" || m == "sol"),
+    };
+
     // Create site config
     let site_config = SiteConfig {
         id: site_id,
@@ -493,15 +510,7 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         project_id_secret,
         settings: SiteSettings {
             moderation_mode: moderation,
-            auth: AuthSettings {
-                google: false,
-                github: false,
-                email: true,
-                phone: false,
-                anonymous: false,
-                ethereum: false,
-                solana: false,
-            },
+            auth,
             display: DisplaySettings::default(),
             require_verification: false,
             auto_approve_verified: true,
@@ -600,8 +609,19 @@ async fn edit_site(args: &Args, edit_args: &[String]) -> Result<()> {
             }
             config.project_id_secret = value.clone();
         }
+        "auth" => {
+            // Value is comma-separated list of auth methods
+            let methods: Vec<&str> = value.split(',').map(|s| s.trim()).collect();
+            config.settings.auth.google = methods.iter().any(|m| *m == "google");
+            config.settings.auth.github = methods.iter().any(|m| *m == "github");
+            config.settings.auth.email = methods.iter().any(|m| *m == "email");
+            config.settings.auth.phone = methods.iter().any(|m| *m == "phone");
+            config.settings.auth.anonymous = methods.iter().any(|m| *m == "anonymous" || *m == "anon");
+            config.settings.auth.ethereum = methods.iter().any(|m| *m == "ethereum" || *m == "eth");
+            config.settings.auth.solana = methods.iter().any(|m| *m == "solana" || *m == "sol");
+        }
         _ => {
-            eprintln!("error: unknown key '{}' (valid keys: name, domain, moderation_mode, project_id_public, project_id_secret)", key);
+            eprintln!("error: unknown key '{}' (valid keys: name, domain, moderation_mode, project_id_public, project_id_secret, auth)", key);
             std::process::exit(1);
         }
     }
