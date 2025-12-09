@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatTimestamp } from '@threadkit/core';
+import { formatTimestamp, parseAnonUsername } from '@threadkit/core';
 import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
@@ -7,8 +7,25 @@ import { UserHoverCard } from './UserHoverCard';
 import { NewRepliesIndicator } from './NewRepliesIndicator';
 import { TypingIndicator } from './TypingIndicator';
 import { renderMarkdown } from '../utils/markdown';
-import { useTranslation } from '../i18n';
+import { useTranslation, type TranslatorFunction } from '../i18n';
 import { useScoreDisplay } from '../contexts/ScoreDisplayContext';
+
+/** Render a username with guest badge if anonymous */
+function GuestAwareUsername({ userName, t }: { userName: string; t: TranslatorFunction }) {
+  const { isAnonymous, displayName } = parseAnonUsername(userName);
+
+  if (!isAnonymous) {
+    return <>{userName}</>;
+  }
+
+  // Show display name or "Guest", always with badge
+  return (
+    <span className="threadkit-guest-author">
+      {displayName || t('guest')}
+      <span className="threadkit-guest-badge">{t('guest')}</span>
+    </span>
+  );
+}
 
 type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
 const REPORT_REASON_KEYS: ReportReasonKey[] = [
@@ -116,7 +133,9 @@ export function Comment({
           currentUser={currentUser}
           getUserProfile={getUserProfile}
         >
-          <span className="threadkit-author">{comment.userName}</span>
+          <span className="threadkit-author">
+            <GuestAwareUsername userName={comment.userName} t={t} />
+          </span>
         </UserHoverCard>
         <span className="threadkit-collapsed-info">
           {score} {score !== 1 ? t('points') : t('point')} · {formatTimestamp(comment.timestamp)}
@@ -170,7 +189,9 @@ export function Comment({
               currentUser={currentUser}
               getUserProfile={getUserProfile}
             >
-              <span className="threadkit-author">{comment.userName}</span>
+              <span className="threadkit-author">
+                <GuestAwareUsername userName={comment.userName} t={t} />
+              </span>
             </UserHoverCard>
             {' '}
             <span className="threadkit-meta" data-testid="comment-meta-score">

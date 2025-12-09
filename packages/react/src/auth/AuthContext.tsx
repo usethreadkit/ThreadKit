@@ -113,6 +113,10 @@ export function AuthProvider({
     await manager.verifyOtp(code, name);
   }, [manager]);
 
+  const loginAnonymous = useCallback(async (name?: string) => {
+    await manager.loginAnonymous(name);
+  }, [manager]);
+
   const registerPlugin = useCallback((plugin: AuthPlugin) => {
     // Register with core manager (for method merging)
     manager.registerPlugin({
@@ -158,11 +162,12 @@ export function AuthProvider({
       selectMethod,
       setOtpTarget,
       verifyOtp,
+      loginAnonymous,
       registerPlugin,
       updateUsername,
       plugins,
     }),
-    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, registerPlugin, updateUsername, plugins]
+    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, loginAnonymous, registerPlugin, updateUsername, plugins]
   );
 
   return (

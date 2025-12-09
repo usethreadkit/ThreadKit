@@ -125,6 +125,9 @@ export {
   MIN_USERNAME_LENGTH,
 } from './utils/format';
 
+// Anonymous Username Utilities
+export { parseAnonUsername } from './utils/anonUsername';
+
 // Internationalization (i18n)
 export type {
   TranslationStrings,

@@ -27,6 +27,7 @@ pub fn router() -> Router<AppState> {
         .route("/auth/verify", post(verify))
         .route("/auth/send-otp", post(send_otp))
         .route("/auth/verify-otp", post(verify_otp))
+        .route("/auth/anonymous", post(anonymous_login))
         .route("/auth/forgot", post(forgot_password))
         .route("/auth/reset", post(reset_password))
         .route("/auth/refresh", post(refresh_token))
@@ -200,6 +201,12 @@ pub struct VerifyOtpRequest {
     pub name: Option<String>,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct AnonymousLoginRequest {
+    /// Optional display name (can be empty)
+    pub name: Option<String>,
+}
+
 // ============================================================================
 // Web3 Auth Types
 // ============================================================================
@@ -298,6 +305,14 @@ pub async fn auth_methods(
             id: "solana".to_string(),
             name: "Solana".to_string(),
             method_type: "web3".to_string(),
+        });
+    }
+
+    if settings.anonymous {
+        methods.push(AuthMethod {
+            id: "anonymous".to_string(),
+            name: "Guest".to_string(),
+            method_type: "anonymous".to_string(),
         });
     }
 
@@ -541,6 +556,119 @@ pub async fn verify_otp(
 
     // Delete used OTP code only after successful authentication
     let _ = state.redis.delete_verification_code(key).await;
+
+    Ok(Json(AuthResponse {
+        token,
+        refresh_token,
+        user: UserResponse::from(user),
+    }))
+}
+
+/// Generate random alphanumeric string
+fn generate_random_id(length: usize) -> String {
+    use rand::Rng;
+    const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789";
+    let mut rng = rand::thread_rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+/// Anonymous login (creates a guest account)
+#[utoipa::path(
+    post,
+    path = "/auth/anonymous",
+    tag = "auth",
+    request_body = AnonymousLoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = AuthResponse),
+        (status = 400, description = "Anonymous login not enabled"),
+        (status = 403, description = "Anonymous login disabled for this site")
+    ),
+    security(("project_id" = []))
+)]
+pub async fn anonymous_login(
+    State(state): State<AppState>,
+    project_id: ProjectId,
+    Json(req): Json<AnonymousLoginRequest>,
+) -> Result<Json<AuthResponse>, (StatusCode, String)> {
+    // Check if anonymous login is enabled for this site
+    if !project_id.0.settings.auth.anonymous {
+        return Err((StatusCode::FORBIDDEN, "Anonymous login is not enabled for this site".into()));
+    }
+
+    // Generate username: __anon-{10 random chars}-{optional user input}
+    let random_part = generate_random_id(10);
+    let username = match req.name.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        Some(user_input) => {
+            // Normalize user input: lowercase, alphanumeric and hyphens only
+            let normalized: String = user_input
+                .to_lowercase()
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
+                .take(24) // Max length for the user part
+                .collect();
+            if normalized.is_empty() {
+                format!("__anon-{}", random_part)
+            } else {
+                format!("__anon-{}-{}", random_part, normalized)
+            }
+        }
+        None => format!("__anon-{}", random_part),
+    };
+
+    let user_id = Uuid::now_v7();
+    let now = Utc::now();
+
+    let user = User {
+        id: user_id,
+        name: username.clone(),
+        email: None,
+        phone: None,
+        avatar_url: None,
+        provider: AuthProvider::Anonymous,
+        provider_id: None,
+        email_verified: false,
+        phone_verified: false,
+        karma: 0,
+        global_banned: false,
+        shadow_banned: false,
+        created_at: now,
+        username_set: true, // Anonymous users don't need to set username
+        social_links: SocialLinks::default(),
+    };
+
+    state.redis.set_user(&user).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    state.redis.set_user_username_index(&username, user_id).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Create session and tokens
+    let session_id = Uuid::now_v7();
+    state.redis.create_session(session_id, user_id, "", "").await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let token = auth::create_token(
+        user_id,
+        project_id.0.site_id,
+        session_id,
+        &state.config.jwt_secret,
+        state.config.jwt_expiry_hours,
+    )
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let refresh_token = auth::create_token(
+        user_id,
+        project_id.0.site_id,
+        session_id,
+        &state.config.jwt_secret,
+        24 * 365 * 100, // ~100 years
+    )
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(AuthResponse {
         token,

@@ -12,7 +12,8 @@ interface SignInPromptProps {
 
 export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptProps) {
   const t = useTranslation();
-  const { state, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, plugins } = useAuth();
+  const { state, login, selectMethod, setOtpTarget, verifyOtp, loginAnonymous, updateUsername, plugins } = useAuth();
+  const [anonName, setAnonName] = useState('');
   const placeholderText = placeholder ?? t('writeComment');
   const [text, setText] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -467,6 +468,47 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Anonymous login - show textarea with optional name input
+  if (state.step === 'anonymous-input') {
+    const handleAnonSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      loginAnonymous(anonName.trim() || undefined);
+    };
+
+    return (
+      <div className="threadkit-form">
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          rows={3}
+        />
+
+        <div className="threadkit-form-actions">
+          <form onSubmit={handleAnonSubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              className="threadkit-otp-inline-input"
+              placeholder={t('guestNamePlaceholder')}
+              value={anonName}
+              onChange={(e) => setAnonName(e.target.value)}
+              autoComplete="off"
+            />
+            <button type="submit" className="threadkit-submit-btn">
+              {t('continueAsGuest')}
+            </button>
+          </form>
+        </div>
+        {state.error && <p className="threadkit-signin-error">{state.error}</p>}
       </div>
     );
   }

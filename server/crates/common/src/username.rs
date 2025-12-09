@@ -64,6 +64,11 @@ pub fn validate_username(username: &str) -> Result<(), &'static str> {
         return Err("Username cannot be empty");
     }
 
+    // Block reserved prefix for anonymous users
+    if username.starts_with("__anon") {
+        return Err("Username cannot start with __anon (reserved for guest accounts)");
+    }
+
     // Check for valid characters
     for c in username.chars() {
         if !c.is_ascii_alphanumeric() && c != '-' && c != '_' {
@@ -138,5 +143,10 @@ mod tests {
         assert!(validate_username("john--smith").is_err()); // Consecutive hyphens
         assert!(validate_username("john@smith").is_err()); // Invalid char
         assert!(validate_username("john smith").is_err()); // Space
+
+        // Reserved prefix for anonymous users
+        assert!(validate_username("__anon").is_err());
+        assert!(validate_username("__anon-abc123").is_err());
+        assert!(validate_username("__anonymous").is_err());
     }
 }

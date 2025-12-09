@@ -213,6 +213,24 @@
   text-decoration: underline;
 }
 
+/* Guest (anonymous) users */
+.threadkit-guest-author {
+  color: var(--threadkit-text-muted);
+  font-weight: 500;
+}
+
+.threadkit-guest-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 4px;
+  margin-left: 4px;
+  border-radius: 3px;
+  background-color: var(--threadkit-bg-secondary);
+  color: var(--threadkit-text-muted);
+  vertical-align: middle;
+}
+
 .threadkit-meta {
   color: var(--threadkit-text-muted);
   font-size: 11px;

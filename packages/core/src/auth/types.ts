@@ -2,7 +2,7 @@
 // Auth Method Types
 // ============================================================================
 
-export type AuthMethodType = 'otp' | 'oauth' | 'web3';
+export type AuthMethodType = 'otp' | 'oauth' | 'web3' | 'anonymous';
 
 export interface AuthMethod {
   /** Method identifier (email, phone, google, github, ethereum, solana) */
@@ -49,6 +49,7 @@ export type AuthStep =
   | 'otp-name'          // Entering name for new account
   | 'oauth-pending'     // Waiting for OAuth popup
   | 'web3-pending'      // Waiting for wallet signature
+  | 'anonymous-input'   // Entering optional name for anonymous login
   | 'username-required';  // User needs to set their username
 
 export interface AuthState {

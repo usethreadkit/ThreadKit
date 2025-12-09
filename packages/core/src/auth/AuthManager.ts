@@ -230,6 +230,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     const step: AuthStep =
       method.type === 'otp' ? 'otp-input' :
       method.type === 'oauth' ? 'oauth-pending' :
+      method.type === 'anonymous' ? 'anonymous-input' :
       'web3-pending';
 
     this.setState({
@@ -237,6 +238,55 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       step,
       error: null,
     });
+  }
+
+  /**
+   * Login anonymously with optional name
+   */
+  async loginAnonymous(name?: string): Promise<void> {
+    const { apiUrl, projectId, storage, onUserChange } = this.config;
+    this.setStep('loading');
+
+    try {
+      const res = await fetch(`${apiUrl}/auth/anonymous`, {
+        method: 'POST',
+        headers: {
+          'projectid': projectId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: name || null }),
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Anonymous login failed');
+      }
+
+      const data: AuthResponse = await res.json();
+
+      // Store tokens
+      storage.setToken(data.token);
+      storage.setRefreshToken(data.refresh_token);
+
+      this.setState({
+        ...initialState,
+        token: data.token,
+        refreshToken: data.refresh_token,
+        user: data.user,
+      });
+      onUserChange?.(data.user);
+
+      // Broadcast login to other instances
+      if (this.authSyncChannel) {
+        this.log('[ThreadKit AuthManager] Broadcasting login after anonymous');
+        this.authSyncChannel.postMessage({ type: 'threadkit:login' });
+      }
+    } catch (err) {
+      this.setState({
+        step: 'anonymous-input',
+        error: err instanceof Error ? err.message : 'Anonymous login failed',
+      });
+    }
   }
 
   /**

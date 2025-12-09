@@ -148,6 +148,11 @@ export const defaultTranslations: TranslationStrings = {
   // Auth - Web3
   connectingTo: 'Connecting to',
 
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Display name (optional)',
+  continueAsGuest: 'Continue as Guest',
+  guest: 'Guest',
+
   // User profile
   karma: 'Karma',
   comments: 'Comments',

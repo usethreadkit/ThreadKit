@@ -154,6 +154,25 @@ export function CloseIcon({ className }: IconProps) {
   );
 }
 
+export function AnonymousIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="8" r="5" />
+      <path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
+      <line x1="8" y1="8" x2="8" y2="8" />
+      <line x1="16" y1="8" x2="16" y2="8" />
+    </svg>
+  );
+}
+
 // Map of method IDs to icons
 export const AUTH_ICONS: Record<string, React.ComponentType<IconProps>> = {
   email: EmailIcon,
@@ -162,4 +181,5 @@ export const AUTH_ICONS: Record<string, React.ComponentType<IconProps>> = {
   github: GitHubIcon,
   ethereum: EthereumIcon,
   solana: SolanaIcon,
+  anonymous: AnonymousIcon,
 };

@@ -114,6 +114,7 @@ export interface TranslationStrings {
   usernameHint: string;
 
   // Auth - general
+  signInToVote: string;
   signInToPost: string;
   signInLabel: string;
   continueWith: string;
@@ -145,6 +146,11 @@ export interface TranslationStrings {
 
   // Auth - Web3
   connectingTo: string;
+
+  // Auth - Anonymous
+  guestNamePlaceholder: string;
+  continueAsGuest: string;
+  guest: string;
 
   // User profile
   karma: string;
