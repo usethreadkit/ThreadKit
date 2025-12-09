@@ -25,6 +25,8 @@ export interface Comment {
   karma?: number;
   /** Comment status: approved, pending, rejected, deleted */
   status?: 'approved' | 'pending' | 'rejected' | 'deleted';
+  /** For chat mode: ID of the comment this references (when showing reply at top-level) */
+  replyReferenceId?: string;
 }
 
 export interface SocialLinks {
@@ -57,7 +59,7 @@ export interface UserProfile {
   avatar?: string;
   karma: number;
   totalComments: number;
-  joinDate: number;
+  joinDate: number; // Unix timestamp in milliseconds
   socialLinks?: SocialLinks;
 }
 

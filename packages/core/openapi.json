@@ -3709,7 +3709,8 @@
           "id",
           "name",
           "karma",
-          "created_at"
+          "created_at",
+          "total_comments"
         ],
         "properties": {
           "avatar_url": {
@@ -3742,6 +3743,10 @@
                 "$ref": "#/components/schemas/SocialLinks"
               }
             ]
+          },
+          "total_comments": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

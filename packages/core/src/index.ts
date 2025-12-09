@@ -206,3 +206,9 @@ export type {
 } from './api.types';
 
 export { DELETED_USER_ID, ANONYMOUS_USER_ID } from './api.types';
+
+// ============================================================================
+// API Client Methods
+// ============================================================================
+
+export { getUser } from './api/users';

@@ -117,14 +117,21 @@ export function addToTree(
   };
 
   if (commentExists(comments)) {
+    console.log('[addToTree] Comment already exists, skipping:', newComment.id);
     return comments; // Already exists, skip adding
   }
 
   if (newComment.parentId) {
+    console.log('[addToTree] Adding as reply:', {
+      commentId: newComment.id,
+      parentId: newComment.parentId,
+      text: newComment.text.substring(0, 50)
+    });
     // Add as child to parent
     const addToParent = (nodes: Comment[]): Comment[] => {
       return nodes.map((c) => {
         if (c.id === newComment.parentId) {
+          console.log('[addToTree] Found parent, adding reply');
           return { ...c, children: [...c.children, { ...newComment, children: [] }] };
         }
         return { ...c, children: addToParent(c.children) };
@@ -133,6 +140,7 @@ export function addToTree(
     return sortComments(addToParent(comments), sortBy);
   }
   // Add as root comment
+  console.log('[addToTree] Adding as root comment:', newComment.id);
   return sortComments([...comments, { ...newComment, children: [] }], sortBy);
 }
 

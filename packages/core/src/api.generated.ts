@@ -1312,6 +1312,8 @@ export interface components {
             karma: number;
             name: string;
             social_links?: null | components["schemas"]["SocialLinks"];
+            /** Format: int64 */
+            total_comments: number;
         };
         UserResponse: {
             avatar_url?: string | null;

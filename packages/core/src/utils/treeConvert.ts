@@ -31,6 +31,18 @@ export type VotesMap = Record<string, 'up' | 'down'>;
  * @param votes Optional map of user's votes to apply
  */
 export function treeCommentToComment(tc: TreeComment, parentId?: string, votes?: VotesMap): Comment {
+  // Use 'q' field if present (WebSocket messages), otherwise use passed parentId (nested tree)
+  const resolvedParentId = tc.q ?? parentId;
+
+  // Debug logging for WebSocket threading
+  if (tc.q) {
+    console.log('[treeConvert] WebSocket comment with parent_id:', {
+      commentId: tc.i,
+      parentId: tc.q,
+      text: tc.t.substring(0, 50)
+    });
+  }
+
   return {
     id: tc.i,
     userId: tc.a,
@@ -42,8 +54,7 @@ export function treeCommentToComment(tc: TreeComment, parentId?: string, votes?:
     upvotes: tc.u,
     downvotes: tc.d,
     userVote: votes?.[tc.i] ?? null,
-    // Use 'q' field if present (WebSocket messages), otherwise use passed parentId (nested tree)
-    parentId: tc.q ?? parentId,
+    parentId: resolvedParentId,
     children: (tc.r ?? []).map((child) => treeCommentToComment(child, tc.i, votes)),
     edited: tc.m !== tc.x, // If modified_at differs from created_at, it was edited
     karma: tc.k,
