@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/plugin-turnstile",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Cloudflare Turnstile bot protection plugin for ThreadKit",
   "type": "module",
   "main": "dist/index.js",

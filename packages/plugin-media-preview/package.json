@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/plugin-media-preview",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Media preview plugin for ThreadKit (YouTube, Vimeo, images)",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,7 +20,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@threadkit/core": "^0.0.5"
+    "@threadkit/core": "workspace:*"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.9",

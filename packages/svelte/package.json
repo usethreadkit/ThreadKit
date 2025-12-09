@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/svelte",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Privacy-first commenting and chat system for Svelte",
   "type": "module",
   "svelte": "./dist/index.js",
