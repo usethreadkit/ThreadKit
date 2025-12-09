@@ -3,6 +3,8 @@ import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
 import { useTranslation } from '../i18n';
+import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
+import type { AuthMethod } from '../auth/types';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -17,6 +19,8 @@ interface ChatViewProps {
   wsConnected?: boolean;
   presenceCount?: number;
   typingUsers?: Array<{ userId: string; userName: string }>;
+  apiUrl: string;
+  apiKey: string;
   onSend: (text: string) => Promise<void>;
   onTyping?: () => void;
   onBlock?: (userId: string) => void;
@@ -395,6 +399,8 @@ export function ChatView({
   wsConnected = false,
   presenceCount = 0,
   typingUsers = [],
+  apiUrl,
+  apiKey,
   onSend,
   onTyping,
   onBlock,
@@ -407,11 +413,20 @@ export function ChatView({
   plugins,
 }: ChatViewProps) {
   const t = useTranslation();
+  const { state: authState, login, selectMethod, setOtpTarget, verifyOtp, plugins: authPlugins } = useAuth();
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const authInputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const hasInitialized = useRef(false);
+  const oauthWindowRef = useRef<Window | null>(null);
+  const stepRef = useRef(authState.step);
+  stepRef.current = authState.step;
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
+  const isLoggedIn = currentUser && !needsUsername;
 
   // Get flat list of messages (chat mode has no nesting)
   const messages = comments.slice(-showLastN);
@@ -450,6 +465,205 @@ export function ChatView({
     [onTyping]
   );
 
+  // Initialize auth methods on mount if not logged in
+  useEffect(() => {
+    if (!isLoggedIn && !hasInitialized.current && authState.step === 'idle') {
+      hasInitialized.current = true;
+      login();
+    }
+  }, [isLoggedIn, authState.step, login]);
+
+  // Focus auth input when step changes
+  useEffect(() => {
+    if (authState.step === 'otp-input' || authState.step === 'otp-verify') {
+      authInputRef.current?.focus();
+    }
+  }, [authState.step]);
+
+  // Handle back to method selection
+  const handleBack = useCallback(() => {
+    setOtpEmail('');
+    setOtpCode('');
+    login();
+  }, [login]);
+
+  // Handle OTP email/phone submit
+  const handleOtpSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (otpEmail.trim()) {
+        setOtpTarget(otpEmail.trim());
+      }
+    },
+    [otpEmail, setOtpTarget]
+  );
+
+  // Handle OTP code verify
+  const handleVerifySubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (otpCode.trim()) {
+        verifyOtp(otpCode.trim());
+      }
+    },
+    [otpCode, verifyOtp]
+  );
+
+  // Handle OAuth method selection
+  const handleMethodSelect = useCallback(
+    (method: AuthMethod) => {
+      if (method.type === 'oauth') {
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+
+        const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
+        oauthWindowRef.current = window.open(
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
+          'threadkit-oauth',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+
+        const pollTimer = setInterval(() => {
+          try {
+            if (oauthWindowRef.current?.closed) {
+              clearInterval(pollTimer);
+              if (stepRef.current === 'oauth-pending') {
+                handleBack();
+              }
+            }
+          } catch {
+            clearInterval(pollTimer);
+          }
+        }, 500);
+      }
+      selectMethod(method);
+    },
+    [apiUrl, apiKey, selectMethod, handleBack]
+  );
+
+  // Get icon for auth method
+  const getMethodIcon = (method: AuthMethod) => {
+    const CustomIcon = AUTH_ICONS[method.id];
+    if (CustomIcon) {
+      return <CustomIcon className="threadkit-signin-method-icon" />;
+    }
+    const plugin = authPlugins.find((p) => p.id === method.id);
+    if (plugin?.Icon) {
+      return <plugin.Icon className="threadkit-signin-method-icon" />;
+    }
+    return <span className="threadkit-signin-method-icon">{method.name[0]}</span>;
+  };
+
+  // Render sign-in UI below the input when not logged in
+  const renderSignInArea = () => {
+    if (isLoggedIn) return null;
+
+    // Loading auth methods
+    if (authState.step === 'loading') {
+      return (
+        <div className="threadkit-chat-signin">
+          <LoadingSpinner className="threadkit-signin-spinner-small" />
+        </div>
+      );
+    }
+
+    // OTP input (email/phone entry)
+    if (authState.step === 'otp-input') {
+      const isEmail = authState.selectedMethod?.id === 'email';
+      return (
+        <div className="threadkit-chat-signin">
+          <form onSubmit={handleOtpSubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <input
+              ref={authInputRef}
+              type={isEmail ? 'email' : 'tel'}
+              className="threadkit-otp-inline-input"
+              placeholder={isEmail ? t('enterEmail') : t('enterPhone')}
+              value={otpEmail}
+              onChange={(e) => setOtpEmail(e.target.value)}
+              autoComplete={isEmail ? 'email' : 'tel'}
+            />
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={!otpEmail.trim()}
+            >
+              {t('sendCode')}
+            </button>
+          </form>
+          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+        </div>
+      );
+    }
+
+    // OTP verify (code entry)
+    if (authState.step === 'otp-verify') {
+      return (
+        <div className="threadkit-chat-signin">
+          <form onSubmit={handleVerifySubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <span className="threadkit-otp-inline-hint">{t('codeSentTo')} {authState.otpTarget}</span>
+            <input
+              ref={authInputRef}
+              type="text"
+              className="threadkit-otp-inline-input threadkit-otp-code-input"
+              placeholder={t('otpPlaceholder')}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+            />
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={otpCode.length !== 6}
+            >
+              {t('verify')}
+            </button>
+          </form>
+          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+        </div>
+      );
+    }
+
+    // OAuth pending
+    if (authState.step === 'oauth-pending' || authState.step === 'web3-pending') {
+      return (
+        <div className="threadkit-chat-signin">
+          <LoadingSpinner className="threadkit-signin-spinner-small" />
+          <span>{t('signingInWith')} {authState.selectedMethod?.name}...</span>
+          <button type="button" className="threadkit-signin-cancel-inline" onClick={handleBack}>
+            {t('cancel')}
+          </button>
+        </div>
+      );
+    }
+
+    // Show auth method buttons
+    return (
+      <div className="threadkit-chat-signin">
+        <span className="threadkit-signin-label-inline">{t('signInLabel')}</span>
+        {authState.availableMethods.map((method) => (
+          <button
+            key={method.id}
+            className="threadkit-signin-method-btn"
+            onClick={() => handleMethodSelect(method)}
+            title={`${t('continueWith')} ${method.name}`}
+          >
+            {getMethodIcon(method)}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="threadkit-chat">
       {toolbarEnd && (
@@ -463,17 +677,18 @@ export function ChatView({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          placeholder={currentUser && !needsUsername ? t('typeMessage') : t('signInToChat')}
-          disabled={!currentUser || needsUsername || isSubmitting}
+          placeholder={t('typeMessage')}
+          disabled={isSubmitting}
         />
         <button
           type="submit"
           className="threadkit-submit-btn"
-          disabled={!currentUser || needsUsername || isSubmitting || !inputValue.trim()}
+          disabled={!isLoggedIn || isSubmitting || !inputValue.trim()}
         >
           {t('send')}
         </button>
       </form>
+      {renderSignInArea()}
 
       {showPresence && wsConnected && (
         <div className="threadkit-chat-presence">

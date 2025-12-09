@@ -22,7 +22,6 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
   const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
-  const [showAuthMethods, setShowAuthMethods] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const oauthWindowRef = useRef<Window | null>(null);
   const hasInitialized = useRef(false);
@@ -31,9 +30,8 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   stepRef.current = state.step; // Keep ref in sync with state
   const hasShownUsernameSuggestion = useRef(false);
 
-  // Fetch auth methods when user clicks sign in
-  const handleSignInClick = useCallback(() => {
-    setShowAuthMethods(true);
+  // Fetch auth methods on mount
+  useEffect(() => {
     if (!hasInitialized.current && state.step === 'idle') {
       hasInitialized.current = true;
       login();
@@ -48,7 +46,6 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   }, [state.step]);
 
   const handleBack = useCallback(() => {
-    setShowAuthMethods(true);
     login(); // Reset to methods
   }, [login]);
 
@@ -461,7 +458,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     );
   }
 
-  // Default view: textarea with Sign In button that reveals auth methods
+  // Default view: textarea with sign-in methods shown directly
   return (
     <div className="threadkit-form">
       <textarea
@@ -473,16 +470,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       />
 
       <div className="threadkit-form-actions">
-        {!showAuthMethods ? (
-          // Show "Sign in to post" button
-          <button
-            type="button"
-            className="threadkit-submit-btn"
-            onClick={handleSignInClick}
-          >
-            {t('signInToPost')}
-          </button>
-        ) : state.step === 'loading' ? (
+        {state.step === 'loading' ? (
           // Loading auth methods
           <div className="threadkit-signin-loading-inline">
             <LoadingSpinner className="threadkit-signin-spinner-small" />

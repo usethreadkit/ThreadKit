@@ -10,7 +10,6 @@ type Theme = 'light' | 'dark';
 // These are the default values for the local-server example.
 // Run: cargo run --release --bin threadkit-http -- --create-site "Local Dev" localhost none tk_pub_local_example_key tk_sec_local_example_key 00000000-0000-0000-0000-000000000001
 const LOCAL_API_KEY = 'tk_pub_local_example_key';
-const SITE_ID = '00000000-0000-0000-0000-000000000001';
 const API_URL = 'http://localhost:8080/v1';
 const WS_URL = 'ws://localhost:8081';
 
@@ -115,21 +114,6 @@ cd server && cargo run --release --bin threadkit-http -- \{'\n'}  --create-site 
       </main>
 
       <footer style={{ marginTop: 32, color: '#666', fontSize: 14 }}>
-        <div style={{
-          background: '#f5f5f5',
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          fontFamily: 'monospace',
-          fontSize: 12,
-        }}>
-          <div style={{ marginBottom: 8 }}>
-            <strong>Debug Info:</strong>
-          </div>
-          <div>Site ID: <code>{SITE_ID}</code></div>
-          <div>Page URL: <code>{pageUrl}</code></div>
-          <div>API Key: <code>{LOCAL_API_KEY}</code></div>
-        </div>
         <p>
           API Endpoint: <code>{API_URL}</code>
         </p>

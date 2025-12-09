@@ -836,6 +836,9 @@ pub async fn vote_comment(
     let new_downvotes = comment.downvotes;
     let author_id = comment.author_id;
 
+    // Update tree timestamp so ETag changes and clients get fresh data on reload
+    tree.updated_at = chrono::Utc::now().timestamp();
+
     // Save tree
     state
         .redis

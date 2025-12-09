@@ -700,6 +700,8 @@ function ThreadKitInner({
           wsConnected={wsConnected}
           presenceCount={presenceCount}
           typingUsers={showTyping ? typingUsers : []}
+          apiUrl={apiUrl}
+          apiKey={apiKey}
           onSend={handlePost}
           onTyping={sendTyping}
           onBlock={handleBlock}

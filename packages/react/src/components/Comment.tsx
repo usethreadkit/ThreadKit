@@ -136,7 +136,7 @@ export function Comment({
               className={`threadkit-vote-btn threadkit-vote-up ${hasUpvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'up')}
               aria-label={t('upvote')}
-              disabled={needsUsername}
+              disabled={!currentUser || needsUsername}
             >
               ▲
             </button>
@@ -144,7 +144,7 @@ export function Comment({
               className={`threadkit-vote-btn threadkit-vote-down ${hasDownvoted ? 'active' : ''}`}
               onClick={() => onVote(comment.id, 'down')}
               aria-label={t('downvote')}
-              disabled={needsUsername}
+              disabled={!currentUser || needsUsername}
             >
               ▼
             </button>
