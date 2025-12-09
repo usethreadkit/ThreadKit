@@ -89,8 +89,8 @@ sites
   owner_id              uuid (FK)
   name                  text
   domain                text (unique)
-  api_key_public        text (unique)
-  api_key_secret        text (unique)
+  project_id_public        text (unique)
+  project_id_secret        text (unique)
   settings              jsonb
   created_at            timestamp
   updated_at            timestamp

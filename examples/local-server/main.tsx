@@ -9,7 +9,7 @@ type Theme = 'light' | 'dark';
 // Configuration for local development
 // These are the default values for the local-server example.
 // Run: cargo run --release --bin threadkit-http -- --create-site "Local Dev" localhost none tk_pub_local_example_key tk_sec_local_example_key 00000000-0000-0000-0000-000000000001
-const LOCAL_API_KEY = 'tk_pub_local_example_key';
+const LOCAL_PROJECT_ID = 'tk_pub_local_example_key';
 const API_URL = 'http://localhost:8080/v1';
 const WS_URL = 'ws://localhost:8081';
 
@@ -99,7 +99,7 @@ cd server && cargo run --release --bin threadkit-http -- \{'\n'}  --create-site 
         }}
       >
         <ThreadKit
-          apiKey={LOCAL_API_KEY}
+          projectId={LOCAL_PROJECT_ID}
           url={pageUrl}
           mode={mode}
           theme={theme}

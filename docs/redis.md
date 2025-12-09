@@ -350,7 +350,7 @@ Value:  JSON {
 
 ### API Key Cache
 ```
-Key:    apikey:{api_key}
+Key:    apikey:{project_id}
 Type:   String (JSON)
 TTL:    5 minutes
 
@@ -371,8 +371,8 @@ Fields:
   id                UUID
   name              String
   domain            String
-  api_key_public    String
-  api_key_secret    String
+  project_id_public    String
+  project_id_secret    String
   settings          JSON (serialized SiteSettings)
 ```
 
@@ -387,7 +387,7 @@ Type:   String (counter)
 TTL:    Auto-expires with bucket
 
 Types:
-  - key:{api_key}     Per API key
+  - key:{project_id}     Per API key
   - ip:{ip_address}   Per IP address
   - user:{user_id}    Per authenticated user
 

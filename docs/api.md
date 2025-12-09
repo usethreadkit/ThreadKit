@@ -28,7 +28,7 @@ GET /v1/comments
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (optional, for vote status)
 
 **Query Parameters:**
@@ -78,7 +78,7 @@ POST /v1/comments
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (required)
 
 **Body:**
@@ -106,7 +106,7 @@ PUT /v1/comments/:id
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (required, must be owner)
 
 **Body:**
@@ -125,7 +125,7 @@ DELETE /v1/comments/:id
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (required, owner or moderator)
 
 **Response:** `204 No Content`
@@ -139,7 +139,7 @@ POST /v1/comments/:id/vote
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (required)
 
 **Body:**
@@ -172,7 +172,7 @@ POST /v1/comments/:id/report
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 - `Authorization: Bearer <token>` (required)
 
 **Body:**
@@ -196,7 +196,7 @@ POST /v1/auth/register
 ```
 
 **Headers:**
-- `X-API-Key: tk_pub_xxx` (required)
+- `projectid: tk_pub_xxx` (required)
 
 **Body:**
 ```json
@@ -528,13 +528,13 @@ The WebSocket API uses **JSON-RPC 2.0 notifications** (no response expected) for
 ### Connection
 
 ```
-ws://server:8081/ws?api_key=tk_pub_xxx&token=<jwt>
+ws://server:8081/ws?project_id=tk_pub_xxx&token=<jwt>
 ```
 
 **Query Parameters:**
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `api_key` | Yes | Your public API key |
+| `project_id` | Yes | Your public API key |
 | `token` | No | JWT token for authenticated users |
 
 ### Protocol
