@@ -142,11 +142,11 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
     }
 
     try {
-      // Build WebSocket URL with api_key and optional token
+      // Build WebSocket URL with project_id and optional token
       const wsUrl = this.config.wsUrl || this.config.apiUrl?.replace(/^http/, 'ws') || '';
       const token = this.config.getToken();
       const params = new URLSearchParams();
-      params.set('api_key', this.config.projectId);
+      params.set('project_id', this.config.projectId);
       if (token) {
         params.set('token', token);
       }
