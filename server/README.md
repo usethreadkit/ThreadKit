@@ -67,8 +67,8 @@ Options:
       --site-id <SITE_ID>                  Site ID (standalone mode)
       --site-name <SITE_NAME>              Site name (standalone mode)
       --site-domain <SITE_DOMAIN>          Site domain (standalone mode)
-      --api-key-public <API_KEY_PUBLIC>    Public API key (standalone mode)
-      --api-key-secret <API_KEY_SECRET>    Secret API key (standalone mode)
+      --project-id-public <PROJECT_ID_PUBLIC>    Public project ID (standalone mode)
+      --project-id-secret <PROJECT_ID_SECRET>    Secret project ID (standalone mode)
       --moderation-mode <MODE>             Moderation: none, pre, or post
   -h, --help                               Print help
   -V, --version                            Print version

@@ -74,7 +74,7 @@ function ThreadKitInner({
   showPresence = false,
   showTyping = false,
   apiUrl = DEFAULT_API_URL,
-  apiKey,
+  projectId,
   wsUrl,
   pageId: _pageId, // Deprecated - pageId now comes from API response
   realTimeMode: realTimeModeProp,
@@ -115,7 +115,26 @@ function ThreadKitInner({
     : undefined;
 
   const isModerator = currentUser?.isModerator || currentUser?.isAdmin || false;
-  const [currentSort, setCurrentSort] = useState<SortBy>(sortBy);
+
+  // Initialize sort from localStorage or prop
+  const [currentSort, setCurrentSort] = useState<SortBy>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('threadkit_sort');
+      if (saved === 'votes' || saved === 'newest' || saved === 'oldest') {
+        return saved;
+      }
+    }
+    return sortBy;
+  });
+
+  // Persist sort changes to localStorage
+  const handleSortChange = useCallback((newSort: SortBy) => {
+    setCurrentSort(newSort);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('threadkit_sort', newSort);
+    }
+  }, []);
+
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(theme);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
 
@@ -151,7 +170,7 @@ function ThreadKitInner({
   } = useComments({
     url,
     apiUrl,
-    apiKey,
+    projectId,
     sortBy: currentSort,
     initialComments,
     getPostHeaders,
@@ -294,7 +313,7 @@ function ThreadKitInner({
   // WebSocket connection (enabled when wsUrl provided and pageId available from API)
   const { connected: wsConnected, presenceCount, typingUsers, typingByComment, sendTyping } = useWebSocket({
     wsUrl: wsUrl || '',
-    apiKey,
+    projectId,
     pageId: effectivePageId,
     enabled: Boolean(wsUrl && effectivePageId),
     onCommentAdded: handleWsCommentAdded,
@@ -529,7 +548,7 @@ function ThreadKitInner({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          'projectid': projectId,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ social_links: socialLinks }),
@@ -537,7 +556,7 @@ function ThreadKitInner({
     } catch (err) {
       onError?.(err instanceof Error ? err : new Error('Failed to update social links'));
     }
-  }, [apiUrl, apiKey, onError]);
+  }, [apiUrl, projectId, onError]);
 
   const handleDeleteAccount = useCallback(async () => {
     try {
@@ -701,7 +720,7 @@ function ThreadKitInner({
           presenceCount={presenceCount}
           typingUsers={showTyping ? typingUsers : []}
           apiUrl={apiUrl}
-          apiKey={apiKey}
+          projectId={projectId}
           onSend={handlePost}
           onTyping={sendTyping}
           onBlock={handleBlock}
@@ -723,13 +742,13 @@ function ThreadKitInner({
           highlightedCommentId={highlightedCommentId}
           collapsedThreads={collapsedThreads}
           apiUrl={apiUrl}
-          apiKey={apiKey}
+          projectId={projectId}
           pendingRootCount={pendingRootComments.length}
           pendingReplies={pendingReplies}
           onLoadPendingComments={handleLoadPendingComments}
           onLoadPendingReplies={handleLoadPendingReplies}
           typingByComment={typingByComment}
-          onSortChange={setCurrentSort}
+          onSortChange={handleSortChange}
           onPost={handlePost}
           onVote={handleVote}
           onDelete={handleDelete}
@@ -768,7 +787,7 @@ function ThreadKitInner({
         <LoginModal
           onClose={() => setShowLoginModal(false)}
           apiUrl={apiUrl}
-          apiKey={apiKey}
+          projectId={projectId}
         />
       )}
     </div>
@@ -777,7 +796,7 @@ function ThreadKitInner({
 
 // Main exported component that wraps with AuthProvider and TranslationProvider
 export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
-  const { apiUrl = DEFAULT_API_URL, apiKey, onSignIn, onSignOut, translations, debug = false } = props;
+  const { apiUrl = DEFAULT_API_URL, projectId, onSignIn, onSignOut, translations, debug = false } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -802,7 +821,7 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   return (
     <DebugProvider value={debug}>
       <TranslationProvider translations={translations}>
-        <AuthProvider apiUrl={apiUrl} apiKey={apiKey} onUserChange={handleUserChange}>
+        <AuthProvider apiUrl={apiUrl} projectId={projectId} onUserChange={handleUserChange}>
           <ThreadKitInner {...props} innerRef={ref} />
         </AuthProvider>
       </TranslationProvider>

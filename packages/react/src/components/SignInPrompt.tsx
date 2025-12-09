@@ -6,11 +6,11 @@ import { normalizeUsername, validateUsername, MAX_USERNAME_LENGTH } from '@threa
 
 interface SignInPromptProps {
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   placeholder?: string;
 }
 
-export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps) {
+export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptProps) {
   const t = useTranslation();
   const { state, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, plugins } = useAuth();
   const placeholderText = placeholder ?? t('writeComment');
@@ -60,7 +60,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
         // OAuth routes are at root level (not under /v1)
         const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(projectId)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );
@@ -83,7 +83,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
       }
       selectMethod(method);
     },
-    [apiUrl, apiKey, selectMethod, handleBack]
+    [apiUrl, projectId, selectMethod, handleBack]
   );
 
   const handleOtpSubmit = useCallback(
@@ -97,13 +97,26 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
   );
 
   const handleVerifySubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (otpCode.trim()) {
+    (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (otpCode.trim() && otpCode.length === 6) {
         verifyOtp(otpCode.trim());
       }
     },
     [otpCode, verifyOtp]
+  );
+
+  // Handle OTP code input change with auto-submit
+  const handleOtpCodeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      setOtpCode(value);
+      // Auto-submit when 6 digits entered
+      if (value.length === 6) {
+        verifyOtp(value);
+      }
+    },
+    [verifyOtp]
   );
 
   const handleOtpNameSubmit = useCallback(
@@ -132,7 +145,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     setIsCheckingUsername(true);
     try {
       const headers: Record<string, string> = {
-        'X-API-Key': apiKey,
+        'projectid': projectId,
         'Content-Type': 'application/json',
       };
       // Include auth token so server can exclude current user from check
@@ -159,7 +172,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
     } finally {
       setIsCheckingUsername(false);
     }
-  }, [apiUrl, apiKey, state.token]);
+  }, [apiUrl, projectId, state.token]);
 
   // Initialize username from user's email or name when username-required step is shown (only once)
   useEffect(() => {
@@ -307,7 +320,7 @@ export function SignInPrompt({ apiUrl, apiKey, placeholder }: SignInPromptProps)
               className="threadkit-otp-inline-input threadkit-otp-code-input"
               placeholder={t('otpPlaceholder')}
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={handleOtpCodeChange}
               autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}

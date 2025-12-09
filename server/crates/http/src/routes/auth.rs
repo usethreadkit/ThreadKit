@@ -16,7 +16,7 @@ use threadkit_common::{
     web3,
 };
 
-use crate::{extractors::ApiKey, state::AppState};
+use crate::{extractors::ProjectId, state::AppState};
 
 /// API routes for auth (goes under /v1)
 pub fn router() -> Router<AppState> {
@@ -160,7 +160,7 @@ pub struct OAuthCallbackQuery {
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct OAuthStartQuery {
     /// API key (required since OAuth is initiated via navigation, not fetch)
-    pub api_key: String,
+    pub project_id: String,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -244,13 +244,13 @@ pub struct Web3VerifyRequest {
     responses(
         (status = 200, description = "Available auth methods", body = AuthMethodsResponse)
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn auth_methods(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
 ) -> Json<AuthMethodsResponse> {
-    let settings = &api_key.0.settings.auth;
+    let settings = &project_id.0.settings.auth;
     let mut methods = Vec::new();
 
     if settings.email {
@@ -315,11 +315,11 @@ pub async fn auth_methods(
         (status = 400, description = "Invalid request"),
         (status = 429, description = "Rate limited")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn send_otp(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     headers: axum::http::HeaderMap,
     Json(req): Json<SendOtpRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -417,11 +417,11 @@ pub async fn send_otp(
         (status = 200, description = "Login successful", body = AuthResponse),
         (status = 400, description = "Invalid or expired code")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn verify_otp(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<VerifyOtpRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     let key = req.email.as_ref().or(req.phone.as_ref())
@@ -523,7 +523,7 @@ pub async fn verify_otp(
 
     let token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -532,7 +532,7 @@ pub async fn verify_otp(
 
     let refresh_token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         24 * 365 * 100, // ~100 years
@@ -656,11 +656,11 @@ async fn send_otp_sms_twilio(config: &threadkit_common::config::TwilioConfig, ph
         (status = 400, description = "Invalid request"),
         (status = 409, description = "Email/phone/username already taken")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn register(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     if req.email.is_none() && req.phone.is_none() {
@@ -767,7 +767,7 @@ pub async fn register(
 
     let token = auth::create_token(
         user_id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -776,7 +776,7 @@ pub async fn register(
 
     let refresh_token = auth::create_token(
         user_id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         24 * 365 * 100, // ~100 years - refresh tokens never expire
@@ -801,11 +801,11 @@ pub async fn register(
         (status = 401, description = "Invalid credentials"),
         (status = 403, description = "Account banned")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn login(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     let user_id = if let Some(ref email) = req.email {
@@ -844,7 +844,7 @@ pub async fn login(
 
     let token = auth::create_token(
         user_id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -853,7 +853,7 @@ pub async fn login(
 
     let refresh_token = auth::create_token(
         user_id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         24 * 365 * 100, // ~100 years - refresh tokens never expire
@@ -877,11 +877,11 @@ pub async fn login(
         (status = 200, description = "Verification successful"),
         (status = 400, description = "Invalid or expired code")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn verify(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Json(req): Json<VerifyRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let key = req.email.as_ref().or(req.phone.as_ref())
@@ -921,11 +921,11 @@ pub async fn verify(
     responses(
         (status = 200, description = "Reset code sent (if account exists)")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn forgot_password(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Json(req): Json<ForgotPasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let key = req.email.as_ref().or(req.phone.as_ref())
@@ -963,11 +963,11 @@ pub async fn forgot_password(
         (status = 200, description = "Password reset successful"),
         (status = 400, description = "Invalid or expired code")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn reset_password(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Json(req): Json<ResetPasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let key = req.email.as_ref().or(req.phone.as_ref())
@@ -1009,11 +1009,11 @@ pub async fn reset_password(
         (status = 200, description = "New tokens issued", body = AuthResponse),
         (status = 401, description = "Invalid or expired refresh token")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn refresh_token(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<RefreshRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     let claims = auth::verify_token(&req.refresh_token, &state.config.jwt_secret)
@@ -1032,7 +1032,7 @@ pub async fn refresh_token(
 
     let token = auth::create_token(
         claims.sub,
-        api_key.0.site_id,
+        project_id.0.site_id,
         claims.session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -1041,7 +1041,7 @@ pub async fn refresh_token(
 
     let refresh_token = auth::create_token(
         claims.sub,
-        api_key.0.site_id,
+        project_id.0.site_id,
         claims.session_id,
         &state.config.jwt_secret,
         24 * 365 * 100, // ~100 years - refresh tokens never expire
@@ -1064,11 +1064,11 @@ pub async fn refresh_token(
         (status = 200, description = "Logged out successfully"),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn logout(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     crate::extractors::AuthUser { session_id, .. }: crate::extractors::AuthUser,
 ) -> Result<StatusCode, (StatusCode, String)> {
     state.redis.delete_session(session_id).await
@@ -1098,7 +1098,7 @@ pub async fn oauth_start(
     Query(query): Query<OAuthStartQuery>,
 ) -> Result<axum::response::Redirect, (StatusCode, String)> {
     // Look up site by API key (passed as query param since this is a navigation, not fetch)
-    let (site_id, _site_config) = state.redis.get_site_by_api_key(&query.api_key).await
+    let (site_id, _site_config) = state.redis.get_site_by_project_id(&query.project_id).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::BAD_REQUEST, "Invalid API key".into()))?;
 
@@ -1215,16 +1215,10 @@ fn oauth_success_response(token: &str, refresh_token: &str, user_json: &str) -> 
     console.log('[ThreadKit OAuth] No window.opener available');
   }}
 
-  // Delay close so user can see result and check console
-  console.log('[ThreadKit OAuth] Window will close in 2 seconds...');
-  setTimeout(function() {{
-    console.log('[ThreadKit OAuth] Closing window now');
-    window.close();
-  }}, 2000);
+  // Close immediately
+  window.close();
 </script>
-<p>Authentication successful!</p>
-<p>Token received. Check browser console for details.</p>
-<p>This window will close in 2 seconds...</p>
+<p>Authentication successful! This window should close automatically.</p>
 </body>
 </html>"#,
         serde_json::to_string(token).unwrap(),
@@ -1480,11 +1474,11 @@ async fn oauth_callback_inner(
         (status = 200, description = "Nonce generated", body = NonceResponse),
         (status = 400, description = "Invalid address format")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn ethereum_nonce(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Query(query): Query<Web3NonceQuery>,
 ) -> Result<Json<NonceResponse>, (StatusCode, String)> {
     let nonce_data = web3::generate_ethereum_nonce(&query.address)
@@ -1516,11 +1510,11 @@ pub async fn ethereum_nonce(
         (status = 400, description = "Invalid signature or expired nonce"),
         (status = 401, description = "Signature verification failed")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn ethereum_verify(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<Web3VerifyRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     // Validate address format
@@ -1564,7 +1558,7 @@ pub async fn ethereum_verify(
 
     let token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -1573,7 +1567,7 @@ pub async fn ethereum_verify(
 
     let refresh_token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         24 * 365 * 100,
@@ -1601,11 +1595,11 @@ pub async fn ethereum_verify(
         (status = 200, description = "Nonce generated", body = NonceResponse),
         (status = 400, description = "Invalid address format")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn solana_nonce(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Query(query): Query<Web3NonceQuery>,
 ) -> Result<Json<NonceResponse>, (StatusCode, String)> {
     let nonce_data = web3::generate_solana_nonce(&query.address)
@@ -1637,11 +1631,11 @@ pub async fn solana_nonce(
         (status = 400, description = "Invalid signature or expired nonce"),
         (status = 401, description = "Signature verification failed")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn solana_verify(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Json(req): Json<Web3VerifyRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
     // Validate address format
@@ -1685,7 +1679,7 @@ pub async fn solana_verify(
 
     let token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         state.config.jwt_expiry_hours,
@@ -1694,7 +1688,7 @@ pub async fn solana_verify(
 
     let refresh_token = auth::create_token(
         user.id,
-        api_key.0.site_id,
+        project_id.0.site_id,
         session_id,
         &state.config.jwt_secret,
         24 * 365 * 100,

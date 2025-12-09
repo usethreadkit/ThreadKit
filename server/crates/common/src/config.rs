@@ -93,9 +93,9 @@ pub struct RateLimitConfig {
     /// Requests per minute per IP for read operations
     pub ip_reads_per_minute: u32,
     /// Requests per minute per API key for write operations
-    pub api_key_writes_per_minute: u32,
+    pub project_id_writes_per_minute: u32,
     /// Requests per minute per API key for read operations
-    pub api_key_reads_per_minute: u32,
+    pub project_id_reads_per_minute: u32,
     /// Requests per minute per user for write operations
     pub user_writes_per_minute: u32,
     /// Requests per minute per user for read operations
@@ -118,8 +118,8 @@ impl Default for RateLimitConfig {
             enabled: true,
             ip_writes_per_minute: 5,
             ip_reads_per_minute: 30,
-            api_key_writes_per_minute: 100,
-            api_key_reads_per_minute: 500,
+            project_id_writes_per_minute: 100,
+            project_id_reads_per_minute: 500,
             user_writes_per_minute: 5,
             user_reads_per_minute: 30,
             auth_attempts_per_hour: 10,
@@ -140,8 +140,8 @@ pub enum Mode {
 #[derive(Debug, Clone)]
 pub struct StandaloneConfig {
     pub site_id: Uuid,
-    pub api_key_public: String,
-    pub api_key_secret: String,
+    pub project_id_public: String,
+    pub project_id_secret: String,
     pub site_name: String,
     pub site_domain: String,
     pub moderation_mode: ModerationMode,
@@ -195,23 +195,23 @@ impl Config {
                     .ok()
                     .and_then(|s| if s.is_empty() { None } else { s.parse().ok() });
 
-                let api_key_public = env::var("API_KEY_PUBLIC")
+                let project_id_public = env::var("PROJECT_ID_PUBLIC")
                     .ok()
                     .filter(|s| !s.is_empty() && s != "tk_pub_your_public_key");
 
-                let api_key_secret = env::var("API_KEY_SECRET")
+                let project_id_secret = env::var("PROJECT_ID_SECRET")
                     .ok()
                     .filter(|s| !s.is_empty() && s != "tk_sec_your_secret_key");
 
                 // Check if required config is missing
-                if site_id.is_none() || api_key_public.is_none() || api_key_secret.is_none() {
+                if site_id.is_none() || project_id_public.is_none() || project_id_secret.is_none() {
                     anyhow::bail!(
                         "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
                          Missing required configuration for standalone mode.\n\n\
                          Required environment variables:\n\
                            SITE_ID         - Your site's unique identifier (UUID)\n\
-                           API_KEY_PUBLIC  - Public API key (tk_pub_...)\n\
-                           API_KEY_SECRET  - Secret API key (tk_sec_...)\n\n\
+                           PROJECT_ID_PUBLIC  - Public API key (tk_pub_...)\n\
+                           PROJECT_ID_SECRET  - Secret API key (tk_sec_...)\n\n\
                          To create a new site, run:\n\
                            threadkit-http --create-site NAME DOMAIN\n\n\
                          Then add the site ID and keys to your .env file.\n\
@@ -221,8 +221,8 @@ impl Config {
 
                 Mode::Standalone(StandaloneConfig {
                     site_id: site_id.unwrap(),
-                    api_key_public: api_key_public.unwrap(),
-                    api_key_secret: api_key_secret.unwrap(),
+                    project_id_public: project_id_public.unwrap(),
+                    project_id_secret: project_id_secret.unwrap(),
                     site_name: env::var("SITE_NAME").unwrap_or_else(|_| "My Site".to_string()),
                     site_domain: env::var("SITE_DOMAIN").unwrap_or_else(|_| "localhost".to_string()),
                     moderation_mode: match env::var("MODERATION_MODE")
@@ -257,11 +257,11 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(30),
-            api_key_writes_per_minute: env::var("RATE_LIMIT_APIKEY_WRITES")
+            project_id_writes_per_minute: env::var("RATE_LIMIT_APIKEY_WRITES")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(100),
-            api_key_reads_per_minute: env::var("RATE_LIMIT_APIKEY_READS")
+            project_id_reads_per_minute: env::var("RATE_LIMIT_APIKEY_READS")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(500),

@@ -12,10 +12,10 @@ import { useTranslation } from '../i18n';
 interface LoginModalProps {
   onClose: () => void;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
 }
 
-export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
+export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
   const t = useTranslation();
   const { state, selectMethod, setOtpTarget, verifyOtp, plugins } = useAuth();
   const [inputValue, setInputValue] = useState('');
@@ -41,7 +41,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
         // OAuth routes are at root level (not under /v1)
         const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(projectId)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );
@@ -78,13 +78,26 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
   );
 
   const handleVerifySubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (otpCode.trim()) {
+    (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (otpCode.trim() && otpCode.length === 6) {
         verifyOtp(otpCode.trim());
       }
     },
     [otpCode, verifyOtp]
+  );
+
+  // Handle OTP code input change with auto-submit
+  const handleOtpCodeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      setOtpCode(value);
+      // Auto-submit when 6 digits entered
+      if (value.length === 6) {
+        verifyOtp(value);
+      }
+    },
+    [verifyOtp]
   );
 
   const handleNameSubmit = useCallback(
@@ -190,7 +203,7 @@ export function LoginModal({ onClose, apiUrl, apiKey }: LoginModalProps) {
               className="tk-auth-input tk-auth-otp-input"
               placeholder={t('otpPlaceholder')}
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={handleOtpCodeChange}
               autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}

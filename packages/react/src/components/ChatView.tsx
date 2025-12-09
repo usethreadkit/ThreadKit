@@ -20,7 +20,7 @@ interface ChatViewProps {
   presenceCount?: number;
   typingUsers?: Array<{ userId: string; userName: string }>;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   onSend: (text: string) => Promise<void>;
   onTyping?: () => void;
   onBlock?: (userId: string) => void;
@@ -400,7 +400,7 @@ export function ChatView({
   presenceCount = 0,
   typingUsers = [],
   apiUrl,
-  apiKey,
+  projectId,
   onSend,
   onTyping,
   onBlock,
@@ -500,13 +500,26 @@ export function ChatView({
 
   // Handle OTP code verify
   const handleVerifySubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (otpCode.trim()) {
+    (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (otpCode.trim() && otpCode.length === 6) {
         verifyOtp(otpCode.trim());
       }
     },
     [otpCode, verifyOtp]
+  );
+
+  // Handle OTP code input change with auto-submit
+  const handleOtpCodeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      setOtpCode(value);
+      // Auto-submit when 6 digits entered
+      if (value.length === 6) {
+        verifyOtp(value);
+      }
+    },
+    [verifyOtp]
   );
 
   // Handle OAuth method selection
@@ -520,7 +533,7 @@ export function ChatView({
 
         const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(apiKey)}`,
+          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(projectId)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );
@@ -540,7 +553,7 @@ export function ChatView({
       }
       selectMethod(method);
     },
-    [apiUrl, apiKey, selectMethod, handleBack]
+    [apiUrl, projectId, selectMethod, handleBack]
   );
 
   // Get icon for auth method
@@ -615,7 +628,7 @@ export function ChatView({
               className="threadkit-otp-inline-input threadkit-otp-code-input"
               placeholder={t('otpPlaceholder')}
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={handleOtpCodeChange}
               autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}

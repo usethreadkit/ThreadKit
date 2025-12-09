@@ -29,10 +29,9 @@ use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::App
 #[command(about = "ThreadKit HTTP API server")]
 #[command(version)]
 struct Args {
-    /// Create a new site: --create-site NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY] [SITE_ID]
+    /// Create a new site: --create-site NAME DOMAIN [MODERATION_MODE] [PUBLIC_KEY] [SECRET_KEY]
     /// Outputs the site ID on success, or an error message on failure.
-    /// If SITE_ID is provided, uses that UUID instead of generating a new one.
-    #[arg(long, value_names = ["NAME", "DOMAIN", "MODERATION_MODE", "PUBLIC_KEY", "SECRET_KEY", "SITE_ID"], num_args = 2..=6)]
+    #[arg(long, value_names = ["NAME", "DOMAIN", "MODERATION_MODE", "PUBLIC_KEY", "SECRET_KEY"], num_args = 2..=5)]
     create_site: Option<Vec<String>>,
 
     /// Path to .env file (e.g., .env.loadtest)
@@ -64,7 +63,7 @@ struct Args {
     allow_localhost_origin: bool,
 
     /// Edit a site config: --edit-site SITE_ID KEY VALUE
-    /// Keys: name, domain, moderation_mode, api_key_public, api_key_secret
+    /// Keys: name, domain, moderation_mode, project_id_public, project_id_secret
     #[arg(long, value_names = ["SITE_ID", "KEY", "VALUE"], num_args = 3)]
     edit_site: Option<Vec<String>>,
 
@@ -136,8 +135,8 @@ async fn main() -> Result<()> {
     // Print API keys in standalone mode
     if let Some(standalone) = config.standalone() {
         tracing::info!("Site ID: {}", standalone.site_id);
-        tracing::info!("Public key: {}", standalone.api_key_public);
-        tracing::info!("Secret key: {}", standalone.api_key_secret);
+        tracing::info!("Public key: {}", standalone.project_id_public);
+        tracing::info!("Secret key: {}", standalone.project_id_secret);
     }
 
     // Initialize Prometheus metrics
@@ -420,18 +419,18 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         ModerationMode as TypeModerationMode, ContentModerationSettings, TurnstileSettings,
     };
     use uuid::Uuid;
+    use std::io::{self, Write};
 
     // Parse positional args
     let site_name = &site_args[0];
     let site_domain = &site_args[1];
     let moderation_mode = site_args.get(2).map(|s| s.as_str()).unwrap_or("none");
-    let api_key_public = site_args.get(3)
+    let project_id_public = site_args.get(3)
         .cloned()
         .unwrap_or_else(|| format!("tk_pub_{}", generate_key()));
-    let api_key_secret = site_args.get(4)
+    let project_id_secret = site_args.get(4)
         .cloned()
         .unwrap_or_else(|| format!("tk_sec_{}", generate_key()));
-    let provided_site_id = site_args.get(5).cloned();
 
     // Validate moderation mode
     let moderation = match moderation_mode.to_lowercase().as_str() {
@@ -445,11 +444,11 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
     };
 
     // Validate key prefixes
-    if !api_key_public.starts_with("tk_pub_") {
+    if !project_id_public.starts_with("tk_pub_") {
         eprintln!("error: public key must start with 'tk_pub_'");
         std::process::exit(1);
     }
-    if !api_key_secret.starts_with("tk_sec_") {
+    if !project_id_secret.starts_with("tk_sec_") {
         eprintln!("error: secret key must start with 'tk_sec_'");
         std::process::exit(1);
     }
@@ -468,26 +467,30 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         }
     };
 
-    // Use provided site ID or generate a new one
-    let site_id = if let Some(ref id_str) = provided_site_id {
-        match Uuid::parse_str(id_str) {
-            Ok(id) => id,
-            Err(_) => {
-                eprintln!("error: invalid site ID '{}' (must be a valid UUID)", id_str);
-                std::process::exit(1);
-            }
+    // Check if the public key already exists
+    if let Ok(Some((existing_site_id, existing_config))) = redis.get_site_by_project_id(&project_id_public).await {
+        eprintln!("warning: public key '{}' is already in use by site '{}' ({})",
+            project_id_public, existing_config.name, existing_site_id);
+        eprint!("Do you want to overwrite this site? [y/N] ");
+        io::stderr().flush().ok();
+
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() || !input.trim().eq_ignore_ascii_case("y") {
+            eprintln!("Aborted.");
+            std::process::exit(1);
         }
-    } else {
-        Uuid::now_v7()
-    };
+    }
+
+    // Generate a new site ID
+    let site_id = Uuid::now_v7();
 
     // Create site config
     let site_config = SiteConfig {
         id: site_id,
         name: site_name.clone(),
         domain: site_domain.clone(),
-        api_key_public,
-        api_key_secret,
+        project_id_public,
+        project_id_secret,
         settings: SiteSettings {
             moderation_mode: moderation,
             auth: AuthSettings {
@@ -583,22 +586,22 @@ async fn edit_site(args: &Args, edit_args: &[String]) -> Result<()> {
                 }
             };
         }
-        "api_key_public" => {
+        "project_id_public" => {
             if !value.starts_with("tk_pub_") {
                 eprintln!("error: public key must start with 'tk_pub_'");
                 std::process::exit(1);
             }
-            config.api_key_public = value.clone();
+            config.project_id_public = value.clone();
         }
-        "api_key_secret" => {
+        "project_id_secret" => {
             if !value.starts_with("tk_sec_") {
                 eprintln!("error: secret key must start with 'tk_sec_'");
                 std::process::exit(1);
             }
-            config.api_key_secret = value.clone();
+            config.project_id_secret = value.clone();
         }
         _ => {
-            eprintln!("error: unknown key '{}' (valid keys: name, domain, moderation_mode, api_key_public, api_key_secret)", key);
+            eprintln!("error: unknown key '{}' (valid keys: name, domain, moderation_mode, project_id_public, project_id_secret)", key);
             std::process::exit(1);
         }
     }
