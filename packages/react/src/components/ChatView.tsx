@@ -1,10 +1,28 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
+import { parseAnonUsername } from '@threadkit/core';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
-import { useTranslation } from '../i18n';
+import { useTranslation, type TranslatorFunction } from '../i18n';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
+
+/** Render a username with guest badge if anonymous */
+function GuestAwareUsername({ userName, t }: { userName: string; t: TranslatorFunction }) {
+  const { isAnonymous, displayName } = parseAnonUsername(userName);
+
+  if (!isAnonymous) {
+    return <>{userName}</>;
+  }
+
+  // Show display name or "Anonymous", always with "Guest" badge
+  return (
+    <span className="threadkit-guest-author">
+      {displayName || t('anonymous')}
+      <span className="threadkit-guest-badge">{t('guest')}</span>
+    </span>
+  );
+}
 
 interface ChatViewProps {
   comments: Comment[];
@@ -52,6 +70,7 @@ function formatTime(timestamp: number): string {
 
 interface ChatMessageProps {
   message: Comment;
+  depth?: number;
   currentUser?: User;
   isModOrAdmin: boolean;
   onBlock?: (userId: string) => void;
@@ -66,6 +85,7 @@ interface ChatMessageProps {
 
 function ChatMessage({
   message,
+  depth = 0,
   currentUser,
   isModOrAdmin,
   onBlock,
@@ -139,6 +159,7 @@ function ChatMessage({
   return (
     <div
       className={`threadkit-chat-message ${isExpanded ? 'expanded' : ''}`}
+      style={{ paddingLeft: depth > 0 ? `${depth * 20}px` : undefined }}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="threadkit-chat-message-line">
@@ -148,7 +169,9 @@ function ChatMessage({
           userId={message.userId}
           getUserProfile={getUserProfile}
         >
-          <span className="threadkit-chat-author">{message.userName}</span>
+          <span className="threadkit-chat-author">
+            <GuestAwareUsername userName={message.userName} t={t} />
+          </span>
         </UserHoverCard>
         <span className="threadkit-chat-text">
           {renderMarkdown(message.text, {
@@ -428,8 +451,19 @@ export function ChatView({
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
   const isLoggedIn = currentUser && !needsUsername;
 
-  // Get flat list of messages (chat mode has no nesting)
-  const messages = comments.slice(-showLastN);
+  // Flatten comments tree while preserving order and thread structure
+  const flattenWithThreading = (nodes: Comment[], depth = 0): Array<{ comment: Comment; depth: number }> => {
+    const result: Array<{ comment: Comment; depth: number }> = [];
+    for (const node of nodes) {
+      result.push({ comment: node, depth });
+      if (node.children && node.children.length > 0) {
+        result.push(...flattenWithThreading(node.children, depth + 1));
+      }
+    }
+    return result;
+  };
+
+  const messages = flattenWithThreading(comments).slice(-showLastN);
 
   // Auto-scroll to top on new messages (newest are at top)
   useEffect(() => {
@@ -716,10 +750,11 @@ export function ChatView({
       )}
 
       <div className="threadkit-chat-messages" ref={messagesRef}>
-        {messages.map((message) => (
+        {messages.map(({ comment, depth }) => (
           <ChatMessage
-            key={message.id}
-            message={message}
+            key={comment.id}
+            message={comment}
+            depth={depth}
             currentUser={currentUser}
             isModOrAdmin={isModOrAdmin || false}
             onBlock={onBlock}

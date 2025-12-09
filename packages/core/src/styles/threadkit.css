@@ -855,9 +855,16 @@
 .threadkit-chat-input input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid var(--threadkit-border);
-  border-radius: var(--threadkit-radius);
-  background: var(--threadkit-bg);
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  color: var(--threadkit-text);
+}
+
+.threadkit-chat-input input:focus {
+  border-bottom-color: var(--threadkit-primary);
 }
 
 .threadkit-chat-signin {

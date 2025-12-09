@@ -1,7 +1,8 @@
-import { useCallback, useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
 import type { ThreadKitProps, ThreadKitCSSVariables, ThreadKitRef, User, Comment, SortBy } from './types';
 import { useComments, ThreadKitError } from './hooks/useComments';
 import { useWebSocket } from './hooks/useWebSocket';
+import { sortComments } from '@threadkit/core';
 import { CommentsView } from './components/CommentsView';
 import { ChatView } from './components/ChatView';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -19,6 +20,41 @@ const injectedStyles = new Set<string>();
 interface BlockedUser {
   id: string;
   name: string;
+}
+
+// Error Boundary Component
+class ThreadKitErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ThreadKit Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="threadkit threadkit-error-boundary" data-theme="light">
+          <div className="threadkit-error">
+            <strong>Something went wrong</strong>
+            <p>ThreadKit encountered an error. Please check the console for details.</p>
+            {this.state.error && <code className="threadkit-error-code">{this.state.error.message}</code>}
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 /**
@@ -706,11 +742,17 @@ function ThreadKitInner({
     </div>
   ) : null;
 
+  // Sort comments by newest for chat mode
+  const chatComments = useMemo(() => {
+    if (mode === 'chat') return sortComments(comments, 'newest');
+    return comments;
+  }, [mode, comments]);
+
   return (
     <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
       {mode === 'chat' ? (
         <ChatView
-          comments={comments}
+          comments={chatComments}
           currentUser={currentUser}
           needsUsername={authState.step === 'username-required' || authState.user?.username_set === false}
           showLastN={showLastN}
@@ -819,12 +861,14 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   );
 
   return (
-    <DebugProvider value={debug}>
-      <TranslationProvider translations={translations}>
-        <AuthProvider apiUrl={apiUrl} projectId={projectId} onUserChange={handleUserChange}>
-          <ThreadKitInner {...props} innerRef={ref} />
-        </AuthProvider>
-      </TranslationProvider>
-    </DebugProvider>
+    <ThreadKitErrorBoundary>
+      <DebugProvider value={debug}>
+        <TranslationProvider translations={translations}>
+          <AuthProvider apiUrl={apiUrl} projectId={projectId} onUserChange={handleUserChange}>
+            <ThreadKitInner {...props} innerRef={ref} />
+          </AuthProvider>
+        </TranslationProvider>
+      </DebugProvider>
+    </ThreadKitErrorBoundary>
   );
 });
