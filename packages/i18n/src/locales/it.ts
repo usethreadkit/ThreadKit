@@ -182,7 +182,7 @@ export const it: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Sito non configurato',
   siteNotConfiguredMessage:
-    'Questa chiave API non è associata a un sito configurato. Visita usethreadkit.com/dashboard per completare la configurazione.',
+    'Questa chiave API non è associata a un sito configurato. Visita usethreadkit.com/sites per completare la configurazione.',
   invalidApiKey: 'Chiave API non valida',
   invalidApiKeyMessage:
     'La chiave API fornita non è valida o è stata revocata. Controlla la dashboard per la chiave corretta.',

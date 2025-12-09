@@ -178,7 +178,7 @@ export const pl: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Strona nieskonfigurowana',
   siteNotConfiguredMessage:
-    'Ten klucz API nie jest powiązany ze skonfigurowaną stroną. Odwiedź usethreadkit.com/dashboard, aby dokończyć konfigurację.',
+    'Ten klucz API nie jest powiązany ze skonfigurowaną stroną. Odwiedź usethreadkit.com/sites, aby dokończyć konfigurację.',
   invalidApiKey: 'Nieprawidłowy klucz API',
   invalidApiKeyMessage:
     'Podany klucz API jest nieprawidłowy lub został unieważniony. Sprawdź poprawność klucza w panelu.',

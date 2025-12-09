@@ -182,7 +182,7 @@ export const id: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Situs tidak dikonfigurasi',
   siteNotConfiguredMessage:
-    'Kunci API ini tidak terkait dengan situs yang dikonfigurasi. Kunjungi usethreadkit.com/dashboard untuk menyelesaikan pengaturan Anda.',
+    'Kunci API ini tidak terkait dengan situs yang dikonfigurasi. Kunjungi usethreadkit.com/sites untuk menyelesaikan pengaturan Anda.',
   invalidApiKey: 'Kunci API tidak valid',
   invalidApiKeyMessage:
     'Kunci API yang diberikan tidak valid atau telah dicabut. Periksa dasbor Anda untuk kunci yang benar.',

@@ -778,11 +778,11 @@ function ThreadKitInner({
           <>
             <strong>{t('siteNotConfigured')}</strong>
             <p>
-              {t('siteNotConfiguredMessage').split('usethreadkit.com/dashboard')[0]}
-              <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
-                usethreadkit.com/dashboard
+              {t('siteNotConfiguredMessage').split('usethreadkit.com/sites')[0]}
+              <a href="https://usethreadkit.com/sites" target="_blank" rel="noopener noreferrer">
+                usethreadkit.com/sites
               </a>
-              {t('siteNotConfiguredMessage').split('usethreadkit.com/dashboard')[1]}
+              {t('siteNotConfiguredMessage').split('usethreadkit.com/sites')[1]}
             </p>
           </>
         );
@@ -792,11 +792,11 @@ function ThreadKitInner({
           <>
             <strong>{t('invalidApiKey')}</strong>
             <p>
-              {t('invalidApiKeyMessage').split('dashboard')[0]}
-              <a href="https://usethreadkit.com/dashboard" target="_blank" rel="noopener noreferrer">
-                dashboard
+              {t('invalidApiKeyMessage').split('sites')[0]}
+              <a href="https://usethreadkit.com/sites" target="_blank" rel="noopener noreferrer">
+                sites
               </a>
-              {t('invalidApiKeyMessage').split('dashboard')[1]}
+              {t('invalidApiKeyMessage').split('sites')[1]}
             </p>
           </>
         );

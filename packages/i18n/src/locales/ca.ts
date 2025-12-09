@@ -182,7 +182,7 @@ export const ca: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Lloc no configurat',
   siteNotConfiguredMessage:
-    'Aquesta clau API no està associada a un lloc configurat. Visita usethreadkit.com/dashboard per completar la configuració.',
+    'Aquesta clau API no està associada a un lloc configurat. Visita usethreadkit.com/sites per completar la configuració.',
   invalidApiKey: 'Clau API no vàlida',
   invalidApiKeyMessage:
     'La clau API proporcionada no és vàlida o ha estat revocada. Comprova el teu tauler de control per obtenir la clau correcta.',

@@ -182,7 +182,7 @@ export const ar: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'الموقع غير مهيأ',
   siteNotConfiguredMessage:
-    'مفتاح API هذا غير مرتبط بموقع مهيأ. قم بزيارة usethreadkit.com/dashboard لإكمال إعدادك.',
+    'مفتاح API هذا غير مرتبط بموقع مهيأ. قم بزيارة usethreadkit.com/sites لإكمال إعدادك.',
   invalidApiKey: 'مفتاح API غير صالح',
   invalidApiKeyMessage:
     'مفتاح API المقدم غير صالح أو تم إبطاله. تحقق من لوحة المعلومات الخاصة بك للحصول على المفتاح الصحيح.',

@@ -182,7 +182,7 @@ export const no: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Nettstedet er ikke konfigurert',
   siteNotConfiguredMessage:
-    'Denne API-nøkkelen er ikke tilknyttet et konfigurert nettsted. Besøk usethreadkit.com/dashboard for å fullføre oppsettet ditt.',
+    'Denne API-nøkkelen er ikke tilknyttet et konfigurert nettsted. Besøk usethreadkit.com/sites for å fullføre oppsettet ditt.',
   invalidApiKey: 'Ugyldig API-nøkkel',
   invalidApiKeyMessage:
     'Den angitte API-nøkkelen er ugyldig eller har blitt tilbakekalt. Sjekk dashbordet ditt for riktig nøkkel.',

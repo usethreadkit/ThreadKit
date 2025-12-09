@@ -179,7 +179,7 @@ export const he: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'האתר לא הוגדר',
   siteNotConfiguredMessage:
-    'מפתח API זה אינו משויך לאתר שהוגדר. בקר ב-usethreadkit.com/dashboard כדי להשלים את ההגדרה.',
+    'מפתח API זה אינו משויך לאתר שהוגדר. בקר ב-usethreadkit.com/sites כדי להשלים את ההגדרה.',
   invalidApiKey: 'מפתח API לא חוקי',
   invalidApiKeyMessage:
     'מפתח ה-API שסופק אינו חוקי או שבוטל. בדוק את לוח המחוונים שלך עבור המפתח הנכון.',

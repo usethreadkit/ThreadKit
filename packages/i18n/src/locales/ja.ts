@@ -182,7 +182,7 @@ export const ja: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'サイトが設定されていません',
   siteNotConfiguredMessage:
-    'このAPIキーは設定されたサイトに関連付けられていません。usethreadkit.com/dashboardで設定を完了してください。',
+    'このAPIキーは設定されたサイトに関連付けられていません。usethreadkit.com/sitesで設定を完了してください。',
   invalidApiKey: '無効なAPIキー',
   invalidApiKeyMessage:
     '提供されたAPIキーは無効か、取り消されています。正しいキーについてはダッシュボードを確認してください。',

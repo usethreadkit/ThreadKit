@@ -182,7 +182,7 @@ export const hr: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Stranica nije konfigurirana',
   siteNotConfiguredMessage:
-    'Ovaj API ključ nije povezan s konfiguriranom stranicom. Posjetite usethreadkit.com/dashboard kako biste dovršili postavljanje.',
+    'Ovaj API ključ nije povezan s konfiguriranom stranicom. Posjetite usethreadkit.com/sites kako biste dovršili postavljanje.',
   invalidApiKey: 'Nevažeći API ključ',
   invalidApiKeyMessage:
     'Dostavljeni API ključ je nevažeći ili je opozvan. Provjerite svoju nadzornu ploču za ispravan ključ.',

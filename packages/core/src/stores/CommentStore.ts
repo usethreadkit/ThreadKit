@@ -485,28 +485,61 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   private async parseErrorResponse(response: Response): Promise<ThreadKitError> {
     let errorCode: ThreadKitErrorCode = 'UNKNOWN';
     let errorMessage = `Request failed: ${response.statusText}`;
+    let errorText: string | null = null;
 
+    // Try to read the response body as text first
     try {
-      const errorData = await response.json();
-      if (errorData.error) {
-        errorMessage = errorData.error;
-      }
+      const text = await response.text();
+      console.log('[ThreadKit] Error response body:', text);
+      console.log('[ThreadKit] Error status:', response.status, response.statusText);
 
-      // Map HTTP status codes to error codes
-      if (response.status === 404) {
-        errorCode = 'SITE_NOT_FOUND';
-        errorMessage =
-          errorData.error || 'Page not found. Please check your configuration.';
-      } else if (response.status === 401 || response.status === 403) {
-        errorCode = errorData.error?.includes('API key')
-          ? 'INVALID_API_KEY'
-          : 'UNAUTHORIZED';
-      } else if (response.status === 429) {
-        errorCode = 'RATE_LIMITED';
+      if (text) {
+        errorText = text;
+
+        // Try to parse as JSON
+        try {
+          const errorData = JSON.parse(text);
+          if (errorData.error) {
+            errorText = errorData.error;
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Not JSON, use plain text
+          errorMessage = text;
+        }
       }
-    } catch {
-      // Could not parse JSON error response
+    } catch (e) {
+      console.error('[ThreadKit] Failed to read error response:', e);
     }
+
+    console.log('[ThreadKit] Parsed error text:', errorText);
+
+    // Map HTTP status codes to error codes
+    if (response.status === 404) {
+      errorCode = 'SITE_NOT_FOUND';
+      if (!errorText) {
+        errorMessage = 'Page not found. Please check your configuration.';
+      }
+    } else if (response.status === 401 || response.status === 403) {
+      console.log('[ThreadKit] Checking auth error. errorText:', errorText);
+      console.log('[ThreadKit] Contains "api key"?', errorText?.toLowerCase().includes('api key'));
+      console.log('[ThreadKit] Contains "unauthorized"?', errorText?.toLowerCase().includes('unauthorized'));
+
+      if (errorText?.toLowerCase().includes('api key')) {
+        errorCode = 'INVALID_API_KEY';
+        errorMessage = 'Invalid API key. Please check your ThreadKit configuration and ensure your API keys are correct.';
+      } else if (errorText?.toLowerCase().includes('unauthorized')) {
+        errorCode = 'UNAUTHORIZED';
+        errorMessage = 'Authentication required. Please check that your API keys are configured correctly in your ThreadKit setup.';
+      } else {
+        errorCode = 'UNAUTHORIZED';
+      }
+    } else if (response.status === 429) {
+      errorCode = 'RATE_LIMITED';
+    }
+
+    console.log('[ThreadKit] Final error message:', errorMessage);
+    console.log('[ThreadKit] Final error code:', errorCode);
 
     return new ThreadKitError(errorMessage, errorCode, response.status);
   }

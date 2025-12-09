@@ -179,7 +179,7 @@ export const tr: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Site yapılandırılmadı',
   siteNotConfiguredMessage:
-    'Bu API anahtarı yapılandırılmış bir siteyle ilişkili değil. Kurulumu tamamlamak için usethreadkit.com/dashboard adresini ziyaret edin.',
+    'Bu API anahtarı yapılandırılmış bir siteyle ilişkili değil. Kurulumu tamamlamak için usethreadkit.com/sites adresini ziyaret edin.',
   invalidApiKey: 'Geçersiz API anahtarı',
   invalidApiKeyMessage:
     'Sağlanan API anahtarı geçersiz veya iptal edildi. Doğru anahtar için kontrol panelinizi kontrol edin.',

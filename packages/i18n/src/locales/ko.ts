@@ -179,7 +179,7 @@ export const ko: TranslationStrings = {
   // Error pages
   siteNotConfigured: '사이트가 구성되지 않았습니다',
   siteNotConfiguredMessage:
-    '이 API 키는 구성된 사이트와 연결되어 있지 않습니다. usethreadkit.com/dashboard에서 설정을 완료하세요.',
+    '이 API 키는 구성된 사이트와 연결되어 있지 않습니다. usethreadkit.com/sites에서 설정을 완료하세요.',
   invalidApiKey: '잘못된 API 키',
   invalidApiKeyMessage:
     '제공된 API 키가 유효하지 않거나 취소되었습니다. 대시보드에서 올바른 키를 확인하세요.',

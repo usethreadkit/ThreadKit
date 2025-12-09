@@ -179,7 +179,7 @@ export const lv: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Vietne nav konfigurēta',
   siteNotConfiguredMessage:
-    'Šī API atslēga nav saistīta ar konfigurētu vietni. Apmeklējiet usethreadkit.com/dashboard, lai pabeigtu iestatīšanu.',
+    'Šī API atslēga nav saistīta ar konfigurētu vietni. Apmeklējiet usethreadkit.com/sites, lai pabeigtu iestatīšanu.',
   invalidApiKey: 'Nederīga API atslēga',
   invalidApiKeyMessage:
     'Norādītā API atslēga ir nederīga vai ir atsaukta. Pārbaudiet savu paneli, lai iegūtu pareizo atslēgu.',

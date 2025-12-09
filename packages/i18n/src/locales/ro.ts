@@ -182,7 +182,7 @@ export const ro: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Site neconfigurat',
   siteNotConfiguredMessage:
-    'Această cheie API nu este asociată cu un site configurat. Vizitează usethreadkit.com/dashboard pentru a finaliza configurarea.',
+    'Această cheie API nu este asociată cu un site configurat. Vizitează usethreadkit.com/sites pentru a finaliza configurarea.',
   invalidApiKey: 'Cheie API invalidă',
   invalidApiKeyMessage:
     'Cheia API furnizată este invalidă sau a fost revocată. Verifică panoul de control pentru cheia corectă.',

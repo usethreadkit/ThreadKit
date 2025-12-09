@@ -178,7 +178,7 @@ export const fr: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Site non configuré',
   siteNotConfiguredMessage:
-    "Cette clé API n'est pas associée à un site configuré. Visitez usethreadkit.com/dashboard pour terminer la configuration.",
+    "Cette clé API n'est pas associée à un site configuré. Visitez usethreadkit.com/sites pour terminer la configuration.",
   invalidApiKey: 'Clé API invalide',
   invalidApiKeyMessage:
     'La clé API fournie est invalide ou a été révoquée. Vérifiez votre tableau de bord pour la clé correcte.',

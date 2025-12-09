@@ -182,7 +182,7 @@ export const bg: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Сайтът не е конфигуриран',
   siteNotConfiguredMessage:
-    'Този API ключ не е свързан с конфигуриран сайт. Посетете usethreadkit.com/dashboard, за да завършите настройката си.',
+    'Този API ключ не е свързан с конфигуриран сайт. Посетете usethreadkit.com/sites, за да завършите настройката си.',
   invalidApiKey: 'Невалиден API ключ',
   invalidApiKeyMessage:
     'Предоставеният API ключ е невалиден или е отменен. Проверете таблото си за управление за правилния ключ.',

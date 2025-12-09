@@ -799,6 +799,19 @@
   background: var(--threadkit-bg-hover);
 }
 
+.threadkit-chat-message.highlighted {
+  background: color-mix(in srgb, var(--threadkit-primary) 15%, var(--threadkit-bg));
+  transition: background 0.3s ease;
+}
+
+.threadkit-chat-message.reply-message {
+  opacity: 0.4;
+}
+
+.threadkit-chat-message.reply-message:hover {
+  opacity: 0.6;
+}
+
 .threadkit-chat-message-line {
   display: block;
 }
@@ -887,9 +900,7 @@
 
 .threadkit-error {
   padding: 24px;
-  border: 1px solid var(--threadkit-danger);
   border-radius: var(--threadkit-radius);
-  background: color-mix(in srgb, var(--threadkit-danger) 5%, var(--threadkit-bg));
   color: var(--threadkit-text);
 }
 
@@ -931,8 +942,8 @@
 .threadkit-new-comments-banner {
   display: inline-block;
   padding: 6px 12px;
-  background: var(--threadkit-bg-secondary);
-  color: var(--threadkit-text-secondary);
+  background: #eee;
+  color: var(--threadkit-text-muted);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -942,6 +953,99 @@
 }
 
 .threadkit-new-comments-banner:hover {
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text);
+}
+
+.threadkit-chat-reply-ref {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  margin-right: 4px;
+  padding: 0;
+  background: var(--threadkit-bg-secondary);
+  color: var(--threadkit-text-secondary);
+  border: 1px solid var(--threadkit-border-light);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.threadkit-chat-reply-ref:hover {
+  background: var(--threadkit-primary);
+  color: white;
+  border-color: var(--threadkit-primary);
+}
+
+.threadkit-chat-message.replying {
+  background: transparent;
+  padding: 0;
+  cursor: default;
+}
+
+.threadkit-chat-reply-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.threadkit-chat-reply-form input {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  color: var(--threadkit-text);
+  font-size: 13px;
+}
+
+.threadkit-chat-reply-form input:focus {
+  border-bottom-color: var(--threadkit-primary);
+}
+
+.threadkit-chat-reply-form .threadkit-submit-btn {
+  padding: 6px 12px;
+  background: var(--threadkit-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.threadkit-chat-reply-form .threadkit-submit-btn:hover:not(:disabled) {
+  background: var(--threadkit-primary-hover);
+}
+
+.threadkit-chat-reply-form .threadkit-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.threadkit-chat-reply-form .threadkit-cancel-btn {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--threadkit-text-secondary);
+  border: 1px solid var(--threadkit-border-light);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.threadkit-chat-reply-form .threadkit-cancel-btn:hover {
   background: var(--threadkit-bg-hover);
   color: var(--threadkit-text);
 }

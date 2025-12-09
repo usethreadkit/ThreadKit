@@ -179,7 +179,7 @@ export const da: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Side ikke konfigureret',
   siteNotConfiguredMessage:
-    'Denne API-nøgle er ikke tilknyttet en konfigureret side. Besøg usethreadkit.com/dashboard for at fuldføre din opsætning.',
+    'Denne API-nøgle er ikke tilknyttet en konfigureret side. Besøg usethreadkit.com/sites for at fuldføre din opsætning.',
   invalidApiKey: 'Ugyldig API-nøgle',
   invalidApiKeyMessage:
     'Den angivne API-nøgle er ugyldig eller er blevet tilbagekaldt. Tjek dit dashboard for den korrekte nøgle.',

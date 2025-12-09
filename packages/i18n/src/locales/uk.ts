@@ -179,7 +179,7 @@ export const uk: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Сайт не налаштовано',
   siteNotConfiguredMessage:
-    'Цей API ключ не пов\'язаний з налаштованим сайтом. Відвідайте usethreadkit.com/dashboard для налаштування.',
+    'Цей API ключ не пов\'язаний з налаштованим сайтом. Відвідайте usethreadkit.com/sites для налаштування.',
   invalidApiKey: 'Невірний API ключ',
   invalidApiKeyMessage:
     'Наданий API ключ невірний або відкликаний. Перевірте ваш дашборд.',

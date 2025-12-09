@@ -182,7 +182,7 @@ export const sv: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Sajten är inte konfigurerad',
   siteNotConfiguredMessage:
-    'Denna API-nyckel är inte kopplad till en konfigurerad sajt. Besök usethreadkit.com/dashboard för att slutföra din installation.',
+    'Denna API-nyckel är inte kopplad till en konfigurerad sajt. Besök usethreadkit.com/sites för att slutföra din installation.',
   invalidApiKey: 'Ogiltig API-nyckel',
   invalidApiKeyMessage:
     'Den angivna API-nyckeln är ogiltig eller har återkallats. Kontrollera din instrumentpanel för rätt nyckel.',

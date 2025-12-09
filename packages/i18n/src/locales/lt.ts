@@ -179,7 +179,7 @@ export const lt: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Svetainė nesukonfigūruota',
   siteNotConfiguredMessage:
-    'Šis API raktas nėra susietas su sukonfigūruota svetaine. Apsilankykite usethreadkit.com/dashboard, kad užbaigtumėte nustatymus.',
+    'Šis API raktas nėra susietas su sukonfigūruota svetaine. Apsilankykite usethreadkit.com/sites, kad užbaigtumėte nustatymus.',
   invalidApiKey: 'Neteisingas API raktas',
   invalidApiKeyMessage:
     'Pateiktas API raktas yra neteisingas arba buvo atšauktas. Patikrinkite savo informacijos suvestinę dėl teisingo rakto.',

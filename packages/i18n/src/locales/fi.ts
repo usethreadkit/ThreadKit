@@ -179,7 +179,7 @@ export const fi: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Sivustoa ei ole määritetty',
   siteNotConfiguredMessage:
-    'Tätä API-avainta ei ole liitetty määritettyyn sivustoon. Viimeistele asennus osoitteessa usethreadkit.com/dashboard.',
+    'Tätä API-avainta ei ole liitetty määritettyyn sivustoon. Viimeistele asennus osoitteessa usethreadkit.com/sites.',
   invalidApiKey: 'Virheellinen API-avain',
   invalidApiKeyMessage:
     'Annettu API-avain on virheellinen tai se on peruutettu. Tarkista oikea avain hallintapaneelistasi.',

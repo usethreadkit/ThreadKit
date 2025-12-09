@@ -178,7 +178,7 @@ export const nl: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Site niet geconfigureerd',
   siteNotConfiguredMessage:
-    'Deze API-sleutel is niet gekoppeld aan een geconfigureerde site. Bezoek usethreadkit.com/dashboard om de configuratie te voltooien.',
+    'Deze API-sleutel is niet gekoppeld aan een geconfigureerde site. Bezoek usethreadkit.com/sites om de configuratie te voltooien.',
   invalidApiKey: 'Ongeldige API-sleutel',
   invalidApiKeyMessage:
     'De opgegeven API-sleutel is ongeldig of is ingetrokken. Controleer je dashboard voor de juiste sleutel.',

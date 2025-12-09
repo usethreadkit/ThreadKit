@@ -182,7 +182,7 @@ export const sl: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Mesto ni konfigurirano',
   siteNotConfiguredMessage:
-    'Ta ključ API ni povezan s konfiguriranim mestom. Obiščite usethreadkit.com/dashboard, da dokončate namestitev.',
+    'Ta ključ API ni povezan s konfiguriranim mestom. Obiščite usethreadkit.com/sites, da dokončate namestitev.',
   invalidApiKey: 'Neveljaven ključ API',
   invalidApiKeyMessage:
     'Posredovani ključ API je neveljaven ali je bil preklican. Preverite nadzorno ploščo za pravi ključ.',

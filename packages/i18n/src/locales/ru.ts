@@ -178,7 +178,7 @@ export const ru: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Сайт не настроен',
   siteNotConfiguredMessage:
-    'Этот API-ключ не связан с настроенным сайтом. Посетите usethreadkit.com/dashboard для завершения настройки.',
+    'Этот API-ключ не связан с настроенным сайтом. Посетите usethreadkit.com/sites для завершения настройки.',
   invalidApiKey: 'Неверный API-ключ',
   invalidApiKeyMessage:
     'Предоставленный API-ключ недействителен или был отозван. Проверьте правильный ключ в панели управления.',

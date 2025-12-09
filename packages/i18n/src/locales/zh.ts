@@ -179,7 +179,7 @@ export const zh: TranslationStrings = {
   // Error pages
   siteNotConfigured: '网站未配置',
   siteNotConfiguredMessage:
-    '此API密钥未关联已配置的网站。请访问usethreadkit.com/dashboard完成设置。',
+    '此API密钥未关联已配置的网站。请访问usethreadkit.com/sites完成设置。',
   invalidApiKey: 'API密钥无效',
   invalidApiKeyMessage:
     '提供的API密钥无效或已被撤销。请在控制面板中查看正确的密钥。',

@@ -182,7 +182,7 @@ export const en: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Site not configured',
   siteNotConfiguredMessage:
-    'This API key is not associated with a configured site. Visit usethreadkit.com/dashboard to complete your setup.',
+    'This API key is not associated with a configured site. Visit usethreadkit.com/sites to complete your setup.',
   invalidApiKey: 'Invalid API key',
   invalidApiKeyMessage:
     'The API key provided is invalid or has been revoked. Check your dashboard for the correct key.',

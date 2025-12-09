@@ -182,7 +182,7 @@ export const de: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Seite nicht konfiguriert',
   siteNotConfiguredMessage:
-    'Dieser API-Schlüssel ist keiner konfigurierten Seite zugeordnet. Besuche usethreadkit.com/dashboard um die Einrichtung abzuschließen.',
+    'Dieser API-Schlüssel ist keiner konfigurierten Seite zugeordnet. Besuche usethreadkit.com/sites um die Einrichtung abzuschließen.',
   invalidApiKey: 'Ungültiger API-Schlüssel',
   invalidApiKeyMessage:
     'Der angegebene API-Schlüssel ist ungültig oder wurde widerrufen. Prüfe dein Dashboard für den korrekten Schlüssel.',

@@ -179,7 +179,7 @@ export const sk: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Stránka nie je nakonfigurovaná',
   siteNotConfiguredMessage:
-    'Tento API kľúč nie je spojený s nakonfigurovanou stránkou. Navštívte usethreadkit.com/dashboard pre dokončenie nastavenia.',
+    'Tento API kľúč nie je spojený s nakonfigurovanou stránkou. Navštívte usethreadkit.com/sites pre dokončenie nastavenia.',
   invalidApiKey: 'Neplatný API kľúč',
   invalidApiKeyMessage:
     'Poskytnutý API kľúč je neplatný alebo bol zrušený. Skontrolujte svoj dashboard pre správny kľúč.',

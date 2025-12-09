@@ -179,7 +179,7 @@ export const et: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Sait pole konfigureeritud',
   siteNotConfiguredMessage:
-    'See API-võti pole seotud konfigureeritud saidiga. Külastage usethreadkit.com/dashboard oma seadistuse lõpuleviimiseks.',
+    'See API-võti pole seotud konfigureeritud saidiga. Külastage usethreadkit.com/sites oma seadistuse lõpuleviimiseks.',
   invalidApiKey: 'Kehtetu API-võti',
   invalidApiKeyMessage:
     'Esitatud API-võti on kehtetu või see on tühistatud. Kontrollige oma armatuurlauda õige võtme saamiseks.',

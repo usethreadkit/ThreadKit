@@ -182,7 +182,7 @@ export const hu: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Az oldal nincs beállítva',
   siteNotConfiguredMessage:
-    'Ez az API kulcs nincs összerendelve egy beállított oldallal. Látogass el a usethreadkit.com/dashboard oldalra a beállítás befejezéséhez.',
+    'Ez az API kulcs nincs összerendelve egy beállított oldallal. Látogass el a usethreadkit.com/sites oldalra a beállítás befejezéséhez.',
   invalidApiKey: 'Érvénytelen API kulcs',
   invalidApiKeyMessage:
     'A megadott API kulcs érvénytelen vagy visszavonták. Ellenőrizd a vezérlőpulton a helyes kulcsot.',

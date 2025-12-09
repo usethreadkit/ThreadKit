@@ -180,7 +180,7 @@ failedToSendOtp: 'Không thể gửi OTP',
 // Error pages
 siteNotConfigured: 'Trang web chưa được cấu hình',
 siteNotConfiguredMessage:
-'Khóa API này không được liên kết với một trang web đã cấu hình. Truy cập usethreadkit.com/dashboard để hoàn tất thiết lập của bạn.',
+'Khóa API này không được liên kết với một trang web đã cấu hình. Truy cập usethreadkit.com/sites để hoàn tất thiết lập của bạn.',
 invalidApiKey: 'Khóa API không hợp lệ',
 invalidApiKeyMessage:
 'Khóa API được cung cấp không hợp lệ hoặc đã bị thu hồi. Kiểm tra bảng điều khiển của bạn để biết khóa chính xác.',

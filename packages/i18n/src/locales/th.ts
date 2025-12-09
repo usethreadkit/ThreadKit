@@ -179,7 +179,7 @@ export const th: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'ไซต์ไม่ได้รับการกำหนดค่า',
   siteNotConfiguredMessage:
-    'คีย์ API นี้ไม่ได้เชื่อมโยงกับไซต์ที่กำหนดค่าไว้ โปรดเยี่ยมชม usethreadkit.com/dashboard เพื่อดำเนินการตั้งค่าของคุณให้เสร็จสมบูรณ์',
+    'คีย์ API นี้ไม่ได้เชื่อมโยงกับไซต์ที่กำหนดค่าไว้ โปรดเยี่ยมชม usethreadkit.com/sites เพื่อดำเนินการตั้งค่าของคุณให้เสร็จสมบูรณ์',
   invalidApiKey: 'คีย์ API ไม่ถูกต้อง',
   invalidApiKeyMessage:
     'คีย์ API ที่ให้มาไม่ถูกต้องหรือถูกเพิกถอนแล้ว โปรดตรวจสอบแดชบอร์ดของคุณสำหรับคีย์ที่ถูกต้อง',

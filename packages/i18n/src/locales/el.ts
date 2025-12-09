@@ -179,7 +179,7 @@ export const el: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'Ο ιστότοπος δεν έχει ρυθμιστεί',
   siteNotConfiguredMessage:
-    'Αυτό το κλειδί API δεν σχετίζεται με έναν ρυθμισμένο ιστότοπο. Επισκεφθείτε το usethreadkit.com/dashboard για να ολοκληρώσετε τη ρύθμισή σας.',
+    'Αυτό το κλειδί API δεν σχετίζεται με έναν ρυθμισμένο ιστότοπο. Επισκεφθείτε το usethreadkit.com/sites για να ολοκληρώσετε τη ρύθμισή σας.',
   invalidApiKey: 'Μη έγκυρο κλειδί API',
   invalidApiKeyMessage:
     'Το κλειδί API που δόθηκε δεν είναι έγκυρο ή έχει ανακληθεί. Ελέγξτε τον πίνακα ελέγχου σας για το σωστό κλειδί.',

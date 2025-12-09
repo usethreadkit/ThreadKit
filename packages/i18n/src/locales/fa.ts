@@ -179,7 +179,7 @@ export const fa: TranslationStrings = {
   // Error pages
   siteNotConfigured: 'سایت پیکربندی نشده است',
   siteNotConfiguredMessage:
-    'این کلید API با یک سایت پیکربندی شده مرتبط نیست. برای تکمیل تنظیمات خود به usethreadkit.com/dashboard مراجعه کنید.',
+    'این کلید API با یک سایت پیکربندی شده مرتبط نیست. برای تکمیل تنظیمات خود به usethreadkit.com/sites مراجعه کنید.',
   invalidApiKey: 'کلید API نامعتبر',
   invalidApiKeyMessage:
     'کلید API ارائه شده نامعتبر است یا باطل شده است. برای کلید صحیح داشبورد خود را بررسی کنید.',
