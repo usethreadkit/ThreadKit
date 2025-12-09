@@ -173,6 +173,16 @@
   color: var(--threadkit-downvote);
 }
 
+/* Disabled vote buttons */
+.threadkit-root .threadkit-vote-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.threadkit-root .threadkit-vote-btn:disabled:hover {
+  color: var(--threadkit-border);
+}
+
 /* Content column */
 .threadkit-comment-content {
   flex: 1;
