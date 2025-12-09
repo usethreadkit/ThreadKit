@@ -65,6 +65,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   private plugins: AuthPluginCore[] = [];
   private oauthChannel: BroadcastChannel | null = null;
   private oauthWindowHandler: ((event: MessageEvent) => void) | null = null;
+  private authSyncChannel: BroadcastChannel | null = null;
 
   constructor(config: AuthManagerConfig) {
     super();
@@ -332,6 +333,12 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
         });
       }
       onUserChange?.(data.user);
+
+      // Broadcast login to other instances
+      if (this.authSyncChannel) {
+        this.log('[ThreadKit AuthManager] Broadcasting login after OTP verify');
+        this.authSyncChannel.postMessage({ type: 'threadkit:login' });
+      }
     } catch (err) {
       this.setState({
         step: this.state.isNewAccount ? 'otp-name' : 'otp-verify',
@@ -358,7 +365,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   /**
    * Handle successful plugin authentication
    */
-  handlePluginSuccess(token: string, refreshToken: string, user: AuthUser): void {
+  handlePluginSuccess(token: string, refreshToken: string, user: AuthUser, broadcast = true): void {
     const { storage, onUserChange } = this.config;
 
     storage.setToken(token);
@@ -382,6 +389,12 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       });
     }
     onUserChange?.(user);
+
+    // Broadcast login to other instances
+    if (broadcast && this.authSyncChannel) {
+      this.log('[ThreadKit AuthManager] Broadcasting login');
+      this.authSyncChannel.postMessage({ type: 'threadkit:login' });
+    }
   }
 
   /**
@@ -460,7 +473,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // ============================================================================
 
   /**
-   * Set up listeners for OAuth popup success messages.
+   * Set up listeners for OAuth popup success messages and auth sync across instances.
    * Uses BroadcastChannel (primary) and window.postMessage (fallback).
    * Call this when mounting your auth component.
    */
@@ -497,6 +510,25 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       this.log('[ThreadKit AuthManager] BroadcastChannel not supported');
     }
 
+    // Auth sync channel for logout/login sync across same-page instances
+    try {
+      this.authSyncChannel = new BroadcastChannel('threadkit-auth-sync');
+      this.authSyncChannel.addEventListener('message', (event: MessageEvent) => {
+        this.log('[ThreadKit AuthManager] Auth sync message received:', event.data);
+        if (event.data?.type === 'threadkit:logout') {
+          this.log('[ThreadKit AuthManager] Logout sync received');
+          // Perform local logout without broadcasting again
+          this.logoutLocal();
+        } else if (event.data?.type === 'threadkit:login') {
+          this.log('[ThreadKit AuthManager] Login sync received');
+          // Re-initialize to pick up the new tokens from storage
+          this.initialize();
+        }
+      });
+    } catch {
+      this.log('[ThreadKit AuthManager] BroadcastChannel not supported for auth sync');
+    }
+
     // Window postMessage listener (fallback for older browsers)
     this.oauthWindowHandler = (event: MessageEvent) => {
       this.log('[ThreadKit AuthManager] Window message received:', event.data);
@@ -509,7 +541,7 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   }
 
   /**
-   * Clean up OAuth listeners.
+   * Clean up OAuth listeners and auth sync channel.
    * Call this when unmounting your auth component.
    */
   destroyOAuthListener(): void {
@@ -518,6 +550,11 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     if (this.oauthChannel) {
       this.oauthChannel.close();
       this.oauthChannel = null;
+    }
+
+    if (this.authSyncChannel) {
+      this.authSyncChannel.close();
+      this.authSyncChannel = null;
     }
 
     if (this.oauthWindowHandler && typeof window !== 'undefined') {
@@ -531,9 +568,22 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // ============================================================================
 
   /**
-   * Log out the current user
+   * Log out the current user and broadcast to other instances
    */
   logout(): void {
+    this.logoutLocal();
+
+    // Broadcast logout to other instances
+    if (this.authSyncChannel) {
+      this.log('[ThreadKit AuthManager] Broadcasting logout');
+      this.authSyncChannel.postMessage({ type: 'threadkit:logout' });
+    }
+  }
+
+  /**
+   * Log out locally without broadcasting (used when receiving broadcast)
+   */
+  private logoutLocal(): void {
     const { storage, onUserChange } = this.config;
     storage.clear();
     this.setState({ ...initialState });
