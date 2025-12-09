@@ -9,7 +9,7 @@ import {
 
 export interface AuthStoreConfig {
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   /** Debug logging function (optional) */
   debug?: (...args: unknown[]) => void;
 }
@@ -38,7 +38,7 @@ export function createAuthStore(config: AuthStoreConfig): AuthStore {
   const storage = new BrowserTokenStorage();
   const core = new AuthManager({
     apiUrl: config.apiUrl,
-    apiKey: config.apiKey,
+    projectId: config.projectId,
     storage,
     debug: config.debug,
   });

@@ -12,7 +12,7 @@ export interface CommentsStoreConfig {
   siteId: string;
   url: string;
   apiUrl: string;
-  apiKey: string;
+  projectId: string;
   sortBy?: SortBy;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];

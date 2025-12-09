@@ -12,7 +12,7 @@
   interface Props {
     siteId: string;
     url: string;
-    apiKey?: string;
+    projectId?: string;
     apiUrl?: string;
     mode?: 'comments' | 'chat';
     theme?: 'light' | 'dark';
@@ -39,7 +39,7 @@
   let {
     siteId,
     url,
-    apiKey = '',
+    projectId = '',
     apiUrl = 'https://api.usethreadkit.com',
     mode = 'comments',
     theme = 'light',
@@ -100,7 +100,7 @@
       siteId,
       url,
       apiUrl,
-      apiKey,
+      projectId,
       sortBy: currentSort,
       initialComments,
     });
@@ -113,7 +113,7 @@
 
     authStore = createAuthStore({
       apiUrl,
-      apiKey,
+      projectId,
     });
 
     // Subscribe to comments store
