@@ -4,6 +4,7 @@ import type { UserProfile } from '../types';
 import { useTranslation } from '../i18n';
 import { Avatar } from './Avatar';
 import { GuestAwareUsername } from '../utils/username';
+import { SOCIAL_ICONS } from '../auth/icons';
 
 interface UserHoverCardProps {
   userId: string;
@@ -119,62 +120,41 @@ export function UserHoverCard({
               <div className="threadkit-hover-card-name">
                 <GuestAwareUsername userName={profile.name} t={t} />
               </div>
-              {profile.socialLinks && (
+              {profile.socialLinks && Object.values(profile.socialLinks).some(v => v) && (
                 <div className="threadkit-hover-card-social-links">
-                  {profile.socialLinks.twitter && (
-                    <a href={`https://twitter.com/${profile.socialLinks.twitter}`} target="_blank" rel="noopener noreferrer" title="Twitter">
-                      {/* Replace with actual Twitter SVG icon */}
-                      <span className="threadkit-social-icon">T</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.github && (
-                    <a href={`https://github.com/${profile.socialLinks.github}`} target="_blank" rel="noopener noreferrer" title="GitHub">
-                      {/* Replace with actual GitHub SVG icon */}
-                      <span className="threadkit-social-icon">G</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.facebook && (
-                    <a href={`https://facebook.com/${profile.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" title="Facebook">
-                      {/* Replace with actual Facebook SVG icon */}
-                      <span className="threadkit-social-icon">F</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.whatsapp && (
-                    <a href={`https://wa.me/${profile.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer" title="WhatsApp">
-                      {/* Replace with actual WhatsApp SVG icon */}
-                      <span className="threadkit-social-icon">W</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.telegram && (
-                    <a href={`https://t.me/${profile.socialLinks.telegram}`} target="_blank" rel="noopener noreferrer" title="Telegram">
-                      {/* Replace with actual Telegram SVG icon */}
-                      <span className="threadkit-social-icon">Te</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.instagram && (
-                    <a href={`https://instagram.com/${profile.socialLinks.instagram}`} target="_blank" rel="noopener noreferrer" title="Instagram">
-                      {/* Replace with actual Instagram SVG icon */}
-                      <span className="threadkit-social-icon">I</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.tiktok && (
-                    <a href={`https://tiktok.com/@${profile.socialLinks.tiktok}`} target="_blank" rel="noopener noreferrer" title="TikTok">
-                      {/* Replace with actual TikTok SVG icon */}
-                      <span className="threadkit-social-icon">Tk</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.snapchat && (
-                    <a href={`https://snapchat.com/add/${profile.socialLinks.snapchat}`} target="_blank" rel="noopener noreferrer" title="Snapchat">
-                      {/* Replace with actual Snapchat SVG icon */}
-                      <span className="threadkit-social-icon">S</span>
-                    </a>
-                  )}
-                  {profile.socialLinks.discord && (
-                    <a href={`https://discordapp.com/users/${profile.socialLinks.discord}`} target="_blank" rel="noopener noreferrer" title="Discord">
-                      {/* Replace with actual Discord SVG icon */}
-                      <span className="threadkit-social-icon">D</span>
-                    </a>
-                  )}
+                  {Object.entries(profile.socialLinks).map(([platform, handle]) => {
+                    if (!handle) return null;
+                    const Icon = SOCIAL_ICONS[platform];
+                    if (!Icon) return null;
+
+                    const urlMap: Record<string, string> = {
+                      twitter: `https://twitter.com/${handle}`,
+                      github: `https://github.com/${handle}`,
+                      facebook: `https://facebook.com/${handle}`,
+                      whatsapp: `https://wa.me/${handle}`,
+                      telegram: `https://t.me/${handle}`,
+                      instagram: `https://instagram.com/${handle}`,
+                      tiktok: `https://tiktok.com/@${handle}`,
+                      snapchat: `https://snapchat.com/add/${handle}`,
+                      discord: `https://discordapp.com/users/${handle}`,
+                    };
+
+                    const url = urlMap[platform];
+                    const title = platform.charAt(0).toUpperCase() + platform.slice(1);
+
+                    return (
+                      <a
+                        key={platform}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={title}
+                        className="threadkit-social-link"
+                      >
+                        <Icon className="threadkit-social-icon" />
+                      </a>
+                    );
+                  })}
                 </div>
               )}
               <div className="threadkit-hover-card-stats">

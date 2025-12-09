@@ -61,7 +61,7 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
         // OAuth routes are at root level (not under /v1)
         const baseUrl = apiUrl.replace(/\/v1\/?$/, '');
         oauthWindowRef.current = window.open(
-          `${baseUrl}/auth/${method.id}?api_key=${encodeURIComponent(projectId)}`,
+          `${baseUrl}/auth/${method.id}?project_id=${encodeURIComponent(projectId)}`,
           'threadkit-oauth',
           `width=${width},height=${height},left=${left},top=${top}`
         );

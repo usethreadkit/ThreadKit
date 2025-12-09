@@ -3,6 +3,7 @@ import type { User, SocialLinks } from '../types';
 import { useTranslation } from '../i18n';
 import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
 import { Avatar } from './Avatar';
+import { GuestAwareUsername } from '../utils/username';
 
 interface BlockedUser {
   id: string;
@@ -324,7 +325,7 @@ export function SettingsPanel({
                     </div>
                   ) : (
                     <span className="threadkit-settings-username">
-                      {currentUser.name}
+                      <GuestAwareUsername userName={currentUser.name} t={t} />
                       <button
                         className="threadkit-settings-edit-btn"
                         onClick={() => {
@@ -370,7 +371,9 @@ export function SettingsPanel({
                     ) : (
                       blockedUsers.map((user) => (
                         <div key={user.id} className="threadkit-blocked-user">
-                          <span>{user.name}</span>
+                          <span>
+                            <GuestAwareUsername userName={user.name} t={t} />
+                          </span>
                           <button
                             className="threadkit-action-btn"
                             onClick={() => onUnblock(user.id)}

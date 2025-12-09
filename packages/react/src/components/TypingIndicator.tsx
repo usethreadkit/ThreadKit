@@ -1,5 +1,6 @@
 import type { TypingUser } from '@threadkit/core';
 import { useTranslation } from '../i18n';
+import { formatUsername } from '../utils/username';
 
 interface TypingIndicatorProps {
   /** Users currently typing for this context */
@@ -18,7 +19,7 @@ export function TypingIndicator({ typingUsers }: TypingIndicatorProps) {
   }
 
   // Show the first typing user's name
-  const firstName = typingUsers[0].userName;
+  const firstName = formatUsername(typingUsers[0].userName, t);
   const text = t('isTyping').replace('{name}', firstName);
 
   return (

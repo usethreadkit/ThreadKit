@@ -285,7 +285,7 @@ describe('LoginModal', () => {
     await userEvent.click(screen.getByText('Continue with Google'));
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'http://test.com/auth/google?api_key=test-key',
+      'http://test.com/auth/google?project_id=test-key',
       'threadkit-oauth',
       expect.stringContaining('width=500')
     );
