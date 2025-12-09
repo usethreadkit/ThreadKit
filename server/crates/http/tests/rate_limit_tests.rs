@@ -4,17 +4,17 @@ use axum::http::{HeaderName, HeaderValue, StatusCode};
 use common::TestContext;
 use serde_json::json;
 
-fn api_key_header(api_key: &str) -> (HeaderName, HeaderValue) {
+fn project_id_header(project_id: &str) -> (HeaderName, HeaderValue) {
     (
-        HeaderName::from_static("x-api-key"),
-        HeaderValue::from_str(api_key).unwrap(),
+        HeaderName::from_static("projectid"),
+        HeaderValue::from_str(project_id).unwrap(),
     )
 }
 
 #[tokio::test]
 async fn test_rate_limit_headers_present() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -35,7 +35,7 @@ async fn test_rate_limit_headers_present() {
 #[tokio::test]
 async fn test_rate_limit_decrements() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // First request
     let response = ctx
@@ -77,7 +77,7 @@ async fn test_rate_limit_decrements() {
 #[tokio::test]
 async fn test_auth_rate_limit_stricter() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Auth route should have stricter limits
     let response = ctx
@@ -177,7 +177,7 @@ async fn test_rate_limit_exceeded() {
 #[tokio::test]
 async fn test_read_limit_higher_than_write() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Get read limit
     let response = ctx
@@ -224,7 +224,7 @@ async fn test_read_limit_higher_than_write() {
 #[tokio::test]
 async fn test_rate_limit_response_body() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Exhaust auth rate limit (10 attempts per hour)
     for _ in 0..11 {

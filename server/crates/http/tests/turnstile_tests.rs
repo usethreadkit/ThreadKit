@@ -4,10 +4,10 @@ use axum::http::{HeaderName, HeaderValue, StatusCode};
 use common::TestContext;
 use serde_json::json;
 
-fn api_key_header(api_key: &str) -> (HeaderName, HeaderValue) {
+fn project_id_header(project_id: &str) -> (HeaderName, HeaderValue) {
     (
-        HeaderName::from_static("x-api-key"),
-        HeaderValue::from_str(api_key).unwrap(),
+        HeaderName::from_static("projectid"),
+        HeaderValue::from_str(project_id).unwrap(),
     )
 }
 
@@ -48,7 +48,7 @@ async fn test_turnstile_disabled_by_default() {
 async fn test_turnstile_config_endpoint() {
     let ctx = TestContext::new().await;
 
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let response = ctx
         .server
         .get("/v1/turnstile/config")
@@ -105,7 +105,7 @@ async fn test_turnstile_challenge_page_returns_html() {
 async fn test_turnstile_verify_requires_secret_key() {
     let ctx = TestContext::new().await;
 
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let response = ctx
         .server
         .post("/v1/turnstile/verify")

@@ -16,7 +16,7 @@ use threadkit_http::{middleware::rate_limit, routes, state::AppState};
 
 pub struct TestContext {
     pub server: TestServer,
-    pub api_key: String,
+    pub project_id: String,
     pub secret_key: String,
     pub site_id: Uuid,
     #[allow(dead_code)]
@@ -40,7 +40,7 @@ impl TestContext {
 
         // Create config
         let site_id = Uuid::now_v7();
-        let api_key = format!(
+        let project_id = format!(
             "tk_pub_{}",
             Uuid::now_v7().to_string().replace('-', "")[..32].to_lowercase()
         );
@@ -59,8 +59,8 @@ impl TestContext {
             id: site_id,
             name: "Test Site".to_string(), // Matches site_name in Config
             domain: "localhost".to_string(), // Matches site_domain in Config
-            api_key_public: api_key.clone(),
-            api_key_secret: secret_key.clone(),
+            project_id_public: project_id.clone(),
+            project_id_secret: secret_key.clone(),
             settings: Default::default(),
         };
         redis_client
@@ -78,8 +78,8 @@ impl TestContext {
             jwt_expiry_hours: 24,
             mode: threadkit_common::config::Mode::Standalone(StandaloneConfig {
                 site_id,
-                api_key_public: api_key.clone(),
-                api_key_secret: secret_key.clone(),
+                project_id_public: project_id.clone(),
+                project_id_secret: secret_key.clone(),
                 site_name: "Test Site".to_string(),
                 site_domain: "localhost".to_string(),
                 moderation_mode: ModerationMode::None,
@@ -90,8 +90,8 @@ impl TestContext {
                 enabled: true,
                 ip_writes_per_minute: 5,
                 ip_reads_per_minute: 30,
-                api_key_writes_per_minute: 100,
-                api_key_reads_per_minute: 500,
+                project_id_writes_per_minute: 100,
+                project_id_reads_per_minute: 500,
                 user_writes_per_minute: 5,
                 user_reads_per_minute: 30,
                 auth_attempts_per_hour: 10,
@@ -125,17 +125,17 @@ impl TestContext {
 
         Self {
             server,
-            api_key,
+            project_id,
             secret_key,
             site_id,
             container,
         }
     }
 
-    fn api_key_header(&self) -> (HeaderName, HeaderValue) {
+    fn project_id_header(&self) -> (HeaderName, HeaderValue) {
         (
-            HeaderName::from_static("x-api-key"),
-            HeaderValue::from_str(&self.api_key).unwrap(),
+            HeaderName::from_static("projectid"),
+            HeaderValue::from_str(&self.project_id).unwrap(),
         )
     }
 
@@ -148,7 +148,7 @@ impl TestContext {
 
     /// Register a new user and return auth response
     pub async fn register_user(&self, name: &str, email: &str, password: &str) -> serde_json::Value {
-        let (key_name, key_value) = self.api_key_header();
+        let (key_name, key_value) = self.project_id_header();
         let response = self
             .server
             .post("/v1/auth/register")
@@ -166,7 +166,7 @@ impl TestContext {
     /// Login and return auth response
     #[allow(dead_code)]
     pub async fn login(&self, email: &str, password: &str) -> serde_json::Value {
-        let (key_name, key_value) = self.api_key_header();
+        let (key_name, key_value) = self.project_id_header();
         let response = self
             .server
             .post("/v1/auth/login")
@@ -196,7 +196,7 @@ impl TestContext {
             payload["parent_id"] = json!(pid);
         }
 
-        let (key_name, key_value) = self.api_key_header();
+        let (key_name, key_value) = self.project_id_header();
         let (auth_name, auth_value) = Self::auth_header(token);
 
         self.server

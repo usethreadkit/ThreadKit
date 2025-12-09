@@ -4,10 +4,10 @@ use axum::http::{HeaderName, HeaderValue, StatusCode};
 use common::TestContext;
 use serde_json::json;
 
-fn api_key_header(api_key: &str) -> (HeaderName, HeaderValue) {
+fn project_id_header(project_id: &str) -> (HeaderName, HeaderValue) {
     (
-        HeaderName::from_static("x-api-key"),
-        HeaderValue::from_str(api_key).unwrap(),
+        HeaderName::from_static("projectid"),
+        HeaderValue::from_str(project_id).unwrap(),
     )
 }
 
@@ -60,7 +60,7 @@ async fn test_create_reply() {
     let parent_id = parent["comment"]["i"].as_str().unwrap();
 
     // Create reply
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token);
     let response = ctx
         .server
@@ -102,7 +102,7 @@ async fn test_get_comments() {
     }
 
     // Get comments
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let response = ctx
         .server
         .get("/v1/comments")
@@ -136,7 +136,7 @@ async fn test_update_comment() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Update comment - requires page_url and path
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token);
     let response = ctx
         .server
@@ -183,7 +183,7 @@ async fn test_update_comment_not_owner() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Try to update as second user
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token2);
     let response = ctx
         .server
@@ -219,7 +219,7 @@ async fn test_delete_comment() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Delete comment - delete endpoint accepts JSON body with page_url and path
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token);
     let response = ctx
         .server
@@ -235,7 +235,7 @@ async fn test_delete_comment() {
     response.assert_status(StatusCode::NO_CONTENT);
 
     // Verify comment is not visible
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let response = ctx
         .server
         .get("/v1/comments")
@@ -271,7 +271,7 @@ async fn test_vote_comment() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Upvote as second user
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token2);
     let response = ctx
         .server
@@ -316,7 +316,7 @@ async fn test_vote_toggle() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Upvote
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token2);
     let response = ctx
         .server
@@ -365,7 +365,7 @@ async fn test_report_comment() {
     let comment_id = comment["comment"]["i"].as_str().unwrap();
 
     // Report comment
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(token2);
     let response = ctx
         .server
@@ -388,7 +388,7 @@ async fn test_create_comment_requires_auth() {
     let ctx = TestContext::new().await;
 
     // Try to create comment without auth
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
     let response = ctx
         .server
         .post("/v1/comments")

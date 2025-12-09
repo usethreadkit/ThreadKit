@@ -4,10 +4,10 @@ use axum::http::{HeaderName, HeaderValue, StatusCode};
 use common::TestContext;
 use serde_json::json;
 
-fn api_key_header(api_key: &str) -> (HeaderName, HeaderValue) {
+fn project_id_header(project_id: &str) -> (HeaderName, HeaderValue) {
     (
-        HeaderName::from_static("x-api-key"),
-        HeaderValue::from_str(api_key).unwrap(),
+        HeaderName::from_static("projectid"),
+        HeaderValue::from_str(project_id).unwrap(),
     )
 }
 
@@ -21,7 +21,7 @@ fn auth_header(token: &str) -> (HeaderName, HeaderValue) {
 #[tokio::test]
 async fn test_register_with_email() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -46,7 +46,7 @@ async fn test_register_with_email() {
 #[tokio::test]
 async fn test_register_requires_email_or_phone() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -64,7 +64,7 @@ async fn test_register_requires_email_or_phone() {
 #[tokio::test]
 async fn test_register_duplicate_email() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // First registration
     let response = ctx
@@ -96,7 +96,7 @@ async fn test_register_duplicate_email() {
 #[tokio::test]
 async fn test_register_duplicate_username() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // First registration
     let response = ctx
@@ -128,7 +128,7 @@ async fn test_register_duplicate_username() {
 #[tokio::test]
 async fn test_login_success() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Register first
     ctx.register_user("loginuser", "login@example.com", "password123")
@@ -154,7 +154,7 @@ async fn test_login_success() {
 #[tokio::test]
 async fn test_login_wrong_password() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Register first
     ctx.register_user("wrongpassuser", "wrongpass@example.com", "correctpassword")
@@ -177,7 +177,7 @@ async fn test_login_wrong_password() {
 #[tokio::test]
 async fn test_login_nonexistent_user() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -195,7 +195,7 @@ async fn test_login_nonexistent_user() {
 #[tokio::test]
 async fn test_refresh_token() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Register and get refresh token
     let auth = ctx
@@ -223,7 +223,7 @@ async fn test_refresh_token() {
 #[tokio::test]
 async fn test_refresh_token_invalid() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -240,7 +240,7 @@ async fn test_refresh_token_invalid() {
 #[tokio::test]
 async fn test_logout() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Register and get token
     let auth = ctx
@@ -264,7 +264,7 @@ async fn test_logout() {
 #[tokio::test]
 async fn test_forgot_password() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Register first
     ctx.register_user("forgotuser", "forgot@example.com", "password123")
@@ -285,7 +285,7 @@ async fn test_forgot_password() {
 }
 
 #[tokio::test]
-async fn test_requires_api_key() {
+async fn test_requires_project_id() {
     let ctx = TestContext::new().await;
 
     // Try to register without API key
@@ -309,7 +309,7 @@ async fn test_requires_api_key() {
 #[tokio::test]
 async fn test_auth_methods_returns_available_methods() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -331,7 +331,7 @@ async fn test_auth_methods_returns_available_methods() {
 }
 
 #[tokio::test]
-async fn test_auth_methods_requires_api_key() {
+async fn test_auth_methods_requires_project_id() {
     let ctx = TestContext::new().await;
 
     let response = ctx
@@ -349,7 +349,7 @@ async fn test_auth_methods_requires_api_key() {
 #[tokio::test]
 async fn test_send_otp_email() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -367,7 +367,7 @@ async fn test_send_otp_email() {
 #[tokio::test]
 async fn test_send_otp_phone() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -385,7 +385,7 @@ async fn test_send_otp_phone() {
 #[tokio::test]
 async fn test_send_otp_requires_email_or_phone() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     let response = ctx
         .server
@@ -400,7 +400,7 @@ async fn test_send_otp_requires_email_or_phone() {
 #[tokio::test]
 async fn test_verify_otp_invalid_code() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // First send OTP to store a code
     ctx.server
@@ -428,7 +428,7 @@ async fn test_verify_otp_invalid_code() {
 #[tokio::test]
 async fn test_verify_otp_no_code_sent() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Try to verify without sending OTP first
     let response = ctx
@@ -449,7 +449,7 @@ async fn test_verify_otp_no_code_sent() {
 #[tokio::test]
 async fn test_verify_otp_requires_name_for_new_account() {
     let ctx = TestContext::new().await;
-    let (key_name, key_value) = api_key_header(&ctx.api_key);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
 
     // Send OTP
     ctx.server
@@ -477,7 +477,7 @@ async fn test_verify_otp_requires_name_for_new_account() {
 }
 
 #[tokio::test]
-async fn test_send_otp_requires_api_key() {
+async fn test_send_otp_requires_project_id() {
     let ctx = TestContext::new().await;
 
     let response = ctx
@@ -492,7 +492,7 @@ async fn test_send_otp_requires_api_key() {
 }
 
 #[tokio::test]
-async fn test_verify_otp_requires_api_key() {
+async fn test_verify_otp_requires_project_id() {
     let ctx = TestContext::new().await;
 
     let response = ctx
