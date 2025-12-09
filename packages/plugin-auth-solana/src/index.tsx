@@ -129,7 +129,7 @@ async function fetchNonce(
   const res = await fetch(
     `${apiUrl}/auth/solana/nonce?address=${encodeURIComponent(address)}`,
     {
-      headers: { 'X-API-Key': apiKey },
+      headers: { 'projectid': apiKey },
     }
   );
   if (!res.ok) {
@@ -150,7 +150,7 @@ async function verifySignature(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'projectid': apiKey,
     },
     body: JSON.stringify({ address, message, signature }),
   });
