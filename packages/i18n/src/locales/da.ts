@@ -110,8 +110,12 @@ export const da: TranslationStrings = {
   usernameTaken: 'Optaget',
   usernameAvailable: 'Tilgængelig',
   checking: 'Kontrollerer...',
+  chooseUsername: 'Vælg et brugernavn',
+  usernamePlaceholder: 'dit-brugernavn',
+  usernameHint: 'Kun bogstaver, tal, bindestreger og underscores (2-24 tegn)',
 
   // Auth - general
+  signInToVote: 'Log ind for at stemme',
   signInToPost: 'Log ind for at skrive',
   signInLabel: 'Log ind:',
   continueWith: 'Fortsæt med',
@@ -143,6 +147,12 @@ export const da: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Forbinder til',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Gæst',
+  continueAsGuest: 'Fortsæt som gæst',
+  guest: 'Gæst',
+  anonymous: 'Anonym',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const da: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Drevet af ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Indlæs nye kommentarer',
+  loadNewReplies: 'Indlæs nye svar',
+  isTyping: 'skriver...',
 };

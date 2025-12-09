@@ -115,6 +115,7 @@ export const ca: TranslationStrings = {
   usernameHint: 'Només lletres, números, guions i guions baixos (2-24 caràcters)', 
 
   // Auth - general
+  signInToVote: 'Inicieu sessió per votar',
   signInToPost: 'Inicia sessió per publicar',
   signInLabel: 'Inicia sessió:',
   continueWith: 'Continua amb',
@@ -146,6 +147,12 @@ export const ca: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Connectant a',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Convidat',
+  continueAsGuest: 'Continua com a convidat',
+  guest: 'Convidat',
+  anonymous: 'Anònim',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const ca: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Desenvolupat per ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Carrega nous comentaris',
+  loadNewReplies: 'Carrega noves respostes',
+  isTyping: 'està escrivint...',
 };

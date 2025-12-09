@@ -110,8 +110,12 @@ export const et: TranslationStrings = {
   usernameTaken: 'Võetud',
   usernameAvailable: 'Saadaval',
   checking: 'Kontrollimine...',
+  chooseUsername: 'Valige kasutajanimi',
+  usernamePlaceholder: 'teie-kasutajanimi',
+  usernameHint: 'Ainult tähed, numbrid, sidekriipsud ja alakriipsud (2-24 tähemärki)',
 
   // Auth - general
+  signInToVote: 'Hääletamiseks logi sisse',
   signInToPost: 'Logi sisse postitamiseks',
   signInLabel: 'Logi sisse:',
   continueWith: 'Jätka:',
@@ -143,6 +147,12 @@ export const et: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Ühendamine',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Külaline',
+  continueAsGuest: 'Jätka külalisena',
+  guest: 'Külaline',
+  anonymous: 'Anonüümne',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const et: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Laadi uued kommentaarid',
+  loadNewReplies: 'Laadi uued vastused',
+  isTyping: 'kirjutab...',
 };

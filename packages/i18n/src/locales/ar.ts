@@ -115,6 +115,7 @@ export const ar: TranslationStrings = {
   usernameHint: 'الأحرف والأرقام والواصلات والشرطات السفلية فقط (2-24 حرفًا)',
 
   // Auth - general
+  signInToVote: 'سجل الدخول للتصويت',
   signInToPost: 'سجل الدخول للنشر',
   signInLabel: 'تسجيل الدخول:',
   continueWith: 'متابعة باستخدام',
@@ -146,6 +147,12 @@ export const ar: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'جار الاتصال بـ',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'ضيف',
+  continueAsGuest: 'المتابعة كضيف',
+  guest: 'ضيف',
+  anonymous: 'مجهول',
 
   // User profile
   karma: 'كارما',
@@ -193,4 +200,9 @@ export const ar: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'مشغل بواسطة ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'تحميل التعليقات الجديدة',
+  loadNewReplies: 'تحميل الردود الجديدة',
+  isTyping: 'يكتب...',
 };

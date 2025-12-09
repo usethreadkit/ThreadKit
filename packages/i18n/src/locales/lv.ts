@@ -110,8 +110,12 @@ export const lv: TranslationStrings = {
   usernameTaken: 'Aizņemts',
   usernameAvailable: 'Pieejams',
   checking: 'Pārbaude...',
+  chooseUsername: 'Izvēlieties lietotājvārdu',
+  usernamePlaceholder: 'jusu-vards',
+  usernameHint: 'Tikai burti, cipari, defises un pasvītrojumi (2-24 rakstzīmes)',
 
   // Auth - general
+  signInToVote: 'Piesakieties, lai balsotu',
   signInToPost: 'Pieslēgties, lai publicētu',
   signInLabel: 'Pieslēgties:',
   continueWith: 'Turpināt ar',
@@ -143,6 +147,12 @@ export const lv: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Pieslēdzas pie',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Viesis',
+  continueAsGuest: 'Turpināt kā viesis',
+  guest: 'Viesis',
+  anonymous: 'Anonīms',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const lv: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Darbojas ar ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Ielādēt jaunus komentārus',
+  loadNewReplies: 'Ielādēt jaunas atbildes',
+  isTyping: 'raksta...',
 };

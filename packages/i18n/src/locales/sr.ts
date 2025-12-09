@@ -115,6 +115,7 @@ export const sr: TranslationStrings = {
   usernameHint: 'Само слова, бројеви, цртице, доње црте (2-24 знака)',
 
   // Auth - general
+  signInToVote: 'Пријавите се да гласате',
   signInToPost: 'Prijavi se za objavu',
   signInLabel: 'Prijavi se:',
   continueWith: 'Nastavi sa',
@@ -146,6 +147,12 @@ export const sr: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Povezivanje sa',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Гост',
+  continueAsGuest: 'Настави као гост',
+  guest: 'Гост',
+  anonymous: 'Анониман',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const sr: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Pokreće ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Учитај нове коментаре',
+  loadNewReplies: 'Учитај нове одговоре',
+  isTyping: 'куца...',
 };

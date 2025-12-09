@@ -110,8 +110,12 @@ export const my: TranslationStrings = {
   usernameTaken: 'အသုံးပြုပြီး',
   usernameAvailable: 'ရနိုင်သည်',
   checking: 'စစ်ဆေးနေသည်...',
+  chooseUsername: 'အသုံးပြုသူအမည် ရွေးချယ်ပါ',
+  usernamePlaceholder: 'သင့်-အမည်',
+  usernameHint: 'စာလုံး၊ ဂဏန်း၊ ခေါင်းစဉ်၊ အောက်မျဉ်းသာ (2-24 စာလုံး)',
 
   // Auth - general
+  signInToVote: 'မဲပေးရန် လော့ဂ်အင်ဝင်ပါ',
   signInToPost: 'Post တင်ရန် ဝင်ပါ',
   signInLabel: 'ဝင်ရန်:',
   continueWith: 'ဆက်လုပ်မည်',
@@ -143,6 +147,12 @@ export const my: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'ချိတ်ဆက်နေသည်',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'ဧည့်သည်',
+  continueAsGuest: 'ဧည့်သည်အဖြစ် ဆက်လုပ်ပါ',
+  guest: 'ဧည့်သည်',
+  anonymous: 'အမည်ဝှက်',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const my: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'မှတ်ချက်အသစ်များ ဖွင့်ပါ',
+  loadNewReplies: 'အကြောင်းပြန်အသစ်များ ဖွင့်ပါ',
+  isTyping: 'ရိုက်နေသည်...',
 };

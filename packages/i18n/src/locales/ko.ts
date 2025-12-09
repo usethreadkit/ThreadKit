@@ -110,8 +110,12 @@ export const ko: TranslationStrings = {
   usernameTaken: '사용 중',
   usernameAvailable: '사용 가능',
   checking: '확인 중...',
+  chooseUsername: '사용자 이름 선택',
+  usernamePlaceholder: '사용자-이름',
+  usernameHint: '문자, 숫자, 하이픈, 밑줄만 사용 가능 (2-24자)',
 
   // Auth - general
+  signInToVote: '투표하려면 로그인',
   signInToPost: '로그인하여 게시',
   signInLabel: '로그인:',
   continueWith: '계속',
@@ -143,6 +147,12 @@ export const ko: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: '연결 중',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: '게스트',
+  continueAsGuest: '게스트로 계속',
+  guest: '게스트',
+  anonymous: '익명',
 
   // User profile
   karma: '카르마',
@@ -190,4 +200,9 @@ export const ko: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: '새 댓글 불러오기',
+  loadNewReplies: '새 답글 불러오기',
+  isTyping: '입력 중...',
 };

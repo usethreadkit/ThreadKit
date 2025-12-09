@@ -110,8 +110,12 @@ export const cs: TranslationStrings = {
   usernameTaken: 'Zabrané',
   usernameAvailable: 'Dostupné',
   checking: 'Kontroluji...',
+  chooseUsername: 'Vyberte uživatelské jméno',
+  usernamePlaceholder: 'vase-jmeno',
+  usernameHint: 'Pouze písmena, čísla, pomlčky a podtržítka (2-24 znaků)',
 
   // Auth - general
+  signInToVote: 'Přihlaste se pro hlasování',
   signInToPost: 'Přihlaste se pro odeslání příspěvku',
   signInLabel: 'Přihlásit se:',
   continueWith: 'Pokračovat s',
@@ -143,6 +147,12 @@ export const cs: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Připojování k',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Host',
+  continueAsGuest: 'Pokračovat jako host',
+  guest: 'Host',
+  anonymous: 'Anonymní',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const cs: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Poháněno ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Načíst nové komentáře',
+  loadNewReplies: 'Načíst nové odpovědi',
+  isTyping: 'píše...',
 };

@@ -110,7 +110,12 @@ export const nl: TranslationStrings = {
   usernameTaken: 'Bezet',
   usernameAvailable: 'Beschikbaar',
   checking: 'Controleren...',
+  chooseUsername: 'Kies een gebruikersnaam',
+  usernamePlaceholder: 'jouw-naam',
+  usernameHint: 'Alleen letters, cijfers, koppeltekens en underscores (2-24 tekens)',
+
   // Auth - general
+  signInToVote: 'Meld je aan om te stemmen',
   signInToPost: 'Log in om te plaatsen',
   signInLabel: 'Inloggen:',
   continueWith: 'Doorgaan met',
@@ -142,6 +147,12 @@ export const nl: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Verbinden met',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Gast',
+  continueAsGuest: 'Doorgaan als gast',
+  guest: 'Gast',
+  anonymous: 'Anoniem',
 
   // User profile
   karma: 'Karma',
@@ -189,4 +200,9 @@ export const nl: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Laad nieuwe reacties',
+  loadNewReplies: 'Laad nieuwe antwoorden',
+  isTyping: 'typt...',
 };

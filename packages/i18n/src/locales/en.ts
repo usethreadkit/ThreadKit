@@ -115,6 +115,7 @@ export const en: TranslationStrings = {
   usernameHint: 'Letters, numbers, hyphens, underscores only (2-24 chars)',
 
   // Auth - general
+  signInToVote: 'Sign in to vote',
   signInToPost: 'Sign in to post',
   signInLabel: 'Sign in:',
   continueWith: 'Continue with',
@@ -146,6 +147,12 @@ export const en: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Connecting to',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Guest',
+  continueAsGuest: 'Continue as guest',
+  guest: 'Guest',
+  anonymous: 'Anonymous',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const en: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Load new comments',
+  loadNewReplies: 'Load new replies',
+  isTyping: 'is typing...',
 };

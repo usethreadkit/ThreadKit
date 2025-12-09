@@ -110,7 +110,12 @@ export const fr: TranslationStrings = {
   usernameTaken: 'Pris',
   usernameAvailable: 'Disponible',
   checking: 'Vérification...',
+  chooseUsername: "Choisissez un nom d'utilisateur",
+  usernamePlaceholder: 'votre-nom',
+  usernameHint: 'Lettres, chiffres, tirets et underscores uniquement (2-24 caractères)',
+
   // Auth - general
+  signInToVote: 'Connectez-vous pour voter',
   signInToPost: 'Connectez-vous pour publier',
   signInLabel: 'Connexion :',
   continueWith: 'Continuer avec',
@@ -142,6 +147,12 @@ export const fr: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Connexion à',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Invité',
+  continueAsGuest: "Continuer en tant qu'invité",
+  guest: 'Invité',
+  anonymous: 'Anonyme',
 
   // User profile
   karma: 'Karma',
@@ -189,4 +200,9 @@ export const fr: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Propulsé par ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Charger les nouveaux commentaires',
+  loadNewReplies: 'Charger les nouvelles réponses',
+  isTyping: "est en train d'écrire...",
 };

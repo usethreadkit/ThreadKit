@@ -110,8 +110,12 @@ export const he: TranslationStrings = {
   usernameTaken: 'תפוס',
   usernameAvailable: 'פנוי',
   checking: 'בדיקה...',
+  chooseUsername: 'בחר שם משתמש',
+  usernamePlaceholder: 'שם-משתמש',
+  usernameHint: 'אותיות, מספרים, מקפים וקו תחתון בלבד (2-24 תווים)',
 
   // Auth - general
+  signInToVote: 'התחבר כדי להצביע',
   signInToPost: 'התחבר כדי לפרסם',
   signInLabel: 'התחבר:',
   continueWith: 'המשך עם',
@@ -143,6 +147,12 @@ export const he: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'מתחבר אל',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'אורח',
+  continueAsGuest: 'המשך כאורח',
+  guest: 'אורח',
+  anonymous: 'אנונימי',
 
   // User profile
   karma: 'קארמה',
@@ -190,4 +200,9 @@ export const he: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'מופעל על ידי ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'טען תגובות חדשות',
+  loadNewReplies: 'טען תשובות חדשות',
+  isTyping: 'כותב...',
 };

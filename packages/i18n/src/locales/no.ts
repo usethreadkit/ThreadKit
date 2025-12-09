@@ -115,6 +115,7 @@ export const no: TranslationStrings = {
   usernameHint: 'Kun bokstaver, tall, bindestreker, understreker (2-24 tegn)',
 
   // Auth - general
+  signInToVote: 'Logg inn for å stemme',
   signInToPost: 'Logg inn for å publisere',
   signInLabel: 'Logg inn:',
   continueWith: 'Fortsett med',
@@ -146,6 +147,12 @@ export const no: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Kobler til',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Gjest',
+  continueAsGuest: 'Fortsett som gjest',
+  guest: 'Gjest',
+  anonymous: 'Anonym',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const no: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Drevet av ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Last inn nye kommentarer',
+  loadNewReplies: 'Last inn nye svar',
+  isTyping: 'skriver...',
 };

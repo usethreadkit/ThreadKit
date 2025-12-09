@@ -115,6 +115,7 @@ export const ja: TranslationStrings = {
   usernameHint: '文字、数字、ハイフン、アンダースコアのみ (2-24文字)',
 
   // Auth - general
+  signInToVote: '投票するにはログイン',
   signInToPost: 'ログインして投稿',
   signInLabel: 'ログイン:',
   continueWith: 'で続ける',
@@ -146,6 +147,12 @@ export const ja: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'に接続中',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'ゲスト',
+  continueAsGuest: 'ゲストとして続ける',
+  guest: 'ゲスト',
+  anonymous: '匿名',
 
   // User profile
   karma: 'カルマ',
@@ -193,4 +200,9 @@ export const ja: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Powered by ThreadKit',
+
+  // Real-time updates
+  loadNewComments: '新しいコメントを読み込む',
+  loadNewReplies: '新しい返信を読み込む',
+  isTyping: '入力中...',
 };

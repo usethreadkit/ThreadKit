@@ -110,8 +110,12 @@ export const th: TranslationStrings = {
   usernameTaken: 'ไม่ว่าง',
   usernameAvailable: 'ว่าง',
   checking: 'กำลังตรวจสอบ...',
+  chooseUsername: 'เลือกชื่อผู้ใช้',
+  usernamePlaceholder: 'ชื่อผู้ใช้ของคุณ',
+  usernameHint: 'ตัวอักษร ตัวเลข ขีดกลาง และขีดล่างเท่านั้น (2-24 ตัวอักษร)',
 
   // Auth - general
+  signInToVote: 'ลงชื่อเข้าใช้เพื่อโหวต',
   signInToPost: 'เข้าสู่ระบบเพื่อโพสต์',
   signInLabel: 'เข้าสู่ระบบ:',
   continueWith: 'ดำเนินการต่อด้วย',
@@ -143,6 +147,12 @@ export const th: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'กำลังเชื่อมต่อกับ',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'ผู้เยี่ยมชม',
+  continueAsGuest: 'ดำเนินการต่อในฐานะผู้เยี่ยมชม',
+  guest: 'ผู้เยี่ยมชม',
+  anonymous: 'นิรนาม',
 
   // User profile
   karma: 'กรรม',
@@ -190,4 +200,9 @@ export const th: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'ขับเคลื่อนโดย ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'โหลดความคิดเห็นใหม่',
+  loadNewReplies: 'โหลดการตอบกลับใหม่',
+  isTyping: 'กำลังพิมพ์...',
 };

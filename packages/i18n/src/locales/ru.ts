@@ -110,7 +110,12 @@ export const ru: TranslationStrings = {
   usernameTaken: 'Занято',
   usernameAvailable: 'Доступно',
   checking: 'Проверка...',
+  chooseUsername: 'Выберите имя пользователя',
+  usernamePlaceholder: 'ваше-имя',
+  usernameHint: 'Только буквы, цифры, дефисы и подчеркивания (2-24 символа)',
+
   // Auth - general
+  signInToVote: 'Войдите, чтобы голосовать',
   signInToPost: 'Войдите, чтобы опубликовать',
   signInLabel: 'Вход:',
   continueWith: 'Продолжить с',
@@ -142,6 +147,12 @@ export const ru: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Подключение к',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Гость',
+  continueAsGuest: 'Продолжить как гость',
+  guest: 'Гость',
+  anonymous: 'Анонимный',
 
   // User profile
   karma: 'Карма',
@@ -189,4 +200,9 @@ export const ru: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Работает на ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Загрузить новые комментарии',
+  loadNewReplies: 'Загрузить новые ответы',
+  isTyping: 'печатает...',
 };

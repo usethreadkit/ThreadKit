@@ -110,8 +110,12 @@ export const lt: TranslationStrings = {
   usernameTaken: 'Užimtas',
   usernameAvailable: 'Prieinamas',
   checking: 'Tikrinama...',
+  chooseUsername: 'Pasirinkite vartotojo vardą',
+  usernamePlaceholder: 'jusu-vardas',
+  usernameHint: 'Tik raidės, skaičiai, brūkšneliai ir pabraukimai (2-24 simboliai)',
 
   // Auth - general
+  signInToVote: 'Prisijunkite, kad balsuotumėte',
   signInToPost: 'Prisijunkite, kad galėtumėte paskelbti',
   signInLabel: 'Prisijungti:',
   continueWith: 'Tęsti su',
@@ -143,6 +147,12 @@ export const lt: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Jungiamasi prie',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Svečias',
+  continueAsGuest: 'Tęsti kaip svečias',
+  guest: 'Svečias',
+  anonymous: 'Anoniminis',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const lt: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Palaiko ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Įkelti naujus komentarus',
+  loadNewReplies: 'Įkelti naujus atsakymus',
+  isTyping: 'rašo...',
 };

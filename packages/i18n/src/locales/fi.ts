@@ -110,8 +110,12 @@ export const fi: TranslationStrings = {
   usernameTaken: 'Varattu',
   usernameAvailable: 'Käytettävissä',
   checking: 'Tarkistetaan...',
+  chooseUsername: 'Valitse käyttäjänimi',
+  usernamePlaceholder: 'kayttajanimi',
+  usernameHint: 'Vain kirjaimia, numeroita, viivoja ja alaviivoja (2-24 merkkiä)',
 
   // Auth - general
+  signInToVote: 'Kirjaudu äänestääksesi',
   signInToPost: 'Kirjaudu sisään lähettääksesi',
   signInLabel: 'Kirjaudu:',
   continueWith: 'Jatka palvelulla',
@@ -143,6 +147,12 @@ export const fi: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Yhdistetään',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Vieras',
+  continueAsGuest: 'Jatka vieraana',
+  guest: 'Vieras',
+  anonymous: 'Anonyymi',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const fi: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Voimanlähteenä ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Lataa uudet kommentit',
+  loadNewReplies: 'Lataa uudet vastaukset',
+  isTyping: 'kirjoittaa...',
 };

@@ -115,6 +115,7 @@ export const id: TranslationStrings = {
   usernameHint: 'Hanya huruf, angka, tanda hubung, garis bawah (2-24 karakter)',
 
   // Auth - general
+  signInToVote: 'Masuk untuk memilih',
   signInToPost: 'Masuk untuk memposting',
   signInLabel: 'Masuk:',
   continueWith: 'Lanjutkan dengan',
@@ -146,6 +147,12 @@ export const id: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Menghubungkan ke',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Tamu',
+  continueAsGuest: 'Lanjutkan sebagai tamu',
+  guest: 'Tamu',
+  anonymous: 'Anonim',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const id: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Didukung oleh ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Muat komentar baru',
+  loadNewReplies: 'Muat balasan baru',
+  isTyping: 'sedang mengetik...',
 };

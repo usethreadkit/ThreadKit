@@ -110,8 +110,12 @@ export const tr: TranslationStrings = {
   usernameTaken: 'Alındı',
   usernameAvailable: 'Mevcut',
   checking: 'Kontrol ediliyor...',
+  chooseUsername: 'Bir kullanıcı adı seçin',
+  usernamePlaceholder: 'kullanici-adiniz',
+  usernameHint: 'Sadece harfler, sayılar, tire ve alt çizgi (2-24 karakter)',
 
   // Auth - general
+  signInToVote: 'Oy vermek için giriş yapın',
   signInToPost: 'Yayınlamak için oturum aç',
   signInLabel: 'Oturum aç:',
   continueWith: 'İle devam et',
@@ -143,6 +147,12 @@ export const tr: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Bağlanılıyor:',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Misafir',
+  continueAsGuest: 'Misafir olarak devam et',
+  guest: 'Misafir',
+  anonymous: 'Anonim',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const tr: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'ThreadKit tarafından desteklenmektedir',
+
+  // Real-time updates
+  loadNewComments: 'Yeni yorumları yükle',
+  loadNewReplies: 'Yeni yanıtları yükle',
+  isTyping: 'yazıyor...',
 };

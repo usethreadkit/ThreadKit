@@ -115,6 +115,7 @@ export const hu: TranslationStrings = {
   usernameHint: 'Csak betűk, számok, kötőjelek, aláhúzások (2-24 karakter)',
 
   // Auth - general
+  signInToVote: 'Jelentkezz be a szavazáshoz',
   signInToPost: 'Jelentkezz be a hozzászóláshoz',
   signInLabel: 'Bejelentkezés:',
   continueWith: 'Folytatás ezzel:',
@@ -146,6 +147,12 @@ export const hu: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Csatlakozás ehhez:',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Vendég',
+  continueAsGuest: 'Folytatás vendégként',
+  guest: 'Vendég',
+  anonymous: 'Névtelen',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const hu: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'A ThreadKit támogatásával',
+
+  // Real-time updates
+  loadNewComments: 'Új hozzászólások betöltése',
+  loadNewReplies: 'Új válaszok betöltése',
+  isTyping: 'gépel...',
 };

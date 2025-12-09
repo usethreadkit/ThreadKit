@@ -109,9 +109,13 @@ export const uk: TranslationStrings = {
   // Username
   usernameTaken: 'Зайнято',
   usernameAvailable: 'Доступно',
-  checking: 'Перевірка...', 
+  checking: 'Перевірка...',
+  chooseUsername: "Виберіть ім'я користувача",
+  usernamePlaceholder: 'ваше-імя',
+  usernameHint: 'Тільки літери, цифри, дефіси та підкреслення (2-24 символи)',
 
   // Auth - general
+  signInToVote: 'Увійдіть, щоб голосувати',
   signInToPost: 'Увійдіть, щоб публікувати',
   signInLabel: 'Увійти:',
   continueWith: 'Продовжити з',
@@ -143,6 +147,12 @@ export const uk: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Підключення до',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Гість',
+  continueAsGuest: 'Продовжити як гість',
+  guest: 'Гість',
+  anonymous: 'Анонімний',
 
   // User profile
   karma: 'Карма',
@@ -190,4 +200,9 @@ export const uk: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Працює на ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Завантажити нові коментарі',
+  loadNewReplies: 'Завантажити нові відповіді',
+  isTyping: 'друкує...',
 };

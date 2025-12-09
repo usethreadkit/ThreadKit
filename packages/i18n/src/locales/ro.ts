@@ -115,6 +115,7 @@ export const ro: TranslationStrings = {
   usernameHint: 'Doar litere, cifre, cratime, underscore (2-24 caractere)',
 
   // Auth - general
+  signInToVote: 'Conectează-te pentru a vota',
   signInToPost: 'Conectează-te pentru a posta',
   signInLabel: 'Conectare:',
   continueWith: 'Continuă cu',
@@ -146,6 +147,12 @@ export const ro: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Se conectează la',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Oaspete',
+  continueAsGuest: 'Continuă ca oaspete',
+  guest: 'Oaspete',
+  anonymous: 'Anonim',
 
   // User profile
   karma: 'Karma',
@@ -193,4 +200,9 @@ export const ro: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Propulsat de ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Încarcă comentarii noi',
+  loadNewReplies: 'Încarcă răspunsuri noi',
+  isTyping: 'scrie...',
 };

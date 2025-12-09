@@ -110,8 +110,12 @@ export const el: TranslationStrings = {
   usernameTaken: 'Κατειλημμένο',
   usernameAvailable: 'Διαθέσιμο',
   checking: 'Έλεγχος...',
+  chooseUsername: 'Επιλέξτε όνομα χρήστη',
+  usernamePlaceholder: 'ονομα-χρηστη',
+  usernameHint: 'Μόνο γράμματα, αριθμοί, παύλες και κάτω παύλες (2-24 χαρακτήρες)',
 
   // Auth - general
+  signInToVote: 'Συνδεθείτε για να ψηφίσετε',
   signInToPost: 'Συνδέσου για να δημοσιεύσεις',
   signInLabel: 'Σύνδεση:',
   continueWith: 'Συνέχεια με',
@@ -143,6 +147,12 @@ export const el: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Σύνδεση με',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Επισκέπτης',
+  continueAsGuest: 'Συνέχεια ως επισκέπτης',
+  guest: 'Επισκέπτης',
+  anonymous: 'Ανώνυμος',
 
   // User profile
   karma: 'Karma',
@@ -190,4 +200,9 @@ export const el: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Με την υποστήριξη του ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Φόρτωση νέων σχολίων',
+  loadNewReplies: 'Φόρτωση νέων απαντήσεων',
+  isTyping: 'γράφει...',
 };

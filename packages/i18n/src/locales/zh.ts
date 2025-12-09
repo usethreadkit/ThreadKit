@@ -110,8 +110,12 @@ export const zh: TranslationStrings = {
   usernameTaken: '已被占用',
   usernameAvailable: '可用',
   checking: '正在检查...',
+  chooseUsername: '选择用户名',
+  usernamePlaceholder: '您的用户名',
+  usernameHint: '只能使用字母、数字、连字符和下划线（2-24 个字符）',
 
   // Auth - general
+  signInToVote: '登录以投票',
   signInToPost: '登录后发布',
   signInLabel: '登录：',
   continueWith: '使用',
@@ -143,6 +147,12 @@ export const zh: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: '正在连接',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: '访客',
+  continueAsGuest: '以访客身份继续',
+  guest: '访客',
+  anonymous: '匿名',
 
   // User profile
   karma: '声望',
@@ -190,4 +200,9 @@ export const zh: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: '由 ThreadKit 提供支持',
+
+  // Real-time updates
+  loadNewComments: '加载新评论',
+  loadNewReplies: '加载新回复',
+  isTyping: '正在输入...',
 };

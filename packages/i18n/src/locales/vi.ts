@@ -114,7 +114,8 @@ holdForSeconds: 'Giữ thêm {seconds} giây...',
   usernamePlaceholder: 'tên-người-dùng-của-bạn',
   usernameHint: 'Chỉ chữ cái, số, dấu gạch ngang, gạch dưới (2-24 ký tự)',
 // Auth - general
-signInToPost: 'Đăng nhập để đăng bài',
+signInToVote: 'Đăng nhập để bình chọn',
+  signInToPost: 'Đăng nhập để đăng bài',
 signInLabel: 'Đăng nhập:',
 continueWith: 'Tiếp tục với',
 chooseSignInMethod: 'Chọn phương thức đăng nhập',
@@ -143,11 +144,17 @@ yourName: 'Tên của bạn',
 popupShouldOpen: 'Một cửa sổ bật lên sẽ mở ra',
 completingSignIn: 'Hoàn tất đăng nhập bằng',
 
-// Auth - Web3
-connectingTo: 'Đang kết nối với',
+  // Auth - Web3
+  connectingTo: 'Đang kết nối với',
 
-// User profile
-karma: 'Karma',
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Khách',
+  continueAsGuest: 'Tiếp tục với tư cách khách',
+  guest: 'Khách',
+  anonymous: 'Ẩn danh',
+
+  // User profile
+  karma: 'Karma',
 comments: 'Bình luận',
 joined: 'Tham gia',
 
@@ -191,4 +198,9 @@ tryAgainLater: 'Vui lòng thử lại sau.',
 
 // Branding
 poweredByThreadKit: 'Được cung cấp bởi ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Tải bình luận mới',
+  loadNewReplies: 'Tải câu trả lời mới',
+  isTyping: 'đang nhập...',
 };

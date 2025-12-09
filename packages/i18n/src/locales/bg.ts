@@ -115,6 +115,7 @@ export const bg: TranslationStrings = {
   usernameHint: 'Само букви, цифри, тирета, долни черти (2-24 знака)',
 
   // Auth - general
+  signInToVote: 'Влезте, за да гласувате',
   signInToPost: 'Влезте, за да публикувате',
   signInLabel: 'Вход:',
   continueWith: 'Продължи с',
@@ -146,6 +147,12 @@ export const bg: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'Свързване към',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'Гост',
+  continueAsGuest: 'Продължи като гост',
+  guest: 'Гост',
+  anonymous: 'Анонимен',
 
   // User profile
   karma: 'Карма',
@@ -193,4 +200,9 @@ export const bg: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'Осъществено от ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'Зареди нови коментари',
+  loadNewReplies: 'Зареди нови отговори',
+  isTyping: 'пише...',
 };

@@ -110,8 +110,12 @@ export const fa: TranslationStrings = {
   usernameTaken: 'گرفته شده',
   usernameAvailable: 'موجود',
   checking: 'در حال بررسی...',
+  chooseUsername: 'یک نام کاربری انتخاب کنید',
+  usernamePlaceholder: 'نام-کاربری-شما',
+  usernameHint: 'فقط حروف، اعداد، خط تیره و زیرخط (2-24 کاراکتر)',
 
   // Auth - general
+  signInToVote: 'برای رای دادن وارد شوید',
   signInToPost: 'برای ارسال وارد شوید',
   signInLabel: 'ورود:',
   continueWith: 'ادامه با',
@@ -143,6 +147,12 @@ export const fa: TranslationStrings = {
 
   // Auth - Web3
   connectingTo: 'در حال اتصال به',
+
+  // Auth - Anonymous
+  guestNamePlaceholder: 'مهمان',
+  continueAsGuest: 'ادامه به عنوان مهمان',
+  guest: 'مهمان',
+  anonymous: 'ناشناس',
 
   // User profile
   karma: 'کارما',
@@ -190,4 +200,9 @@ export const fa: TranslationStrings = {
 
   // Branding
   poweredByThreadKit: 'پشتیبانی شده توسط ThreadKit',
+
+  // Real-time updates
+  loadNewComments: 'بارگذاری نظرات جدید',
+  loadNewReplies: 'بارگذاری پاسخ‌های جدید',
+  isTyping: 'در حال نوشتن...',
 };
