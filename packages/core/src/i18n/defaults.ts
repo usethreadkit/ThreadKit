@@ -115,6 +115,7 @@ export const defaultTranslations: TranslationStrings = {
   usernameHint: 'Letters, numbers, hyphens, underscores only (2-24 chars)',
 
   // Auth - general
+  signInToVote: 'Sign in to vote',
   signInToPost: 'Sign in to post',
   signInLabel: 'Sign in:',
   continueWith: 'Continue with',
