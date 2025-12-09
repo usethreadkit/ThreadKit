@@ -43,6 +43,7 @@ interface CommentsViewProps {
   onCollapse?: (commentId: string) => void;
   onReplyStart?: (parentId: string) => void;
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   toolbarEnd?: React.ReactNode;
   plugins?: ThreadKitPlugin[];
 }
@@ -84,6 +85,7 @@ export function CommentsView({
   onCollapse,
   onReplyStart,
   getUserProfile,
+  fetchUserProfile,
   toolbarEnd,
   plugins,
 }: CommentsViewProps) {
@@ -128,10 +130,12 @@ export function CommentsView({
         </div>
 
         {pendingRootCount > 0 && onLoadPendingComments && (
-          <NewCommentsBanner
-            count={pendingRootCount}
-            onClick={onLoadPendingComments}
-          />
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <NewCommentsBanner
+              count={pendingRootCount}
+              onClick={onLoadPendingComments}
+            />
+          </div>
         )}
 
         {comments.length === 0 ? (
@@ -168,6 +172,7 @@ export function CommentsView({
                 onPermalink={onPermalink}
                 onCollapse={onCollapse}
                   getUserProfile={getUserProfile}
+                  fetchUserProfile={fetchUserProfile}
                   plugins={plugins}
                   highlightedCommentId={highlightedCommentId}
                   collapsedThreads={collapsedThreads}

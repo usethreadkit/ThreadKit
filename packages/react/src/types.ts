@@ -295,6 +295,7 @@ export interface CommentProps {
   onNext?: () => void;
   onCollapse?: (commentId: string) => void;
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   /** Plugins for extending content rendering */
   plugins?: ThreadKitPlugin[];
 }

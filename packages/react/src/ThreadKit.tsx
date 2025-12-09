@@ -1,8 +1,8 @@
 import React, { useCallback, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
-import type { ThreadKitProps, ThreadKitCSSVariables, ThreadKitRef, User, Comment, SortBy } from './types';
+import type { ThreadKitProps, ThreadKitCSSVariables, ThreadKitRef, User, Comment, SortBy, UserProfile } from './types';
 import { useComments, ThreadKitError } from './hooks/useComments';
 import { useWebSocket } from './hooks/useWebSocket';
-import { sortComments } from '@threadkit/core';
+import { sortComments, getUser } from '@threadkit/core';
 import { CommentsView } from './components/CommentsView';
 import { ChatView } from './components/ChatView';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -181,6 +181,7 @@ function ThreadKitInner({
 
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(theme);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
+  const [userProfileCache, setUserProfileCache] = useState<Map<string, UserProfile>>(new Map());
 
   // Inject plugin styles into document head
   useEffect(() => {
@@ -197,6 +198,33 @@ function ThreadKitInner({
     });
   }, [plugins]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Get cached user profile (does NOT fetch)
+  const getUserProfile = useCallback((userId: string): UserProfile | undefined => {
+    return userProfileCache.get(userId);
+  }, [userProfileCache]);
+
+  // Fetch user profile on demand (for hover)
+  const fetchUserProfile = useCallback(async (userId: string): Promise<void> => {
+    // Skip special user IDs (deleted/anonymous)
+    if (userId === 'd0000000-0000-0000-0000-000000000000' ||
+        userId === 'a0000000-0000-0000-0000-000000000000') {
+      return;
+    }
+
+    // Skip if already cached
+    if (userProfileCache.has(userId)) {
+      return;
+    }
+
+    try {
+      const token = authState.token;
+      const profile = await getUser(apiUrl, projectId, userId, token);
+      setUserProfileCache(prev => new Map(prev).set(userId, profile));
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  }, [apiUrl, projectId, authState.token, userProfileCache]);
 
   const {
     comments,
@@ -313,7 +341,24 @@ function ThreadKitInner({
 
       // Handle based on realTimeMode
       if (realTimeMode === 'auto') {
-        addComment(comment);
+        // In chat mode with auto mode, replies should appear both in thread AND at top
+        if (mode === 'chat' && comment.parentId) {
+          // First, add the threaded reply (with parent)
+          addComment(comment);
+
+          // Then, add a top-level reference copy (without parent, with replyReferenceId)
+          const topLevelCopy: Comment = {
+            ...comment,
+            id: `${comment.id}-ref`, // Unique ID for the reference
+            parentId: undefined,
+            replyReferenceId: comment.id, // Link to the actual threaded comment
+            children: [],
+          };
+          addComment(topLevelCopy);
+        } else {
+          // Regular behavior for non-replies or comments mode
+          addComment(comment);
+        }
       } else {
         // Banner mode: queue comments instead of adding directly
         if (!comment.parentId) {
@@ -330,7 +375,7 @@ function ThreadKitInner({
         }
       }
     },
-    [addComment, onCommentReceived, currentUser, realTimeMode]
+    [addComment, onCommentReceived, currentUser, realTimeMode, mode]
   );
 
   const handleWsCommentDeleted = useCallback(
@@ -408,6 +453,38 @@ function ThreadKitInner({
     [postComment, addComment, onCommentPosted, onError]
   );
 
+  // BroadcastChannel for cross-tab vote synchronization
+  const voteChannelRef = useRef<BroadcastChannel | null>(null);
+
+  // Initialize BroadcastChannel for vote sync
+  useEffect(() => {
+    // Check if BroadcastChannel is supported (not available in SSR or some older browsers)
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(`threadkit-votes-${url}`);
+      voteChannelRef.current = channel;
+
+      // Listen for vote messages from other tabs
+      channel.onmessage = (event: MessageEvent) => {
+        const { type, commentId, pageUrl, voteType, upvotes, downvotes } = event.data;
+
+        // Only process vote messages for the same page
+        if (type === 'vote' && pageUrl === url) {
+          // Update local state to match the vote from another tab
+          updateComment(commentId, {
+            upvotes,
+            downvotes,
+            userVote: voteType,
+          });
+        }
+      };
+
+      return () => {
+        channel.close();
+        voteChannelRef.current = null;
+      };
+    }
+  }, [url, updateComment]);
+
   const handleVote = useCallback(
     async (commentId: string, voteType: 'up' | 'down') => {
       try {
@@ -418,12 +495,25 @@ function ThreadKitInner({
           downvotes: result.downvotes,
           userVote: result.user_vote ?? null,
         });
+
+        // Broadcast vote to other tabs
+        if (voteChannelRef.current) {
+          voteChannelRef.current.postMessage({
+            type: 'vote',
+            commentId,
+            pageUrl: url,
+            voteType: result.user_vote ?? null,
+            upvotes: result.upvotes,
+            downvotes: result.downvotes,
+          });
+        }
+
         onVote?.(commentId, voteType);
       } catch (err) {
         onError?.(err instanceof Error ? err : new Error('Failed to vote'));
       }
     },
-    [vote, updateComment, onVote, onError]
+    [vote, updateComment, onVote, onError, url]
   );
 
   const handleDelete = useCallback(
@@ -653,6 +743,17 @@ function ThreadKitInner({
     [apiUrl, onError]
   );
 
+  // Handler to scroll to a comment by ID (for chat mode reply references)
+  const handleScrollToComment = useCallback((commentId: string) => {
+    const element = rootRef.current?.querySelector(`[data-comment-id="${commentId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedCommentId(commentId);
+      // Auto-clear highlight after 3 seconds
+      setTimeout(() => setHighlightedCommentId(null), 3000);
+    }
+  }, []);
+
   // Compute merged styles (cssVariables + user style)
   const rootStyle = { ...cssVariablesToStyle(cssVariables), ...style };
   const rootClassName = className ? `threadkit-root ${className}` : 'threadkit-root';
@@ -774,8 +875,12 @@ function ThreadKitInner({
           onDelete={handleDelete}
           onEdit={handleEdit}
           onBan={isModerator ? handleBan : undefined}
+          onScrollToComment={handleScrollToComment}
+          highlightedCommentId={highlightedCommentId}
           toolbarEnd={toolbarIcons}
           plugins={plugins}
+          getUserProfile={getUserProfile}
+          fetchUserProfile={fetchUserProfile}
         />
       ) : (
         <CommentsView
@@ -818,6 +923,8 @@ function ThreadKitInner({
           onReplyStart={onReplyStart}
           toolbarEnd={toolbarIcons}
           plugins={plugins}
+          getUserProfile={getUserProfile}
+          fetchUserProfile={fetchUserProfile}
         />
       )}
 

@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { User, UserProfile } from '../types';
+import type { UserProfile } from '../types';
 import { useTranslation } from '../i18n';
 import { Avatar } from './Avatar';
+import { GuestAwareUsername } from '../utils/username';
 
 interface UserHoverCardProps {
-  userName: string;
   userId: string;
-  currentUser?: User;
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   children: React.ReactNode;
 }
 
@@ -28,10 +28,9 @@ function formatNumber(num: number): string {
 }
 
 export function UserHoverCard({
-  userName,
   userId,
-  currentUser,
   getUserProfile,
+  fetchUserProfile,
   children,
 }: UserHoverCardProps) {
   const t = useTranslation();
@@ -43,12 +42,14 @@ export function UserHoverCard({
 
   const profile = getUserProfile?.(userId);
 
-  // If this is the current user, use their data as fallback or override
-  const isCurrentUser = currentUser?.id === userId;
-  const avatar = profile?.avatar || (isCurrentUser ? currentUser?.avatar : undefined);
-
   const showCard = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    // Trigger fetch on hover
+    if (fetchUserProfile && !profile) {
+      fetchUserProfile(userId);
+    }
+
     timeoutRef.current = setTimeout(() => {
       if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect();
@@ -76,15 +77,10 @@ export function UserHoverCard({
     };
   }, []);
 
-  // Mock profile data if not provided
-  const displayProfile: UserProfile = profile || {
-    id: userId,
-    name: userName,
-    avatar,
-    karma: isCurrentUser && currentUser?.karma ? currentUser.karma : (Math.floor(Math.random() * 10000) + 100),
-    totalComments: isCurrentUser && currentUser?.totalComments ? currentUser.totalComments : (Math.floor(Math.random() * 500) + 10),
-    joinDate: isCurrentUser && currentUser?.joinDate ? currentUser.joinDate : (Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000)),
-  };
+  // Only show hover card if we have real profile data
+  if (!profile) {
+    return <>{children}</>;
+  }
 
   return (
     <>
@@ -114,65 +110,67 @@ export function UserHoverCard({
           <div className="threadkit-hover-card-content">
             <div className="threadkit-hover-card-avatar">
               <Avatar
-                src={displayProfile.avatar}
-                alt={displayProfile.name}
-                seed={displayProfile.name}
+                src={profile.avatar}
+                alt={profile.name}
+                seed={profile.name}
               />
             </div>
             <div className="threadkit-hover-card-info">
-              <div className="threadkit-hover-card-name">{displayProfile.name}</div>
-              {displayProfile.socialLinks && (
+              <div className="threadkit-hover-card-name">
+                <GuestAwareUsername userName={profile.name} t={t} />
+              </div>
+              {profile.socialLinks && (
                 <div className="threadkit-hover-card-social-links">
-                  {displayProfile.socialLinks.twitter && (
-                    <a href={`https://twitter.com/${displayProfile.socialLinks.twitter}`} target="_blank" rel="noopener noreferrer" title="Twitter">
+                  {profile.socialLinks.twitter && (
+                    <a href={`https://twitter.com/${profile.socialLinks.twitter}`} target="_blank" rel="noopener noreferrer" title="Twitter">
                       {/* Replace with actual Twitter SVG icon */}
                       <span className="threadkit-social-icon">T</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.github && (
-                    <a href={`https://github.com/${displayProfile.socialLinks.github}`} target="_blank" rel="noopener noreferrer" title="GitHub">
+                  {profile.socialLinks.github && (
+                    <a href={`https://github.com/${profile.socialLinks.github}`} target="_blank" rel="noopener noreferrer" title="GitHub">
                       {/* Replace with actual GitHub SVG icon */}
                       <span className="threadkit-social-icon">G</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.facebook && (
-                    <a href={`https://facebook.com/${displayProfile.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" title="Facebook">
+                  {profile.socialLinks.facebook && (
+                    <a href={`https://facebook.com/${profile.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" title="Facebook">
                       {/* Replace with actual Facebook SVG icon */}
                       <span className="threadkit-social-icon">F</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.whatsapp && (
-                    <a href={`https://wa.me/${displayProfile.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                  {profile.socialLinks.whatsapp && (
+                    <a href={`https://wa.me/${profile.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer" title="WhatsApp">
                       {/* Replace with actual WhatsApp SVG icon */}
                       <span className="threadkit-social-icon">W</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.telegram && (
-                    <a href={`https://t.me/${displayProfile.socialLinks.telegram}`} target="_blank" rel="noopener noreferrer" title="Telegram">
+                  {profile.socialLinks.telegram && (
+                    <a href={`https://t.me/${profile.socialLinks.telegram}`} target="_blank" rel="noopener noreferrer" title="Telegram">
                       {/* Replace with actual Telegram SVG icon */}
                       <span className="threadkit-social-icon">Te</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.instagram && (
-                    <a href={`https://instagram.com/${displayProfile.socialLinks.instagram}`} target="_blank" rel="noopener noreferrer" title="Instagram">
+                  {profile.socialLinks.instagram && (
+                    <a href={`https://instagram.com/${profile.socialLinks.instagram}`} target="_blank" rel="noopener noreferrer" title="Instagram">
                       {/* Replace with actual Instagram SVG icon */}
                       <span className="threadkit-social-icon">I</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.tiktok && (
-                    <a href={`https://tiktok.com/@${displayProfile.socialLinks.tiktok}`} target="_blank" rel="noopener noreferrer" title="TikTok">
+                  {profile.socialLinks.tiktok && (
+                    <a href={`https://tiktok.com/@${profile.socialLinks.tiktok}`} target="_blank" rel="noopener noreferrer" title="TikTok">
                       {/* Replace with actual TikTok SVG icon */}
                       <span className="threadkit-social-icon">Tk</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.snapchat && (
-                    <a href={`https://snapchat.com/add/${displayProfile.socialLinks.snapchat}`} target="_blank" rel="noopener noreferrer" title="Snapchat">
+                  {profile.socialLinks.snapchat && (
+                    <a href={`https://snapchat.com/add/${profile.socialLinks.snapchat}`} target="_blank" rel="noopener noreferrer" title="Snapchat">
                       {/* Replace with actual Snapchat SVG icon */}
                       <span className="threadkit-social-icon">S</span>
                     </a>
                   )}
-                  {displayProfile.socialLinks.discord && (
-                    <a href={`https://discordapp.com/users/${displayProfile.socialLinks.discord}`} target="_blank" rel="noopener noreferrer" title="Discord">
+                  {profile.socialLinks.discord && (
+                    <a href={`https://discordapp.com/users/${profile.socialLinks.discord}`} target="_blank" rel="noopener noreferrer" title="Discord">
                       {/* Replace with actual Discord SVG icon */}
                       <span className="threadkit-social-icon">D</span>
                     </a>
@@ -182,19 +180,19 @@ export function UserHoverCard({
               <div className="threadkit-hover-card-stats">
                 <div className="threadkit-hover-card-stat">
                   <span className="threadkit-hover-card-stat-value">
-                    {formatNumber(displayProfile.karma)}
+                    {formatNumber(profile.karma)}
                   </span>
                   <span className="threadkit-hover-card-stat-label">{t('karma')}</span>
                 </div>
                 <div className="threadkit-hover-card-stat">
                   <span className="threadkit-hover-card-stat-value">
-                    {formatNumber(displayProfile.totalComments)}
+                    {formatNumber(profile.totalComments)}
                   </span>
                   <span className="threadkit-hover-card-stat-label">{t('comments')}</span>
                 </div>
               </div>
               <div className="threadkit-hover-card-joined">
-                {t('joined')} {formatDate(displayProfile.joinDate)}
+                {t('joined')} {formatDate(profile.joinDate)}
               </div>
             </div>
           </div>

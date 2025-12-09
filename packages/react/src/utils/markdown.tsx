@@ -16,6 +16,7 @@ export interface MarkdownOptions {
   plugins?: ThreadKitPlugin[];
   /** Callback to get user profile for @mention hover cards */
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   /** Callback to resolve @username to userId */
   resolveUsername?: (username: string) => string | undefined;
 }
@@ -61,9 +62,9 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
           return (
             <UserHoverCard
               key={i}
-              userName={token.content}
               userId={token.userId || token.content}
               getUserProfile={options.getUserProfile}
+              fetchUserProfile={options.fetchUserProfile}
             >
               <span className="threadkit-mention">@{token.content}</span>
             </UserHoverCard>

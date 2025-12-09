@@ -1,28 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
-import { parseAnonUsername } from '@threadkit/core';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
-import { useTranslation, type TranslatorFunction } from '../i18n';
+import { useTranslation } from '../i18n';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
-
-/** Render a username with guest badge if anonymous */
-function GuestAwareUsername({ userName, t }: { userName: string; t: TranslatorFunction }) {
-  const { isAnonymous, displayName } = parseAnonUsername(userName);
-
-  if (!isAnonymous) {
-    return <>{userName}</>;
-  }
-
-  // Show display name or "Anonymous", always with "Guest" badge
-  return (
-    <span className="threadkit-guest-author">
-      {displayName || t('anonymous')}
-      <span className="threadkit-guest-badge">{t('guest')}</span>
-    </span>
-  );
-}
+import { GuestAwareUsername, formatUsername } from '../utils/username';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -39,14 +22,17 @@ interface ChatViewProps {
   typingUsers?: Array<{ userId: string; userName: string }>;
   apiUrl: string;
   projectId: string;
-  onSend: (text: string) => Promise<void>;
+  onSend: (text: string, parentId?: string) => Promise<void>;
   onTyping?: () => void;
   onBlock?: (userId: string) => void;
   onReport?: (commentId: string) => void;
   onDelete?: (commentId: string) => void;
   onEdit?: (commentId: string, newText: string) => void;
   onBan?: (userId: string) => void;
+  onScrollToComment?: (commentId: string) => void;
+  highlightedCommentId?: string | null;
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   toolbarEnd?: React.ReactNode;
   plugins?: ThreadKitPlugin[];
 }
@@ -73,12 +59,16 @@ interface ChatMessageProps {
   depth?: number;
   currentUser?: User;
   isModOrAdmin: boolean;
+  highlighted?: boolean;
   onBlock?: (userId: string) => void;
   onReport?: (commentId: string) => void;
   onDelete?: (commentId: string) => void;
   onEdit?: (commentId: string, newText: string) => void;
   onBan?: (userId: string) => void;
+  onScrollToComment?: (commentId: string) => void;
+  onReply?: (parentId: string, text: string) => Promise<void>;
   getUserProfile?: (userId: string) => UserProfile | undefined;
+  fetchUserProfile?: (userId: string) => Promise<void>;
   plugins?: ThreadKitPlugin[];
   t: ReturnType<typeof useTranslation>;
 }
@@ -88,12 +78,16 @@ function ChatMessage({
   depth = 0,
   currentUser,
   isModOrAdmin,
+  highlighted = false,
   onBlock,
   onReport,
   onDelete,
   onEdit,
   onBan,
+  onScrollToComment,
+  onReply,
   getUserProfile,
+  fetchUserProfile,
   plugins,
   t,
 }: ChatMessageProps) {
@@ -104,6 +98,8 @@ function ChatMessage({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState('');
 
   const isOwnMessage = currentUser && message.userId === currentUser.id;
 
@@ -118,6 +114,15 @@ function ChatMessage({
   const handleCancelEdit = () => {
     setEditText(message.text);
     setIsEditing(false);
+  };
+
+  const handleSendReply = async () => {
+    if (replyText.trim() && onReply) {
+      await onReply(message.id, replyText.trim());
+      setReplyText('');
+      setIsReplying(false);
+      setIsExpanded(false);
+    }
   };
 
   if (isEditing) {
@@ -156,18 +161,62 @@ function ChatMessage({
     );
   }
 
+  if (isReplying) {
+    const replyToName = formatUsername(message.userName, t);
+
+    return (
+      <div className="threadkit-chat-message replying">
+        <div className="threadkit-chat-reply-form">
+          <input
+            type="text"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder={`${t('reply')} to ${replyToName}...`}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && replyText.trim()) {
+                handleSendReply();
+              }
+              if (e.key === 'Escape') {
+                setIsReplying(false);
+                setReplyText('');
+              }
+            }}
+          />
+          <button
+            className="threadkit-submit-btn"
+            onClick={handleSendReply}
+            disabled={!replyText.trim()}
+          >
+            {t('send')}
+          </button>
+          <button
+            className="threadkit-cancel-btn"
+            onClick={() => {
+              setIsReplying(false);
+              setReplyText('');
+            }}
+          >
+            {t('cancel')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`threadkit-chat-message ${isExpanded ? 'expanded' : ''}`}
+      className={`threadkit-chat-message ${isExpanded ? 'expanded' : ''} ${highlighted ? 'highlighted' : ''} ${message.replyReferenceId ? 'reply-message' : ''}`}
       style={{ paddingLeft: depth > 0 ? `${depth * 20}px` : undefined }}
       onClick={() => setIsExpanded(!isExpanded)}
+      data-comment-id={message.id}
     >
       <div className="threadkit-chat-message-line">
         <span className="threadkit-chat-time">{formatTime(message.timestamp)}</span>
         <UserHoverCard
-          userName={message.userName}
           userId={message.userId}
           getUserProfile={getUserProfile}
+          fetchUserProfile={fetchUserProfile}
         >
           <span className="threadkit-chat-author">
             <GuestAwareUsername userName={message.userName} t={t} />
@@ -179,9 +228,24 @@ function ChatMessage({
             enableAutoLinks: true,
             enableMentions: true,
             getUserProfile,
+            fetchUserProfile,
             plugins,
           })}
           {message.edited && <span className="threadkit-edited">*</span>}
+          {message.replyReferenceId && onScrollToComment && (
+            <button
+              className="threadkit-chat-reply-ref"
+              onClick={(e) => {
+                e.stopPropagation();
+                onScrollToComment(message.replyReferenceId!);
+              }}
+              title="View in thread"
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M6.78 1.97a.75.75 0 010 1.06L3.81 6h6.44A4.75 4.75 0 0115 10.75v2.5a.75.75 0 01-1.5 0v-2.5a3.25 3.25 0 00-3.25-3.25H3.81l2.97 2.97a.75.75 0 11-1.06 1.06L1.47 7.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 0z"/>
+              </svg>
+            </button>
+          )}
         </span>
       </div>
       {isExpanded && currentUser && (
@@ -406,6 +470,20 @@ function ChatMessage({
               )}
             </>
           )}
+
+          {/* Reply button - available for all messages */}
+          {onReply && (
+            <button
+              className="threadkit-action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReplying(true);
+                setIsExpanded(false);
+              }}
+            >
+              {t('reply')}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -431,7 +509,10 @@ export function ChatView({
   onDelete,
   onEdit,
   onBan,
+  onScrollToComment,
+  highlightedCommentId,
   getUserProfile,
+  fetchUserProfile,
   toolbarEnd,
   plugins,
 }: ChatViewProps) {
@@ -497,6 +578,14 @@ export function ChatView({
       onTyping?.();
     },
     [onTyping]
+  );
+
+  // Handle reply to a specific message
+  const handleReply = useCallback(
+    async (parentId: string, text: string) => {
+      await onSend(text, parentId);
+    },
+    [onSend]
   );
 
   // Initialize auth methods on mount if not logged in
@@ -757,12 +846,16 @@ export function ChatView({
             depth={depth}
             currentUser={currentUser}
             isModOrAdmin={isModOrAdmin || false}
+            highlighted={highlightedCommentId === comment.id}
             onBlock={onBlock}
             onReport={onReport}
             onDelete={onDelete}
             onEdit={onEdit}
             onBan={onBan}
+            onScrollToComment={onScrollToComment}
+            onReply={handleReply}
             getUserProfile={getUserProfile}
+            fetchUserProfile={fetchUserProfile}
             plugins={plugins}
             t={t}
           />

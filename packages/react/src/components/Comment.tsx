@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatTimestamp, parseAnonUsername } from '@threadkit/core';
+import { formatTimestamp } from '@threadkit/core';
 import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
@@ -7,25 +7,9 @@ import { UserHoverCard } from './UserHoverCard';
 import { NewRepliesIndicator } from './NewRepliesIndicator';
 import { TypingIndicator } from './TypingIndicator';
 import { renderMarkdown } from '../utils/markdown';
-import { useTranslation, type TranslatorFunction } from '../i18n';
+import { GuestAwareUsername } from '../utils/username';
+import { useTranslation } from '../i18n';
 import { useScoreDisplay } from '../contexts/ScoreDisplayContext';
-
-/** Render a username with guest badge if anonymous */
-function GuestAwareUsername({ userName, t }: { userName: string; t: TranslatorFunction }) {
-  const { isAnonymous, displayName } = parseAnonUsername(userName);
-
-  if (!isAnonymous) {
-    return <>{userName}</>;
-  }
-
-  // Show display name or "Anonymous", always with "Guest" badge
-  return (
-    <span className="threadkit-guest-author">
-      {displayName || t('anonymous')}
-      <span className="threadkit-guest-badge">{t('guest')}</span>
-    </span>
-  );
-}
 
 type ReportReasonKey = 'reportSpam' | 'reportHarassment' | 'reportHateSpeech' | 'reportMisinformation' | 'reportOther';
 const REPORT_REASON_KEYS: ReportReasonKey[] = [
@@ -67,6 +51,7 @@ export function Comment({
   onNext,
   onCollapse,
   getUserProfile,
+  fetchUserProfile,
   plugins,
 }: CommentProps) {
   const t = useTranslation();
@@ -128,10 +113,9 @@ export function Comment({
           [+]
         </button>
         <UserHoverCard
-          userName={comment.userName}
           userId={comment.userId}
-          currentUser={currentUser}
           getUserProfile={getUserProfile}
+          fetchUserProfile={fetchUserProfile}
         >
           <span className="threadkit-author">
             <GuestAwareUsername userName={comment.userName} t={t} />
@@ -184,10 +168,9 @@ export function Comment({
               [–]
             </button>
             <UserHoverCard
-              userName={comment.userName}
               userId={comment.userId}
-              currentUser={currentUser}
               getUserProfile={getUserProfile}
+              fetchUserProfile={fetchUserProfile}
             >
               <span className="threadkit-author">
                 <GuestAwareUsername userName={comment.userName} t={t} />
@@ -264,6 +247,7 @@ export function Comment({
                 enableAutoLinks: true,
                 enableMentions: true,
                 getUserProfile,
+                fetchUserProfile,
                 plugins,
               })
             )}
@@ -547,7 +531,7 @@ export function Comment({
                 <Comment
                   key={child.id}
                   comment={child}
-                  currentUser={currentUser}
+                  
                   needsUsername={needsUsername}
                   apiUrl={apiUrl}
                   projectId={projectId}
@@ -574,6 +558,7 @@ export function Comment({
                   onPermalink={onPermalink}
                   onCollapse={onCollapse}
                   getUserProfile={getUserProfile}
+                  fetchUserProfile={fetchUserProfile}
                   plugins={plugins}
                 />
               ))}
