@@ -18,7 +18,7 @@ For apps without existing Solana wallet adapter:
 import { createSolanaAuthPlugin } from '@threadkit/plugin-auth-solana';
 
 const { plugin, Provider, ThreadKitSolanaWalletButton, useSolanaAuth } = createSolanaAuthPlugin({
-  apiKey: 'your-threadkit-api-key',
+  projectId: 'your-threadkit-project-id',
   provider: {
     mode: 'standalone',
     network: 'mainnet-beta', // 'mainnet-beta' | 'testnet' | 'devnet'
@@ -43,7 +43,7 @@ For apps with existing Solana wallet adapter setup:
 import { createSolanaAuthPlugin } from '@threadkit/plugin-auth-solana';
 
 const { plugin, Provider, ThreadKitSolanaWalletButton } = createSolanaAuthPlugin({
-  apiKey: 'your-threadkit-api-key',
+  projectId: 'your-threadkit-project-id',
   provider: { mode: 'external' },
 });
 

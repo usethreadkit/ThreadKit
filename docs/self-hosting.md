@@ -327,7 +327,7 @@ OAUTH_GOOGLE_REDIRECT_URL=https://api.myblog.com/v1/auth/google/callback
 ### 5. Embed in Your Site
 
 ```html
-<script src="https://api.myblog.com/embed.js" data-api-key="tk_pub_xxx"></script>
+<script src="https://api.myblog.com/embed.js" data-project-id="tk_pub_xxx"></script>
 <div id="threadkit-comments"></div>
 ```
 

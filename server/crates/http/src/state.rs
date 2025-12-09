@@ -92,36 +92,11 @@ impl AppState {
                 );
             }
 
-            // Update settings that can change at runtime (OAuth providers, moderation, etc.)
-            // but never touch the keys - those are immutable
-            existing.name = standalone.site_name.clone();
-            existing.domain = standalone.site_domain.clone();
-            existing.settings.moderation_mode = match standalone.moderation_mode {
-                ConfigModerationMode::None => ModerationMode::None,
-                ConfigModerationMode::Pre => ModerationMode::Pre,
-                ConfigModerationMode::Post => ModerationMode::Post,
-            };
-            existing.settings.auth = AuthSettings {
-                google: config.oauth.google.is_some(),
-                github: config.oauth.github.is_some(),
-                email: true,
-                phone: false,
-                anonymous: false,
-                ethereum: false,
-                solana: false,
-            };
-            existing.settings.content_moderation = if config.content_moderation.enabled {
-                ContentModerationSettings {
-                    enabled: true,
-                    ..Default::default()
-                }
-            } else {
-                ContentModerationSettings::default()
-            };
-            existing.settings.allowed_origins = standalone.allowed_origins.clone();
-
-            redis.set_site_config(&existing).await?;
-            tracing::info!("Updated site config in Redis");
+            // In standalone mode, we don't modify site settings on boot.
+            // All settings are managed via --create-site and --edit-site commands.
+            // NOTE: OAuth methods are filtered at runtime in auth_methods() based on whether
+            // secrets are configured, so we don't need to update the settings here.
+            tracing::info!("Loaded site config from Redis");
         }
 
         // Build ETag cache: 1M entries max, 5 min TTI

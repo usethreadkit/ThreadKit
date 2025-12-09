@@ -1251,6 +1251,12 @@ export interface components {
             n: string;
             /** @description author avatar (picture) */
             p?: string | null;
+            /**
+             * Format: uuid
+             * @description parent_id - only used for WebSocket messages to indicate reply threading
+             *     Not used in GET /comments (uses nested replies instead)
+             */
+            q?: string | null;
             /** @description replies (nested array of child comments) */
             r?: components["schemas"]["TreeComment"][];
             s?: null | components["schemas"]["CommentStatus"];
@@ -1817,7 +1823,7 @@ export interface operations {
         parameters: {
             query: {
                 /** @description API key (required since OAuth is initiated via navigation, not fetch) */
-                api_key: string;
+                project_id: string;
             };
             header?: never;
             path: {

@@ -929,21 +929,21 @@
 /* ===== Real-time Updates ===== */
 
 .threadkit-new-comments-banner {
-  width: 100%;
-  padding: 8px 16px;
-  background: var(--threadkit-primary);
-  color: white;
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--threadkit-bg-secondary);
+  color: var(--threadkit-text-secondary);
   border: none;
-  border-radius: var(--threadkit-radius);
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
-  text-align: center;
-  margin-bottom: 16px;
+  font-size: 13px;
+  margin: 0 auto 16px;
   transition: background-color 0.15s ease;
 }
 
 .threadkit-new-comments-banner:hover {
-  background: var(--threadkit-primary-hover);
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text);
 }
 
 .threadkit-new-replies-indicator {

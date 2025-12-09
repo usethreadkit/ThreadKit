@@ -42,7 +42,8 @@ export function treeCommentToComment(tc: TreeComment, parentId?: string, votes?:
     upvotes: tc.u,
     downvotes: tc.d,
     userVote: votes?.[tc.i] ?? null,
-    parentId,
+    // Use 'q' field if present (WebSocket messages), otherwise use passed parentId (nested tree)
+    parentId: tc.q ?? parentId,
     children: (tc.r ?? []).map((child) => treeCommentToComment(child, tc.i, votes)),
     edited: tc.m !== tc.x, // If modified_at differs from created_at, it was edited
     karma: tc.k,

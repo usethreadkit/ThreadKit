@@ -409,10 +409,11 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
 
   /**
    * Add a comment to local state (doesn't call API)
+   * Always sorts by 'newest' so user's own comments appear at the top
    */
   addComment(comment: Comment): void {
     this.setState({
-      comments: addToTree(this.state.comments, comment, this.sortBy),
+      comments: addToTree(this.state.comments, comment, 'newest'),
     });
   }
 

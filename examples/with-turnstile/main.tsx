@@ -75,7 +75,7 @@ function App() {
         <ThreadKit
           siteId="demo"
           url="/turnstile-demo"
-          apiKey="tk_pub_demo_key"
+          projectId="tk_pub_demo_key"
           apiUrl={API_URL}
           theme={theme}
           sortBy="newest"

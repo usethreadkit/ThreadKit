@@ -18,7 +18,7 @@ import '@threadkit/react/styles.css';
 function App() {
   return (
     <ThreadKit
-      apiKey="your-api-key"
+      projectId="your-project-id"
       pageId="unique-page-id"
       plugins={[mediaPreviewPlugin()]}
     />

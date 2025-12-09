@@ -81,7 +81,7 @@ function App() {
   return (
     <ThreadKit
       siteId="your-site-id"
-      apiKey="your-api-key"
+      projectId="your-project-id"
       apiUrl={API_URL}
       url={window.location.href}
       getPostHeaders={getPostHeaders}

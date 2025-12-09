@@ -54,13 +54,13 @@ To connect to a real ThreadKit backend:
 
 1. Remove the `mockApiPlugin()` from `vite.config.ts`
 2. Update the `apiUrl` prop to point to your server
-3. Add your `apiKey` prop
+3. Add your `projectId` prop
 
 ```tsx
 <ThreadKit
   siteId="your-site-id"
   url={window.location.pathname}
   apiUrl="https://api.usethreadkit.com"
-  apiKey="your-api-key"
+  projectId="your-project-id"
 />
 ```

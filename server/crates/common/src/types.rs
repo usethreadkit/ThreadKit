@@ -199,6 +199,10 @@ pub struct TreeComment {
     /// status (only stored if not approved)
     #[serde(rename = "s", default, skip_serializing_if = "Option::is_none")]
     pub status: Option<CommentStatus>,
+    /// parent_id - only used for WebSocket messages to indicate reply threading
+    /// Not used in GET /comments (uses nested replies instead)
+    #[serde(rename = "q", default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<Uuid>,
 }
 
 impl TreeComment {

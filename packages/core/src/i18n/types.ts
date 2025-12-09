@@ -151,6 +151,7 @@ export interface TranslationStrings {
   guestNamePlaceholder: string;
   continueAsGuest: string;
   guest: string;
+  anonymous: string;
 
   // User profile
   karma: string;

@@ -152,6 +152,7 @@ export const defaultTranslations: TranslationStrings = {
   guestNamePlaceholder: 'Display name (optional)',
   continueAsGuest: 'Continue as Guest',
   guest: 'Guest',
+  anonymous: 'Anonymous',
 
   // User profile
   karma: 'Karma',

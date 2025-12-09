@@ -18,10 +18,10 @@ function GuestAwareUsername({ userName, t }: { userName: string; t: TranslatorFu
     return <>{userName}</>;
   }
 
-  // Show display name or "Guest", always with badge
+  // Show display name or "Anonymous", always with "Guest" badge
   return (
     <span className="threadkit-guest-author">
-      {displayName || t('guest')}
+      {displayName || t('anonymous')}
       <span className="threadkit-guest-badge">{t('guest')}</span>
     </span>
   );

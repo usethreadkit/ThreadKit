@@ -465,6 +465,7 @@ pub async fn create_comment(
         modified_at: now_ts,
         replies: Vec::new(),
         status: status.clone(),
+        parent_id: req.parent_path.last().copied(),
     };
 
     // If shadow banned, return success but don't actually save

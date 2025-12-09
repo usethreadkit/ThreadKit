@@ -18,7 +18,7 @@ For apps without existing web3 integration:
 import { createEthereumAuthPlugin } from '@threadkit/plugin-auth-ethereum';
 
 const { plugin, Provider, ThreadKitEthereumWalletButton, useEthereumAuth } = createEthereumAuthPlugin({
-  apiKey: 'your-threadkit-api-key',
+  projectId: 'your-threadkit-project-id',
   provider: {
     mode: 'standalone',
     walletConnectProjectId: 'your-walletconnect-project-id', // optional
@@ -43,7 +43,7 @@ For apps with existing wagmi/viem setup:
 import { createEthereumAuthPlugin } from '@threadkit/plugin-auth-ethereum';
 
 const { plugin, Provider, ThreadKitEthereumWalletButton } = createEthereumAuthPlugin({
-  apiKey: 'your-threadkit-api-key',
+  projectId: 'your-threadkit-project-id',
   provider: { mode: 'external' },
 });
 
