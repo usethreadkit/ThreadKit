@@ -186,6 +186,12 @@ export interface ThreadKitProps {
   /** Enable debug mode to log internal events to console (default: false) */
   debug?: boolean;
 
+  // Error reporting
+  /** Optional Sentry instance for error reporting. When provided, errors will be reported to Sentry. */
+  sentry?: {
+    captureException: (error: Error) => void;
+  };
+
   // Callbacks
   /** Called when user successfully signs in */
   onSignIn?: (user: User) => void;

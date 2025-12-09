@@ -24,10 +24,13 @@ interface BlockedUser {
 
 // Error Boundary Component
 class ThreadKitErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  {
+    children: React.ReactNode;
+    sentry?: { captureException: (error: Error) => void };
+  },
   { hasError: boolean; error: Error | null }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: React.ReactNode; sentry?: { captureException: (error: Error) => void } }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -38,6 +41,11 @@ class ThreadKitErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ThreadKit Error:', error, errorInfo);
+
+    // Report to Sentry if provided
+    if (this.props.sentry) {
+      this.props.sentry.captureException(error);
+    }
   }
 
   render() {
@@ -229,6 +237,12 @@ function ThreadKitInner({
   // Pending comments for banner mode
   const [pendingRootComments, setPendingRootComments] = useState<Comment[]>([]);
   const [pendingReplies, setPendingReplies] = useState<Map<string, Comment[]>>(new Map());
+
+  // Sort comments by newest for chat mode
+  const chatComments = useMemo(() => {
+    if (mode === 'chat') return sortComments(comments, 'newest');
+    return comments;
+  }, [mode, comments]);
 
   // Imperative handle for parent component control
   useImperativeHandle(innerRef, () => ({
@@ -742,12 +756,6 @@ function ThreadKitInner({
     </div>
   ) : null;
 
-  // Sort comments by newest for chat mode
-  const chatComments = useMemo(() => {
-    if (mode === 'chat') return sortComments(comments, 'newest');
-    return comments;
-  }, [mode, comments]);
-
   return (
     <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
       {mode === 'chat' ? (
@@ -838,7 +846,7 @@ function ThreadKitInner({
 
 // Main exported component that wraps with AuthProvider and TranslationProvider
 export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
-  const { apiUrl = DEFAULT_API_URL, projectId, onSignIn, onSignOut, translations, debug = false } = props;
+  const { apiUrl = DEFAULT_API_URL, projectId, onSignIn, onSignOut, translations, debug = false, sentry } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -861,7 +869,7 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   );
 
   return (
-    <ThreadKitErrorBoundary>
+    <ThreadKitErrorBoundary sentry={sentry}>
       <DebugProvider value={debug}>
         <TranslationProvider translations={translations}>
           <AuthProvider apiUrl={apiUrl} projectId={projectId} onUserChange={handleUserChange}>
