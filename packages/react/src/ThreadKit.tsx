@@ -307,10 +307,6 @@ function ThreadKitInner({
         recentlyPostedIds.current.delete(comment.id);
         return;
       }
-      // Also skip if this is our own comment (backup check)
-      if (currentUser && comment.userId === currentUser.id) {
-        return;
-      }
 
       // Always call onCommentReceived for sound effects etc.
       onCommentReceived?.(comment);
