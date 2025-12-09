@@ -411,8 +411,8 @@ pub struct SiteConfig {
     pub id: Uuid,
     pub name: String,
     pub domain: String,
-    pub api_key_public: String,
-    pub api_key_secret: String,
+    pub project_id_public: String,
+    pub project_id_secret: String,
     pub settings: SiteSettings,
 }
 
@@ -681,9 +681,9 @@ pub enum ReportReason {
 // ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiKeyInfo {
+pub struct ProjectIdInfo {
     pub site_id: Uuid,
-    pub key_type: ApiKeyType,
+    pub key_type: ProjectIdType,
     pub settings: SiteSettings,
     /// Primary domain for this site (used for origin validation)
     pub domain: String,
@@ -691,7 +691,7 @@ pub struct ApiKeyInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum ApiKeyType {
+pub enum ProjectIdType {
     Public,
     Secret,
 }

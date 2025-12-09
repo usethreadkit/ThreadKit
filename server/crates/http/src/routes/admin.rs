@@ -11,7 +11,7 @@ use uuid::Uuid;
 use threadkit_common::types::{Role, TreeComment, UserPublic};
 
 use crate::{
-    extractors::{ApiKey, AuthUserWithRole, OwnerAccess},
+    extractors::{ProjectId, AuthUserWithRole, OwnerAccess},
     routes::users::find_comment_in_tree,
     state::AppState,
 };
@@ -218,17 +218,17 @@ pub async fn remove_admin(
         (status = 200, description = "List of moderators", body = RoleListResponse),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_moderators(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(site_id): Path<Uuid>,
 ) -> Result<Json<RoleListResponse>, (StatusCode, String)> {
     auth.require_admin()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
@@ -269,18 +269,18 @@ pub async fn get_moderators(
         (status = 403, description = "Not an admin"),
         (status = 404, description = "User not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn add_moderator(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(site_id): Path<Uuid>,
     Json(req): Json<AddUserRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     auth.require_admin()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
@@ -325,17 +325,17 @@ pub async fn add_moderator(
         (status = 200, description = "Moderator removed"),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn remove_moderator(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path((site_id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     auth.require_admin()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
@@ -364,18 +364,18 @@ pub async fn remove_moderator(
         (status = 200, description = "List of site comments", body = SiteCommentsResponse),
         (status = 403, description = "Not a moderator")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_site_comments(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(site_id): Path<Uuid>,
     Query(query): Query<SiteCommentsQuery>,
 ) -> Result<Json<SiteCommentsResponse>, (StatusCode, String)> {
     auth.require_moderator()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
@@ -461,21 +461,21 @@ pub struct SetPostingRequest {
         (status = 200, description = "Posting status", body = PostingStatusResponse),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_posting_status(
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(site_id): Path<Uuid>,
 ) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
     auth.require_admin()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
     Ok(Json(PostingStatusResponse {
-        disabled: api_key.0.settings.posting_disabled,
+        disabled: project_id.0.settings.posting_disabled,
     }))
 }
 
@@ -492,23 +492,23 @@ pub async fn get_posting_status(
         (status = 200, description = "Posting status updated", body = PostingStatusResponse),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn set_site_posting(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(site_id): Path<Uuid>,
     Json(req): Json<SetPostingRequest>,
 ) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
     auth.require_admin()?;
 
-    if site_id != api_key.0.site_id {
+    if site_id != project_id.0.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
     // Update settings
-    let mut settings = api_key.0.settings.clone();
+    let mut settings = project_id.0.settings.clone();
     settings.posting_disabled = req.disabled;
 
     state
@@ -541,11 +541,11 @@ pub async fn set_site_posting(
         (status = 200, description = "Page posting status", body = PostingStatusResponse),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_page_posting_status(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(page_id): Path<Uuid>,
 ) -> Result<Json<PostingStatusResponse>, (StatusCode, String)> {
@@ -553,7 +553,7 @@ pub async fn get_page_posting_status(
 
     let is_locked = state
         .redis
-        .is_page_locked(api_key.0.site_id, page_id)
+        .is_page_locked(project_id.0.site_id, page_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -573,11 +573,11 @@ pub async fn get_page_posting_status(
         (status = 200, description = "Page posting status updated", body = PostingStatusResponse),
         (status = 403, description = "Not an admin")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn set_page_posting(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(page_id): Path<Uuid>,
     Json(req): Json<SetPostingRequest>,
@@ -587,13 +587,13 @@ pub async fn set_page_posting(
     if req.disabled {
         state
             .redis
-            .lock_page(api_key.0.site_id, page_id)
+            .lock_page(project_id.0.site_id, page_id)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     } else {
         state
             .redis
-            .unlock_page(api_key.0.site_id, page_id)
+            .unlock_page(project_id.0.site_id, page_id)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }

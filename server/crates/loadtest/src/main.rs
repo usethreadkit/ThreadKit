@@ -126,7 +126,7 @@ enum Commands {
 
         /// Public API key
         #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Secret API key (for admin operations)
         #[arg(long, default_value = "tk_sec_loadtest_secret_key_12345")]
@@ -164,7 +164,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "10")]
@@ -187,7 +187,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "5")]
@@ -210,7 +210,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "10")]
@@ -237,7 +237,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent connections
         #[arg(short, long, default_value = "100")]
@@ -268,7 +268,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Target number of connections
         #[arg(short, long, default_value = "1000")]
@@ -307,7 +307,7 @@ enum Commands {
 
         /// API key
         #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of users to create
         #[arg(long, default_value = "1000")]
@@ -334,7 +334,7 @@ enum Commands {
 
         /// API key
         #[arg(long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Depth of the comment chain
         #[arg(long, default_value = "1000")]
@@ -353,7 +353,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "10")]
@@ -376,7 +376,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "10")]
@@ -395,7 +395,7 @@ enum Commands {
 
         /// API key
         #[arg(short, long, default_value = "tk_pub_loadtest_public_key_12345")]
-        api_key: String,
+        project_id: String,
 
         /// Number of concurrent workers
         #[arg(short, long, default_value = "10")]
@@ -465,59 +465,59 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Setup {
             url,
-            api_key,
+            project_id,
             secret_key,
             users,
             pages,
             comments_per_page,
         } => {
-            run_setup(&url, &api_key, &secret_key, users, pages, comments_per_page).await?;
+            run_setup(&url, &project_id, &secret_key, users, pages, comments_per_page).await?;
         }
         Commands::Teardown { redis_url, confirm } => {
             run_teardown(&redis_url, confirm).await?;
         }
         Commands::Read {
             url,
-            api_key,
+            project_id,
             workers,
             duration,
             rps,
         } => {
-            run_read_test(&url, &api_key, workers, duration, rps).await?;
+            run_read_test(&url, &project_id, workers, duration, rps).await?;
         }
         Commands::Write {
             url,
-            api_key,
+            project_id,
             workers,
             duration,
             users_file,
         } => {
-            run_write_test(&url, &api_key, workers, duration, &users_file).await?;
+            run_write_test(&url, &project_id, workers, duration, &users_file).await?;
         }
         Commands::Mixed {
             url,
-            api_key,
+            project_id,
             workers,
             duration,
             write_percent,
             users_file,
         } => {
-            run_mixed_test(&url, &api_key, workers, duration, write_percent, &users_file).await?;
+            run_mixed_test(&url, &project_id, workers, duration, write_percent, &users_file).await?;
         }
         Commands::Ws {
             url,
-            api_key,
+            project_id,
             connections,
             duration,
             users_file,
             typing,
             typing_interval,
         } => {
-            run_ws_test(&url, &api_key, connections, duration, users_file.as_deref(), typing, typing_interval).await?;
+            run_ws_test(&url, &project_id, connections, duration, users_file.as_deref(), typing, typing_interval).await?;
         }
         Commands::WsStress {
             url,
-            api_key,
+            project_id,
             connections,
             ramp_rate,
             hold_duration,
@@ -529,52 +529,52 @@ async fn main() -> Result<()> {
             // Raise limits and print system info for stress tests
             raise_fd_limit();
             print_system_limits();
-            run_ws_stress_test(&url, &api_key, connections, ramp_rate, hold_duration, msg_rate, pages, stagger_ms, max_concurrent_connects).await?;
+            run_ws_stress_test(&url, &project_id, connections, ramp_rate, hold_duration, msg_rate, pages, stagger_ms, max_concurrent_connects).await?;
         }
         Commands::Thread {
             url,
-            api_key,
+            project_id,
             users,
             comments_per_user,
             reply_percent,
             workers,
         } => {
-            run_thread_test(&url, &api_key, users, comments_per_user, reply_percent, workers).await?;
+            run_thread_test(&url, &project_id, users, comments_per_user, reply_percent, workers).await?;
         }
         Commands::Deep {
             url,
-            api_key,
+            project_id,
             depth,
             chains,
         } => {
-            run_deep_test(&url, &api_key, depth, chains).await?;
+            run_deep_test(&url, &project_id, depth, chains).await?;
         }
         Commands::Vote {
             url,
-            api_key,
+            project_id,
             workers,
             duration,
             users_file,
         } => {
-            run_vote_test(&url, &api_key, workers, duration, &users_file).await?;
+            run_vote_test(&url, &project_id, workers, duration, &users_file).await?;
         }
         Commands::Auth {
             url,
-            api_key,
+            project_id,
             workers,
             duration,
         } => {
-            run_auth_test(&url, &api_key, workers, duration).await?;
+            run_auth_test(&url, &project_id, workers, duration).await?;
         }
         Commands::Bench {
             url,
-            api_key,
+            project_id,
             workers,
             requests,
             test_type,
             users_file,
         } => {
-            run_bench_test(&url, &api_key, workers, requests, &test_type, &users_file).await?;
+            run_bench_test(&url, &project_id, workers, requests, &test_type, &users_file).await?;
         }
     }
 
@@ -587,7 +587,7 @@ async fn main() -> Result<()> {
 
 async fn run_setup(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     _secret_key: &str,
     num_users: usize,
     num_pages: usize,
@@ -619,7 +619,7 @@ async fn run_setup(
 
         let resp = client
             .post(format!("{}/v1/auth/register", url))
-            .header("X-API-Key", api_key)
+            .header("projectid", project_id)
             .json(&req)
             .send()
             .await
@@ -685,7 +685,7 @@ async fn run_setup(
 
             let resp = client
                 .post(format!("{}/v1/comments", url))
-                .header("X-API-Key", api_key)
+                .header("projectid", project_id)
                 .header("Authorization", format!("Bearer {}", user.token))
                 .json(&req)
                 .send()
@@ -774,7 +774,7 @@ async fn run_teardown(redis_url: &str, confirm: bool) -> Result<()> {
 
 async fn run_read_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     duration: u64,
     rps: u64,
@@ -824,7 +824,7 @@ async fn run_read_test(
         let client = client.clone();
         let stats = stats.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let rate_limiter = rate_limiter.clone();
         let pages = pages.clone();
 
@@ -850,7 +850,7 @@ async fn run_read_test(
                 let req_start = Instant::now();
                 stats.requests.fetch_add(1, Ordering::Relaxed);
 
-                let result = client.get(&url).header("X-API-Key", &api_key).send().await;
+                let result = client.get(&url).header("projectid", &project_id).send().await;
 
                 let latency = req_start.elapsed().as_micros() as u64;
                 stats.total_latency_us.fetch_add(latency, Ordering::Relaxed);
@@ -917,7 +917,7 @@ async fn run_read_test(
 
 async fn run_write_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     duration: u64,
     users_file: &str,
@@ -955,7 +955,7 @@ async fn run_write_test(
         let client = client.clone();
         let stats = stats.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let users = users.clone();
         let pages = pages.clone();
 
@@ -983,7 +983,7 @@ async fn run_write_test(
 
                 let result = client
                     .post(format!("{}/v1/comments", base_url))
-                    .header("X-API-Key", &api_key)
+                    .header("projectid", &project_id)
                     .header("Authorization", format!("Bearer {}", user.token))
                     .json(&req)
                     .send()
@@ -1044,7 +1044,7 @@ async fn run_write_test(
 
 async fn run_mixed_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     duration: u64,
     write_percent: u8,
@@ -1081,7 +1081,7 @@ async fn run_mixed_test(
         let client = client.clone();
         let stats = stats.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let users = users.clone();
         let pages = pages.clone();
 
@@ -1107,7 +1107,7 @@ async fn run_mixed_test(
 
                     client
                         .post(format!("{}/v1/comments", base_url))
-                        .header("X-API-Key", &api_key)
+                        .header("projectid", &project_id)
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&req)
                         .send()
@@ -1118,7 +1118,7 @@ async fn run_mixed_test(
                         base_url,
                         urlencoding::encode(page_url)
                     );
-                    client.get(&url).header("X-API-Key", &api_key).send().await
+                    client.get(&url).header("projectid", &project_id).send().await
                 };
 
                 let latency = req_start.elapsed().as_micros() as u64;
@@ -1205,7 +1205,7 @@ impl Default for WsStats {
 
 async fn run_ws_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     connections: usize,
     duration: u64,
     users_file: Option<&str>,
@@ -1267,9 +1267,9 @@ async fn run_ws_test(
         // Build connection URL with API key and optional token
         let token = users.as_ref().map(|u| u[i % u.len()].token.clone());
         let ws_url = if let Some(ref t) = token {
-            format!("{}/ws?api_key={}&token={}", url, api_key, t)
+            format!("{}/ws?project_id={}&token={}", url, project_id, t)
         } else {
-            format!("{}/ws?api_key={}", url, api_key)
+            format!("{}/ws?project_id={}", url, project_id)
         };
 
         handles.push(tokio::spawn(async move {
@@ -1542,7 +1542,7 @@ fn print_stats(stats: &Stats, elapsed: Duration) {
 
 async fn run_thread_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     num_users: usize,
     comments_per_user: usize,
     reply_percent: u8,
@@ -1575,7 +1575,7 @@ async fn run_thread_test(
 
         let resp = client
             .post(format!("{}/v1/auth/register", url))
-            .header("X-API-Key", api_key)
+            .header("projectid", project_id)
             .json(&req)
             .send()
             .await;
@@ -1625,7 +1625,7 @@ async fn run_thread_test(
         let comment_ids = comment_ids.clone();
         let stats = stats.clone();
         let url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let page_url = page_url.to_string();
 
         handles.push(tokio::spawn(async move {
@@ -1652,7 +1652,7 @@ async fn run_thread_test(
 
                 let resp = client
                     .post(format!("{}/v1/comments", url))
-                    .header("X-API-Key", &api_key)
+                    .header("projectid", &project_id)
                     .header("Authorization", format!("Bearer {}", user.token))
                     .json(&req)
                     .send()
@@ -1718,7 +1718,7 @@ async fn run_thread_test(
 
 async fn run_deep_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     depth: usize,
     num_chains: usize,
 ) -> Result<()> {
@@ -1743,7 +1743,7 @@ async fn run_deep_test(
 
     let resp = client
         .post(format!("{}/v1/auth/register", url))
-        .header("X-API-Key", api_key)
+        .header("projectid", project_id)
         .json(&req)
         .send()
         .await
@@ -1764,7 +1764,7 @@ async fn run_deep_test(
     for chain_id in 0..num_chains {
         let client = client.clone();
         let url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let token = token.clone();
 
         handles.push(tokio::spawn(async move {
@@ -1785,7 +1785,7 @@ async fn run_deep_test(
 
                 let resp = client
                     .post(format!("{}/v1/comments", url))
-                    .header("X-API-Key", &api_key)
+                    .header("projectid", &project_id)
                     .header("Authorization", format!("Bearer {}", token))
                     .json(&req)
                     .send()
@@ -1856,7 +1856,7 @@ async fn run_deep_test(
             url,
             urlencoding::encode(page_url)
         ))
-        .header("X-API-Key", api_key)
+        .header("projectid", project_id)
         .send()
         .await?;
 
@@ -1872,7 +1872,7 @@ async fn run_deep_test(
 
 async fn run_vote_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     duration: u64,
     users_file: &str,
@@ -1911,7 +1911,7 @@ async fn run_vote_test(
         let client = client.clone();
         let stats = stats.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let users = users.clone();
         let comment_ids = comment_ids.clone();
         let pages = pages.clone();
@@ -1936,7 +1936,7 @@ async fn run_vote_test(
 
                 let result = client
                     .post(format!("{}/v1/comments/{}/vote", base_url, comment_id))
-                    .header("X-API-Key", &api_key)
+                    .header("projectid", &project_id)
                     .header("Authorization", format!("Bearer {}", user.token))
                     .json(&req)
                     .send()
@@ -1994,7 +1994,7 @@ async fn run_vote_test(
 
 async fn run_auth_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     duration: u64,
 ) -> Result<()> {
@@ -2017,7 +2017,7 @@ async fn run_auth_test(
         let client = client.clone();
         let stats = stats.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
 
         handles.push(tokio::spawn(async move {
             let mut rng = StdRng::from_entropy();
@@ -2041,7 +2041,7 @@ async fn run_auth_test(
 
                     client
                         .post(format!("{}/v1/auth/register", base_url))
-                        .header("X-API-Key", &api_key)
+                        .header("projectid", &project_id)
                         .json(&req)
                         .send()
                         .await
@@ -2054,7 +2054,7 @@ async fn run_auth_test(
 
                     client
                         .post(format!("{}/v1/auth/login", base_url))
-                        .header("X-API-Key", &api_key)
+                        .header("projectid", &project_id)
                         .json(&req)
                         .send()
                         .await
@@ -2112,7 +2112,7 @@ async fn run_auth_test(
 
 async fn run_bench_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     workers: usize,
     requests_per_worker: usize,
     test_type: &str,
@@ -2165,7 +2165,7 @@ async fn run_bench_test(
         let successes = successes.clone();
         let failures = failures.clone();
         let base_url = url.to_string();
-        let api_key = api_key.to_string();
+        let project_id = project_id.to_string();
         let pages = pages.clone();
         let users = users.clone();
         let test_type = test_type.to_string();
@@ -2186,7 +2186,7 @@ async fn run_bench_test(
                             base_url,
                             urlencoding::encode(page_url)
                         );
-                        client.get(&url).header("X-API-Key", &api_key).send().await
+                        client.get(&url).header("projectid", &project_id).send().await
                     }
                     "write" => {
                         let user = &users[rng.gen_range(0..users.len())];
@@ -2198,7 +2198,7 @@ async fn run_bench_test(
                         };
                         client
                             .post(format!("{}/v1/comments", base_url))
-                            .header("X-API-Key", &api_key)
+                            .header("projectid", &project_id)
                             .header("Authorization", format!("Bearer {}", user.token))
                             .json(&req)
                             .send()
@@ -2212,7 +2212,7 @@ async fn run_bench_test(
                                 base_url,
                                 urlencoding::encode(page_url)
                             );
-                            client.get(&url).header("X-API-Key", &api_key).send().await
+                            client.get(&url).header("projectid", &project_id).send().await
                         } else {
                             let user = &users[rng.gen_range(0..users.len())];
                             let req = CreateCommentRequest {
@@ -2223,7 +2223,7 @@ async fn run_bench_test(
                             };
                             client
                                 .post(format!("{}/v1/comments", base_url))
-                                .header("X-API-Key", &api_key)
+                                .header("projectid", &project_id)
                                 .header("Authorization", format!("Bearer {}", user.token))
                                 .json(&req)
                                 .send()
@@ -2348,7 +2348,7 @@ impl Default for StressStats {
 
 async fn run_ws_stress_test(
     url: &str,
-    api_key: &str,
+    project_id: &str,
     target_connections: usize,
     ramp_rate: usize,
     hold_duration: u64,
@@ -2405,7 +2405,7 @@ async fn run_ws_stress_test(
             let stats = stats.clone();
             let page_ids = page_ids.clone();
             let mut shutdown_rx = shutdown_tx.subscribe();
-            let ws_url = format!("{}/ws?api_key={}", url, api_key);
+            let ws_url = format!("{}/ws?project_id={}", url, project_id);
             let msg_interval = if msg_rate > 0 {
                 Some(Duration::from_millis(1000 / msg_rate))
             } else {

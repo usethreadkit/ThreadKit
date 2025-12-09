@@ -8,7 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{extractors::ApiKey, state::AppState};
+use crate::{extractors::ProjectId, state::AppState};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -64,13 +64,13 @@ pub struct TurnstileConfigResponse {
     responses(
         (status = 200, description = "Turnstile configuration", body = TurnstileConfigResponse)
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn get_config(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
 ) -> Json<TurnstileConfigResponse> {
-    let settings = &api_key.0.settings.turnstile;
+    let settings = &project_id.0.settings.turnstile;
 
     Json(TurnstileConfigResponse {
         enabled: settings.enabled,
@@ -263,11 +263,11 @@ pub async fn challenge_page(
         (status = 200, description = "Verification result", body = VerifyResponse),
         (status = 503, description = "Turnstile not configured")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn verify_token(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     headers: axum::http::HeaderMap,
     Json(req): Json<VerifyRequest>,
 ) -> Result<Json<VerifyResponse>, (StatusCode, String)> {

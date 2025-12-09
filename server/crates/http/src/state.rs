@@ -78,17 +78,17 @@ impl AppState {
             let mut existing = existing_site.unwrap();
 
             // Verify API keys match what's in Redis
-            if existing.api_key_public != standalone.api_key_public {
+            if existing.project_id_public != standalone.project_id_public {
                 anyhow::bail!(
                     "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\
                      API key mismatch!\n\n\
-                     The API_KEY_PUBLIC in your .env doesn't match the one stored in Redis.\n\n\
+                     The PROJECT_ID_PUBLIC in your .env doesn't match the one stored in Redis.\n\n\
                      .env:   {}\n\
                      Redis:  {}\n\n\
                      Please update your .env with the correct API key.\n\
                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-                    standalone.api_key_public,
-                    existing.api_key_public
+                    standalone.project_id_public,
+                    existing.project_id_public
                 );
             }
 

@@ -4,7 +4,7 @@ use axum::{
 };
 use threadkit_common::{
     auth,
-    types::{ApiKeyInfo, ApiKeyType, Role},
+    types::{ProjectIdInfo, ProjectIdType, Role},
 };
 use url::Url;
 use uuid::Uuid;
@@ -72,11 +72,11 @@ fn is_origin_allowed(
     false
 }
 
-/// Extracts and validates API key from X-API-Key header
+/// Extracts and validates API key from projectid header
 /// Also validates that the request origin matches the site's allowed domains
-pub struct ApiKey(pub ApiKeyInfo);
+pub struct ProjectId(pub ProjectIdInfo);
 
-impl<S> FromRequestParts<S> for ApiKey
+impl<S> FromRequestParts<S> for ProjectId
 where
     AppState: FromRef<S>,
     S: Send + Sync,
@@ -86,27 +86,27 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = AppState::from_ref(state);
 
-        let api_key = parts
+        let project_id = parts
             .headers
-            .get("X-API-Key")
+            .get("projectid")
             .and_then(|v| v.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing X-API-Key header".to_string()))?;
+            .ok_or((StatusCode::UNAUTHORIZED, "Missing projectid header".to_string()))?;
 
         let allow_localhost = state.config.allow_localhost_origin;
 
         // Check cache first
-        if let Ok(Some(info)) = state.redis.get_cached_api_key(api_key).await {
+        if let Ok(Some(info)) = state.redis.get_cached_project_id(project_id).await {
             // Validate origin for cached API keys too
             validate_origin(&parts.headers, &info, allow_localhost)?;
-            return Ok(ApiKey(info));
+            return Ok(ProjectId(info));
         }
 
         // In standalone mode, validate against config
         if let Some(standalone) = state.config.standalone() {
-            let key_type = if api_key == standalone.api_key_public {
-                ApiKeyType::Public
-            } else if api_key == standalone.api_key_secret {
-                ApiKeyType::Secret
+            let key_type = if project_id == standalone.project_id_public {
+                ProjectIdType::Public
+            } else if project_id == standalone.project_id_secret {
+                ProjectIdType::Secret
             } else {
                 return Err((StatusCode::UNAUTHORIZED, "Invalid API key".to_string()));
             };
@@ -118,7 +118,7 @@ where
                 .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get site config".to_string()))?
                 .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Site config not found".to_string()))?;
 
-            let info = ApiKeyInfo {
+            let info = ProjectIdInfo {
                 site_id: standalone.site_id,
                 key_type,
                 settings: site_config.settings,
@@ -129,26 +129,26 @@ where
             validate_origin(&parts.headers, &info, allow_localhost)?;
 
             // Cache for future requests
-            let _ = state.redis.cache_api_key(api_key, &info).await;
+            let _ = state.redis.cache_project_id(project_id, &info).await;
 
-            return Ok(ApiKey(info));
+            return Ok(ProjectId(info));
         }
 
         // SaaS mode: look up site by API key in Redis
         let (site_id, site_config) = state
             .redis
-            .get_site_by_api_key(api_key)
+            .get_site_by_project_id(project_id)
             .await
             .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to validate API key".to_string()))?
             .ok_or((StatusCode::UNAUTHORIZED, "Invalid API key".to_string()))?;
 
-        let key_type = if api_key == site_config.api_key_public {
-            ApiKeyType::Public
+        let key_type = if project_id == site_config.project_id_public {
+            ProjectIdType::Public
         } else {
-            ApiKeyType::Secret
+            ProjectIdType::Secret
         };
 
-        let info = ApiKeyInfo {
+        let info = ProjectIdInfo {
             site_id,
             key_type,
             settings: site_config.settings,
@@ -159,20 +159,20 @@ where
         validate_origin(&parts.headers, &info, allow_localhost)?;
 
         // Cache for future requests
-        let _ = state.redis.cache_api_key(api_key, &info).await;
+        let _ = state.redis.cache_project_id(project_id, &info).await;
 
-        Ok(ApiKey(info))
+        Ok(ProjectId(info))
     }
 }
 
 /// Validate that the request origin is allowed for this API key
 fn validate_origin(
     headers: &HeaderMap,
-    info: &ApiKeyInfo,
+    info: &ProjectIdInfo,
     allow_localhost: bool,
 ) -> Result<(), (StatusCode, String)> {
     // Secret keys skip origin validation (server-to-server)
-    if info.key_type == ApiKeyType::Secret {
+    if info.key_type == ProjectIdType::Secret {
         return Ok(());
     }
 
@@ -402,14 +402,14 @@ where
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let api_key = ApiKey::from_request_parts(parts, state).await?;
+        let project_id = ProjectId::from_request_parts(parts, state).await?;
 
-        if api_key.0.key_type != ApiKeyType::Secret {
+        if project_id.0.key_type != ProjectIdType::Secret {
             return Err((StatusCode::FORBIDDEN, "Secret API key required".to_string()));
         }
 
         Ok(OwnerAccess {
-            site_id: api_key.0.site_id,
+            site_id: project_id.0.site_id,
         })
     }
 }

@@ -111,7 +111,7 @@ pub struct RedisBatcher {
     publish_queue: SegQueue<(String, String)>,       // (channel, message)
 
     // === READS (with response channels) ===
-    api_key_lookups: DashMap<String, Vec<oneshot::Sender<Option<ApiKeyInfo>>>>,
+    project_id_lookups: DashMap<String, Vec<oneshot::Sender<Option<ProjectIdInfo>>>>,
     presence_lookups: DashMap<Uuid, Vec<oneshot::Sender<HashSet<Uuid>>>>,
     user_lookups: DashMap<Uuid, Vec<oneshot::Sender<Option<User>>>>,
 }
@@ -129,7 +129,7 @@ impl RedisBatcher {
     pub fn queue_publish(&self, channel: &str, message: String);
 
     // === Read methods (async, waits up to 20ms for batch) ===
-    pub async fn get_cached_api_key(&self, key: &str) -> Option<ApiKeyInfo>;
+    pub async fn get_cached_project_id(&self, key: &str) -> Option<ProjectIdInfo>;
     pub async fn get_presence(&self, page_id: Uuid) -> HashSet<Uuid>;
     pub async fn get_user(&self, user_id: Uuid) -> Option<User>;
     pub async fn get_users_batch(&self, user_ids: Vec<Uuid>) -> Vec<Option<User>>;
@@ -249,11 +249,11 @@ pub struct WsState {
 pub async fn handle_socket(
     socket: WebSocket,
     state: WsState,
-    api_key: String,
+    project_id: String,
     token: Option<String>,
 ) {
     // 1. Validate API key via batcher (batched read)
-    let site_info = match state.batcher.get_cached_api_key(&api_key).await {
+    let site_info = match state.batcher.get_cached_project_id(&project_id).await {
         Some(info) => info,
         None => {
             // Validate against config, cache result

@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 use threadkit_common::redis::RedisClient;
-use threadkit_common::types::{ApiKeyInfo, User};
+use threadkit_common::types::{ProjectIdInfo, User};
 
 /// Pending read request with response channel
 struct PendingRead<T> {
@@ -39,8 +39,8 @@ pub struct RedisBatcher {
     publish_queue: crossbeam_queue::SegQueue<(String, String)>,
 
     // === READS (with response channels) ===
-    /// API key lookups: api_key -> list of waiting receivers
-    api_key_lookups: DashMap<String, Vec<PendingRead<Option<ApiKeyInfo>>>>,
+    /// API key lookups: project_id -> list of waiting receivers
+    project_id_lookups: DashMap<String, Vec<PendingRead<Option<ProjectIdInfo>>>>,
     /// Presence lookups: page_id -> list of waiting receivers
     presence_lookups: DashMap<Uuid, Vec<PendingRead<HashSet<Uuid>>>>,
     /// User lookups: user_id -> list of waiting receivers
@@ -68,7 +68,7 @@ impl RedisBatcher {
             presence_remove: DashMap::new(),
             typing_set: DashMap::new(),
             publish_queue: crossbeam_queue::SegQueue::new(),
-            api_key_lookups: DashMap::new(),
+            project_id_lookups: DashMap::new(),
             presence_lookups: DashMap::new(),
             user_lookups: DashMap::new(),
             message_counts: DashMap::new(),
@@ -152,11 +152,11 @@ impl RedisBatcher {
     /// Get cached API key info (batched read)
     ///
     /// Multiple requests for the same API key in one batch window will share a single Redis call.
-    pub async fn get_cached_api_key(&self, api_key: &str) -> Option<ApiKeyInfo> {
+    pub async fn get_cached_project_id(&self, project_id: &str) -> Option<ProjectIdInfo> {
         let (tx, rx) = oneshot::channel();
 
-        self.api_key_lookups
-            .entry(api_key.to_string())
+        self.project_id_lookups
+            .entry(project_id.to_string())
             .or_default()
             .push(PendingRead { tx });
         self.reads_batched.fetch_add(1, Ordering::Relaxed);
@@ -206,7 +206,7 @@ impl RedisBatcher {
         let presence_removes = self.drain_presence_removes();
         let typing_updates = self.drain_typing();
         let publishes = self.drain_publishes();
-        let api_key_requests = self.drain_api_key_lookups();
+        let project_id_requests = self.drain_project_id_lookups();
         let presence_requests = self.drain_presence_lookups();
         let user_requests = self.drain_user_lookups();
         let message_counts = self.drain_message_counts();
@@ -217,7 +217,7 @@ impl RedisBatcher {
             && presence_removes.is_empty()
             && typing_updates.is_empty()
             && publishes.is_empty()
-            && api_key_requests.is_empty()
+            && project_id_requests.is_empty()
             && presence_requests.is_empty()
             && user_requests.is_empty()
             && message_counts.is_empty()
@@ -230,7 +230,7 @@ impl RedisBatcher {
         self.execute_writes(presence_adds, presence_removes, typing_updates, publishes, message_counts, unique_users).await;
 
         // Execute reads and distribute results
-        self.execute_reads(api_key_requests, presence_requests, user_requests).await;
+        self.execute_reads(project_id_requests, presence_requests, user_requests).await;
     }
 
     // =========================================================================
@@ -279,11 +279,11 @@ impl RedisBatcher {
         result
     }
 
-    fn drain_api_key_lookups(&self) -> HashMap<String, Vec<PendingRead<Option<ApiKeyInfo>>>> {
+    fn drain_project_id_lookups(&self) -> HashMap<String, Vec<PendingRead<Option<ProjectIdInfo>>>> {
         let mut result = HashMap::new();
-        let keys: Vec<String> = self.api_key_lookups.iter().map(|r| r.key().clone()).collect();
+        let keys: Vec<String> = self.project_id_lookups.iter().map(|r| r.key().clone()).collect();
         for key in keys {
-            if let Some((_, pending)) = self.api_key_lookups.remove(&key) {
+            if let Some((_, pending)) = self.project_id_lookups.remove(&key) {
                 result.insert(key, pending);
             }
         }
@@ -402,13 +402,13 @@ impl RedisBatcher {
 
     async fn execute_reads(
         &self,
-        api_key_requests: HashMap<String, Vec<PendingRead<Option<ApiKeyInfo>>>>,
+        project_id_requests: HashMap<String, Vec<PendingRead<Option<ProjectIdInfo>>>>,
         presence_requests: HashMap<Uuid, Vec<PendingRead<HashSet<Uuid>>>>,
         user_requests: HashMap<Uuid, Vec<PendingRead<Option<User>>>>,
     ) {
         // Execute API key lookups
-        for (api_key, pending) in api_key_requests {
-            let result = self.redis.get_cached_api_key(&api_key).await.ok().flatten();
+        for (project_id, pending) in project_id_requests {
+            let result = self.redis.get_cached_project_id(&project_id).await.ok().flatten();
             for p in pending {
                 let _ = p.tx.send(result.clone());
             }

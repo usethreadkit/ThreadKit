@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use threadkit_common::{
     auth,
-    types::{ApiKeyInfo, ApiKeyType, UserPublic},
+    types::{ProjectIdInfo, ProjectIdType, UserPublic},
 };
 
 use crate::{
@@ -48,11 +48,11 @@ impl ConnectionConfig {
 pub async fn handle_socket(
     socket: WebSocket,
     state: WsState,
-    api_key: String,
+    project_id: String,
     token: Option<String>,
 ) {
     // Validate API key
-    let site_info = match validate_api_key(&state, &api_key).await {
+    let site_info = match validate_project_id(&state, &project_id).await {
         Ok(info) => info,
         Err(e) => {
             tracing::warn!("Invalid API key: {}", e);
@@ -338,18 +338,18 @@ async fn handle_client_message(
 }
 
 /// Validate an API key
-async fn validate_api_key(state: &WsState, api_key: &str) -> Result<ApiKeyInfo, String> {
+async fn validate_project_id(state: &WsState, project_id: &str) -> Result<ProjectIdInfo, String> {
     // Check cache first (via batcher for batching)
-    if let Some(info) = state.batcher.get_cached_api_key(api_key).await {
+    if let Some(info) = state.batcher.get_cached_project_id(project_id).await {
         return Ok(info);
     }
 
     // In standalone mode, validate against config
     if let Some(standalone) = state.config.standalone() {
-        let key_type = if api_key == standalone.api_key_public {
-            ApiKeyType::Public
-        } else if api_key == standalone.api_key_secret {
-            ApiKeyType::Secret
+        let key_type = if project_id == standalone.project_id_public {
+            ProjectIdType::Public
+        } else if project_id == standalone.project_id_secret {
+            ProjectIdType::Secret
         } else {
             return Err("Invalid API key".into());
         };
@@ -361,7 +361,7 @@ async fn validate_api_key(state: &WsState, api_key: &str) -> Result<ApiKeyInfo, 
             .map_err(|e| e.to_string())?
             .ok_or("Site config not found")?;
 
-        let info = ApiKeyInfo {
+        let info = ProjectIdInfo {
             site_id: standalone.site_id,
             key_type,
             settings: site_config.settings,
@@ -369,7 +369,7 @@ async fn validate_api_key(state: &WsState, api_key: &str) -> Result<ApiKeyInfo, 
         };
 
         // Cache for future requests
-        let _ = state.redis.cache_api_key(api_key, &info).await;
+        let _ = state.redis.cache_project_id(project_id, &info).await;
 
         return Ok(info);
     }

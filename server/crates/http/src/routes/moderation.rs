@@ -11,7 +11,7 @@ use uuid::Uuid;
 use threadkit_common::types::{CommentStatus, TreeComment, UserPublic, DELETED_USER_ID};
 
 use crate::{
-    extractors::{ApiKey, AuthUserWithRole},
+    extractors::{ProjectId, AuthUserWithRole},
     state::AppState,
 };
 
@@ -110,11 +110,11 @@ pub struct BanUserResponse {
         (status = 200, description = "Moderation queue", body = QueueResponse),
         (status = 403, description = "Not a moderator")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_queue(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Query(query): Query<PaginationQuery>,
 ) -> Result<Json<QueueResponse>, (StatusCode, String)> {
@@ -126,7 +126,7 @@ pub async fn get_queue(
     // Get modqueue items (page_id:comment_id pairs)
     let queue_items = state
         .redis
-        .get_modqueue_v2(api_key.0.site_id, offset, limit)
+        .get_modqueue_v2(project_id.0.site_id, offset, limit)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -170,11 +170,11 @@ pub async fn get_queue(
         (status = 200, description = "List of reports", body = ReportsResponse),
         (status = 403, description = "Not a moderator")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_reports(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Query(query): Query<PaginationQuery>,
 ) -> Result<Json<ReportsResponse>, (StatusCode, String)> {
@@ -186,7 +186,7 @@ pub async fn get_reports(
     // Get report items (page_id:comment_id pairs)
     let report_items = state
         .redis
-        .get_reports_v2(api_key.0.site_id, offset, limit)
+        .get_reports_v2(project_id.0.site_id, offset, limit)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -238,11 +238,11 @@ pub async fn get_reports(
         (status = 403, description = "Not a moderator"),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn approve_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<ModerateCommentRequest>,
@@ -280,7 +280,7 @@ pub async fn approve_comment(
     // Remove from modqueue
     let _ = state
         .redis
-        .remove_from_modqueue_v2(api_key.0.site_id, req.page_id, comment_id)
+        .remove_from_modqueue_v2(project_id.0.site_id, req.page_id, comment_id)
         .await;
 
     // Publish update for real-time clients
@@ -313,11 +313,11 @@ pub async fn approve_comment(
         (status = 403, description = "Not a moderator"),
         (status = 404, description = "Comment not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn reject_comment(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
     Json(req): Json<ModerateCommentRequest>,
@@ -354,7 +354,7 @@ pub async fn reject_comment(
     // Remove from modqueue
     let _ = state
         .redis
-        .remove_from_modqueue_v2(api_key.0.site_id, req.page_id, comment_id)
+        .remove_from_modqueue_v2(project_id.0.site_id, req.page_id, comment_id)
         .await;
 
     Ok(StatusCode::OK)
@@ -375,11 +375,11 @@ pub async fn reject_comment(
         (status = 400, description = "Cannot ban yourself"),
         (status = 403, description = "Cannot ban user with equal or higher role")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn ban_user(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(user_id): Path<Uuid>,
     Json(req): Json<BanUserRequest>,
@@ -394,7 +394,7 @@ pub async fn ban_user(
     // Check target's role - can't ban someone with higher role
     let target_role = state
         .redis
-        .get_user_role(api_key.0.site_id, user_id)
+        .get_user_role(project_id.0.site_id, user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -405,7 +405,7 @@ pub async fn ban_user(
     // Block the user
     state
         .redis
-        .block_user(api_key.0.site_id, user_id)
+        .block_user(project_id.0.site_id, user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -415,7 +415,7 @@ pub async fn ban_user(
         // Get user's comments on this site
         let comments = state
             .redis
-            .get_user_site_comments(user_id, api_key.0.site_id, 0, 10000) // Get all
+            .get_user_site_comments(user_id, project_id.0.site_id, 0, 10000) // Get all
             .await
             .unwrap_or_default();
 
@@ -456,11 +456,11 @@ pub async fn ban_user(
     responses(
         (status = 200, description = "User unbanned")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn unban_user(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -468,7 +468,7 @@ pub async fn unban_user(
 
     state
         .redis
-        .unblock_user(api_key.0.site_id, user_id)
+        .unblock_user(project_id.0.site_id, user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -488,11 +488,11 @@ pub async fn unban_user(
         (status = 400, description = "Cannot shadowban yourself"),
         (status = 403, description = "Cannot shadowban user with equal or higher role")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn shadowban_user(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -506,7 +506,7 @@ pub async fn shadowban_user(
     // Check target's role
     let target_role = state
         .redis
-        .get_user_role(api_key.0.site_id, user_id)
+        .get_user_role(project_id.0.site_id, user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -516,7 +516,7 @@ pub async fn shadowban_user(
 
     state
         .redis
-        .shadowban_user(api_key.0.site_id, user_id)
+        .shadowban_user(project_id.0.site_id, user_id)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

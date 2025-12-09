@@ -8,7 +8,7 @@ ThreadKit is an open-source, self-hostable comment system for websites and appli
 ## Quick Start
 
 1. Get an API key from your dashboard (or generate one if self-hosting)
-2. Include the API key in all requests via the `X-API-Key` header
+2. Include the API key in all requests via the `projectid` header
 3. Authenticate users via OAuth, email/password, or enable anonymous posting
 4. Load comments: `GET /comments?page_url=your-page-url`
 5. Post comments: `POST /comments` (requires auth or anonymous enabled)
@@ -20,12 +20,12 @@ For real-time updates (new comments, typing indicators, presence), connect to th
 ### Connection
 
 ```
-ws://server:8081/ws?api_key=tk_pub_xxx&token=<jwt>
+ws://server:8081/ws?project_id=tk_pub_xxx&token=<jwt>
 ```
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `api_key` | Yes | Your public API key |
+| `project_id` | Yes | Your public API key |
 | `token` | No | JWT token for authenticated users |
 
 ### Protocol
@@ -385,7 +385,7 @@ Single-letter keys for efficiency:
         )
     ),
     security(
-        ("api_key" = []),
+        ("project_id" = []),
         ("secret_key" = []),
         ("bearer" = [])
     )

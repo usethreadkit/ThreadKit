@@ -11,7 +11,7 @@ pub enum Error {
     Json(#[from] serde_json::Error),
 
     #[error("Invalid API key")]
-    InvalidApiKey,
+    InvalidProjectId,
 
     #[error("Unauthorized")]
     Unauthorized,
@@ -50,7 +50,7 @@ pub enum Error {
 impl Error {
     pub fn status_code(&self) -> u16 {
         match self {
-            Error::InvalidApiKey | Error::Unauthorized => 401,
+            Error::InvalidProjectId | Error::Unauthorized => 401,
             Error::Forbidden | Error::UserBlocked => 403,
             Error::NotFound(_) => 404,
             Error::BadRequest(_) | Error::InvalidVerificationCode => 400,

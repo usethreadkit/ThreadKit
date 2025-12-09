@@ -11,7 +11,7 @@ use uuid::Uuid;
 use threadkit_common::types::{DeletedAccountStats, Notification, SocialLinks, TreeComment, UserPublic};
 
 use crate::{
-    extractors::{ApiKey, AuthUser, MaybeAuthUser},
+    extractors::{ProjectId, AuthUser, MaybeAuthUser},
     state::AppState,
 };
 
@@ -139,11 +139,11 @@ pub struct UserCommentsResponse {
         (status = 401, description = "Not authenticated"),
         (status = 404, description = "User not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_me(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
 ) -> Result<Json<MeResponse>, (StatusCode, String)> {
     // Parallelize user and unread count fetches
@@ -182,11 +182,11 @@ pub async fn get_me(
         (status = 401, description = "Not authenticated"),
         (status = 409, description = "Username already taken")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn update_me(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
     Json(req): Json<UpdateMeRequest>,
 ) -> Result<Json<MeResponse>, (StatusCode, String)> {
@@ -272,11 +272,11 @@ pub async fn update_me(
         (status = 200, description = "User profile", body = UserPublic),
         (status = 404, description = "User not found")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn get_user(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<UserPublic>, (StatusCode, String)> {
     let user = state
@@ -301,7 +301,7 @@ pub async fn get_user(
 )]
 pub async fn check_username(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     MaybeAuthUser(auth): MaybeAuthUser,
     Json(req): Json<CheckUsernameRequest>,
 ) -> Result<Json<CheckUsernameResponse>, (StatusCode, String)> {
@@ -335,11 +335,11 @@ pub async fn check_username(
         (status = 200, description = "List of notifications", body = NotificationsResponse),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_notifications(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
     Query(query): Query<PaginationQuery>,
 ) -> Result<Json<NotificationsResponse>, (StatusCode, String)> {
@@ -390,11 +390,11 @@ pub async fn get_notifications(
         (status = 200, description = "Notifications marked as read"),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn mark_read(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
 ) -> Result<StatusCode, (StatusCode, String)> {
     state
@@ -425,11 +425,11 @@ pub struct BlockedUsersResponse {
         (status = 200, description = "List of blocked users", body = BlockedUsersResponse),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_blocked_users(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
 ) -> Result<Json<BlockedUsersResponse>, (StatusCode, String)> {
     let blocked_ids = state
@@ -467,11 +467,11 @@ pub async fn get_blocked_users(
         (status = 400, description = "Cannot block yourself"),
         (status = 404, description = "User not found")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn block_user(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -508,11 +508,11 @@ pub async fn block_user(
     responses(
         (status = 200, description = "User unblocked")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn unblock_user(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -538,11 +538,11 @@ pub async fn unblock_user(
         (status = 200, description = "Account deleted", body = DeletedAccountStats),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn delete_account(
     State(state): State<AppState>,
-    _api_key: ApiKey,
+    _project_id: ProjectId,
     auth: AuthUser,
 ) -> Result<Json<DeletedAccountStats>, (StatusCode, String)> {
     let stats = state
@@ -568,11 +568,11 @@ pub async fn delete_account(
         (status = 200, description = "User's comments", body = UserCommentsResponse),
         (status = 401, description = "Not authenticated")
     ),
-    security(("api_key" = []), ("bearer" = []))
+    security(("project_id" = []), ("bearer" = []))
 )]
 pub async fn get_my_comments(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     auth: AuthUser,
     Query(query): Query<PaginationQuery>,
 ) -> Result<Json<UserCommentsResponse>, (StatusCode, String)> {
@@ -582,7 +582,7 @@ pub async fn get_my_comments(
     // Get user's comments on this site
     let comment_refs = state
         .redis
-        .get_user_site_comments(auth.user_id, api_key.0.site_id, offset, limit + 1)
+        .get_user_site_comments(auth.user_id, project_id.0.site_id, offset, limit + 1)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -630,11 +630,11 @@ pub async fn get_my_comments(
         (status = 200, description = "User's comments", body = UserCommentsResponse),
         (status = 404, description = "User not found")
     ),
-    security(("api_key" = []))
+    security(("project_id" = []))
 )]
 pub async fn get_user_comments(
     State(state): State<AppState>,
-    api_key: ApiKey,
+    project_id: ProjectId,
     Path(user_id): Path<Uuid>,
     Query(query): Query<PaginationQuery>,
 ) -> Result<Json<UserCommentsResponse>, (StatusCode, String)> {
@@ -652,7 +652,7 @@ pub async fn get_user_comments(
     // Get user's comments on this site
     let comment_refs = state
         .redis
-        .get_user_site_comments(user_id, api_key.0.site_id, offset, limit + 1)
+        .get_user_site_comments(user_id, project_id.0.site_id, offset, limit + 1)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

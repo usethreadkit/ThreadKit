@@ -127,9 +127,9 @@ pub async fn rate_limit(
     let ip_hash = hash_ip(&client_ip);
 
     // Get API key info if present
-    let api_key_header = request
+    let project_id_header = request
         .headers()
-        .get("X-API-Key")
+        .get("projectid")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
@@ -143,11 +143,11 @@ pub async fn rate_limit(
         .map(|claims| claims.sub);
 
     // Get site-specific rate limit overrides
-    let (site_id, site_overrides) = if let Some(ref api_key) = api_key_header {
-        if let Ok(Some(info)) = state.redis.get_cached_api_key(api_key).await {
+    let (site_id, site_overrides) = if let Some(ref project_id) = project_id_header {
+        if let Ok(Some(info)) = state.redis.get_cached_project_id(project_id).await {
             (Some(info.site_id), Some(info.settings.rate_limits))
         } else if let Some(standalone) = state.config.standalone() {
-            if api_key == &standalone.api_key_public || api_key == &standalone.api_key_secret {
+            if project_id == &standalone.project_id_public || project_id == &standalone.project_id_secret {
                 if let Ok(Some(config)) = state.redis.get_site_config(standalone.site_id).await {
                     (Some(standalone.site_id), Some(config.settings.rate_limits))
                 } else {
@@ -220,11 +220,11 @@ pub async fn rate_limit(
 
     // Check API key rate limit (if present and for write operations)
     if let (Some(sid), RouteType::Write) = (site_id, route_type) {
-        let api_key_limit = global.api_key_writes_per_minute;
-        let api_key_key = format!("ratelimit:apikey:{}:{}", sid, route_suffix);
+        let project_id_limit = global.project_id_writes_per_minute;
+        let project_id_key = format!("ratelimit:apikey:{}:{}", sid, route_suffix);
         let api_result = state
             .redis
-            .check_rate_limit(&api_key_key, api_key_limit, 60)
+            .check_rate_limit(&project_id_key, project_id_limit, 60)
             .await
             .map_err(|e| {
                 tracing::error!("Rate limit check failed: {}", e);
@@ -232,7 +232,7 @@ pub async fn rate_limit(
             })?;
 
         if !api_result.allowed {
-            return Err(rate_limit_response(&api_result, "api_key"));
+            return Err(rate_limit_response(&api_result, "project_id"));
         }
     }
 

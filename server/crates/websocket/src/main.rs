@@ -177,7 +177,7 @@ async fn main() -> Result<()> {
 
 #[derive(Debug, Deserialize)]
 struct WsQuery {
-    api_key: String,
+    project_id: String,
     token: Option<String>,
 }
 
@@ -186,7 +186,7 @@ async fn ws_handler(
     State(state): State<WsState>,
     Query(query): Query<WsQuery>,
 ) -> Response {
-    ws.on_upgrade(move |socket| handle_socket(socket, state, query.api_key, query.token))
+    ws.on_upgrade(move |socket| handle_socket(socket, state, query.project_id, query.token))
 }
 
 async fn metrics_handler(State(state): State<WsState>) -> Json<serde_json::Value> {

@@ -23,7 +23,7 @@ pub struct RateLimitResult {
 }
 
 const VERIFICATION_TTL: i64 = 600; // 10 minutes
-const API_KEY_CACHE_TTL: i64 = 300; // 5 minutes
+const PROJECT_ID_CACHE_TTL: i64 = 300; // 5 minutes
 const TYPING_TTL: i64 = 5; // 5 seconds
 const WEB3_NONCE_TTL: i64 = 600; // 10 minutes
 
@@ -1301,13 +1301,13 @@ impl RedisClient {
     // API Key Cache
     // ========================================================================
 
-    pub async fn cache_api_key(&self, api_key: &str, info: &ApiKeyInfo) -> Result<()> {
+    pub async fn cache_project_id(&self, project_id: &str, info: &ProjectIdInfo) -> Result<()> {
         let value = serde_json::to_string(info)?;
         self.client
             .set::<(), _, _>(
-                format!("apikey:{}", api_key),
+                format!("apikey:{}", project_id),
                 value,
-                Some(Expiration::EX(API_KEY_CACHE_TTL)),
+                Some(Expiration::EX(PROJECT_ID_CACHE_TTL)),
                 None,
                 false,
             )
@@ -1315,8 +1315,8 @@ impl RedisClient {
         Ok(())
     }
 
-    pub async fn get_cached_api_key(&self, api_key: &str) -> Result<Option<ApiKeyInfo>> {
-        let value: Option<String> = self.client.get(format!("apikey:{}", api_key)).await?;
+    pub async fn get_cached_project_id(&self, project_id: &str) -> Result<Option<ProjectIdInfo>> {
+        let value: Option<String> = self.client.get(format!("apikey:{}", project_id)).await?;
         Ok(value.and_then(|v| serde_json::from_str(&v).ok()))
     }
 
@@ -1347,7 +1347,7 @@ impl RedisClient {
         // Create API key -> site_id indexes for lookup
         self.client
             .set::<(), _, _>(
-                format!("apikey:{}:site", config.api_key_public),
+                format!("apikey:{}:site", config.project_id_public),
                 config.id.to_string(),
                 None,
                 None,
@@ -1356,7 +1356,7 @@ impl RedisClient {
             .await?;
         self.client
             .set::<(), _, _>(
-                format!("apikey:{}:site", config.api_key_secret),
+                format!("apikey:{}:site", config.project_id_secret),
                 config.id.to_string(),
                 None,
                 None,
@@ -1368,9 +1368,9 @@ impl RedisClient {
     }
 
     /// Look up site by API key (for SaaS mode)
-    pub async fn get_site_by_api_key(&self, api_key: &str) -> Result<Option<(Uuid, SiteConfig)>> {
+    pub async fn get_site_by_project_id(&self, project_id: &str) -> Result<Option<(Uuid, SiteConfig)>> {
         // Get site_id from API key index
-        let site_id: Option<String> = self.client.get(format!("apikey:{}:site", api_key)).await?;
+        let site_id: Option<String> = self.client.get(format!("apikey:{}:site", project_id)).await?;
         let Some(site_id_str) = site_id else {
             return Ok(None);
         };
