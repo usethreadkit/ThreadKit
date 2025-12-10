@@ -8,6 +8,7 @@ pub mod comments;
 pub mod moderation;
 pub mod turnstile;
 pub mod users;
+pub mod version;
 
 pub fn router() -> Router<AppState> {
     Router::new()

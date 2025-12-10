@@ -177,6 +177,8 @@ async fn main() -> Result<()> {
         }))
         // OpenAPI docs UI (no rate limiting)
         .merge(Scalar::with_url("/docs", ApiDoc::openapi()))
+        // Version endpoint (no rate limiting)
+        .merge(routes::version::router())
         // Browser-facing OAuth routes (not under /v1, no rate limiting)
         .merge(routes::auth::oauth_router())
         // API routes (with rate limiting)
