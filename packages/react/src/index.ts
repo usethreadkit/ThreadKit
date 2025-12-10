@@ -37,8 +37,6 @@ export {
   PhoneIcon,
   GoogleIcon,
   GitHubIcon,
-  EthereumIcon,
-  SolanaIcon,
   LoadingSpinner,
 } from './auth';
 export type {

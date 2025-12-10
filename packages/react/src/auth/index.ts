@@ -12,8 +12,6 @@ export {
   PhoneIcon,
   GoogleIcon,
   GitHubIcon,
-  EthereumIcon,
-  SolanaIcon,
   LoadingSpinner,
   BackArrowIcon,
   CloseIcon,
