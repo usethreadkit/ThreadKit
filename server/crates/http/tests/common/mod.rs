@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use threadkit_common::{
     config::{
-        ContentModerationConfig, EmailConfig, ModerationMode, RateLimitConfig, SmsConfig,
+        ContentModerationConfig, EmailConfig, RateLimitConfig, SmsConfig,
         StandaloneConfig, TurnstileConfig,
     },
     Config,
@@ -77,12 +77,8 @@ impl TestContext {
             jwt_secret: "test_jwt_secret_for_testing".to_string(),
             jwt_expiry_hours: 24,
             mode: threadkit_common::config::Mode::Standalone(StandaloneConfig {
-                site_id,
                 project_id_public: project_id.clone(),
                 project_id_secret: secret_key.clone(),
-                site_name: "Test Site".to_string(),
-                site_domain: "localhost".to_string(),
-                moderation_mode: ModerationMode::None,
                 allowed_origins: vec![],
             }),
             oauth: Default::default(),

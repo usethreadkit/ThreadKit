@@ -109,8 +109,6 @@ export interface ThreadKitProps {
   cssVariables?: ThreadKitCSSVariables;
 
   // Comments mode options
-  /** Maximum nesting depth for replies (default: 5) */
-  maxDepth?: number;
   /** Sort order for comments (default: 'votes') */
   sortBy?: SortBy;
   /** Enable upvote/downvote (default: true) */
@@ -267,7 +265,6 @@ export interface CommentProps {
   /** Project ID for SignInPrompt (required if needsUsername can be true) */
   projectId?: string;
   depth?: number;
-  maxDepth?: number;
   collapsed?: boolean;
   highlighted?: boolean;
   index?: number;

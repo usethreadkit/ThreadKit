@@ -18,6 +18,8 @@ interface UseWebSocketOptions {
   onCommentEdited?: (pageId: string, commentId: string, text: string, textHtml: string) => void;
   /** Callback when a comment's votes are updated */
   onVoteUpdated?: (pageId: string, commentId: string, upvotes: number, downvotes: number) => void;
+  /** Callback when a comment's pin status is updated */
+  onPinUpdated?: (pageId: string, commentId: string, pinned: boolean, pinned_at: number | null) => void;
   /** Callback when presence list is received */
   onPresenceList?: (pageId: string, users: WsUser[]) => void;
   /** Callback when a user joins */
@@ -72,6 +74,7 @@ export function useWebSocket({
   onCommentDeleted,
   onCommentEdited,
   onVoteUpdated,
+  onPinUpdated,
   onPresenceList,
   onUserJoined,
   onUserLeft,
@@ -111,6 +114,7 @@ export function useWebSocket({
     onCommentDeleted,
     onCommentEdited,
     onVoteUpdated,
+    onPinUpdated,
     onPresenceList,
     onUserJoined,
     onUserLeft,
@@ -126,6 +130,7 @@ export function useWebSocket({
       onCommentDeleted,
       onCommentEdited,
       onVoteUpdated,
+      onPinUpdated,
       onPresenceList,
       onUserJoined,
       onUserLeft,
@@ -161,6 +166,10 @@ export function useWebSocket({
       callbacksRef.current.onVoteUpdated?.(pageId, commentId, upvotes, downvotes);
     });
 
+    const unsubPin = client.on('pinUpdated', ({ pageId, commentId, pinned, pinned_at }) => {
+      callbacksRef.current.onPinUpdated?.(pageId, commentId, pinned, pinned_at);
+    });
+
     const unsubPresence = client.on('presenceList', ({ pageId, users }) => {
       callbacksRef.current.onPresenceList?.(pageId, users);
     });
@@ -194,6 +203,7 @@ export function useWebSocket({
       unsubDeleted();
       unsubEdited();
       unsubVote();
+      unsubPin();
       unsubPresence();
       unsubJoined();
       unsubLeft();

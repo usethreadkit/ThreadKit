@@ -27,7 +27,6 @@ export function Comment({
   apiUrl,
   projectId,
   depth = 0,
-  maxDepth = 5,
   collapsed: initialCollapsed = false,
   highlighted = false,
   index = 0,
@@ -332,9 +331,8 @@ export function Comment({
                     </button>
                   )}
 
-                  {depth < maxDepth && (
-                    <button
-                      className="threadkit-action-btn"
+                  <button
+                    className="threadkit-action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowReplyForm(!showReplyForm);
@@ -342,7 +340,6 @@ export function Comment({
                     >
                       {t('reply')}
                     </button>
-                  )}
 
                   {onDelete && (
                     confirmingAction === 'delete' ? (
@@ -464,9 +461,8 @@ export function Comment({
                     )
                   )}
 
-                  {depth < maxDepth && (
-                    <button
-                      className="threadkit-action-btn"
+                  <button
+                    className="threadkit-action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowReplyForm(!showReplyForm);
@@ -474,7 +470,6 @@ export function Comment({
                     >
                       {t('reply')}
                     </button>
-                  )}
 
                   {isModOrAdmin && onDelete && (
                     confirmingAction === 'delete' ? (
@@ -594,7 +589,6 @@ export function Comment({
                   apiUrl={apiUrl}
                   projectId={projectId}
                   depth={depth + 1}
-                  maxDepth={maxDepth}
                   index={childIndex}
                   totalSiblings={comment.children.length}
                   highlighted={highlightedCommentId === child.id}

@@ -635,7 +635,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sort order (new, top, hot)",
+            "description": "Sort order (new, top, controversial, old)",
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/SortOrder"
@@ -2809,6 +2809,24 @@
             "format": "int64",
             "description": "Pageview count (if enabled)"
           },
+          "pinned": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              ]
+            },
+            "description": "List of pinned comment IDs with their pinned timestamps (sorted newest first)"
+          },
           "total": {
             "type": "integer",
             "format": "int64",
@@ -3504,7 +3522,8 @@
         "enum": [
           "new",
           "top",
-          "hot"
+          "controversial",
+          "old"
         ]
       },
       "TreeComment": {

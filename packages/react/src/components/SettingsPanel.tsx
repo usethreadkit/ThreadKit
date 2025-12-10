@@ -625,11 +625,7 @@ export function SettingsPanel({
                           </tr>
                           <tr>
                             <td><kbd>-</kbd></td>
-                            <td>{t('collapseFocusedComment')}</td>
-                          </tr>
-                          <tr>
-                            <td><kbd>=</kbd></td>
-                            <td>{t('expandFocusedComment')}</td>
+                            <td>{t('toggleCollapseFocusedComment')}</td>
                           </tr>
                           <tr>
                             <td><kbd>f</kbd></td>

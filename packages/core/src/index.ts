@@ -64,6 +64,7 @@ export {
   updateInTree,
   countComments,
   flattenTree,
+  extractPinnedComments,
 } from './utils/commentTree';
 
 // Tree Conversion Utilities (API <-> Client format)

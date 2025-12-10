@@ -61,8 +61,7 @@ export function useKeyboardShortcuts({
 export function getDefaultShortcuts(actions: {
   focusInput?: () => void;
   submitComment?: () => void;
-  collapseAll?: () => void;
-  expandAll?: () => void;
+  toggleCollapse?: () => void;
   nextComment?: () => void;
   prevComment?: () => void;
   editComment?: () => void;
@@ -84,19 +83,11 @@ export function getDefaultShortcuts(actions: {
     });
   }
 
-  if (actions.collapseAll) {
+  if (actions.toggleCollapse) {
     shortcuts.push({
       key: '-',
-      handler: actions.collapseAll,
-      description: 'Collapse focused comment',
-    });
-  }
-
-  if (actions.expandAll) {
-    shortcuts.push({
-      key: '=',
-      handler: actions.expandAll,
-      description: 'Expand focused comment',
+      handler: actions.toggleCollapse,
+      description: 'Toggle collapse focused comment',
     });
   }
 

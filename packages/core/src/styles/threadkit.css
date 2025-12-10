@@ -280,6 +280,66 @@
   text-transform: uppercase;
 }
 
+.threadkit-pinned-message {
+  background: var(--threadkit-bg-secondary);
+  border: 2px solid var(--threadkit-success);
+  border-radius: var(--threadkit-radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.threadkit-pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--threadkit-success);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--threadkit-radius);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.threadkit-pinned-badge .threadkit-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.threadkit-pinned-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.threadkit-pinned-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--threadkit-border-light);
+}
+
+.threadkit-pinned-section {
+  margin-bottom: 24px;
+}
+
+.threadkit-comment-highlight {
+  animation: threadkit-highlight 2s ease-out;
+}
+
+@keyframes threadkit-highlight {
+  0% {
+    background: var(--threadkit-primary);
+    opacity: 0.2;
+  }
+  100% {
+    background: transparent;
+    opacity: 0;
+  }
+}
+
 .threadkit-header-divider {
   color: var(--threadkit-text-muted);
 }

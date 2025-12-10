@@ -56,6 +56,8 @@ export interface WebSocketClientEvents {
   commentEdited: { pageId: string; commentId: string; text: string; textHtml: string };
   /** Emitted when a comment vote is updated */
   voteUpdated: { pageId: string; commentId: string; upvotes: number; downvotes: number };
+  /** Emitted when a comment pin status is updated */
+  pinUpdated: { pageId: string; commentId: string; pinned: boolean; pinned_at: number | null };
   /** Emitted when presence list is received */
   presenceList: { pageId: string; users: WsUser[] };
   /** Emitted when a user joins the page */
@@ -340,6 +342,15 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
             commentId: params.comment_id as string,
             upvotes: params.upvotes as number,
             downvotes: params.downvotes as number,
+          });
+          break;
+
+        case 'pin_update':
+          this.emit('pinUpdated', {
+            pageId: params.page_id as string,
+            commentId: params.comment_id as string,
+            pinned: params.pinned as boolean,
+            pinned_at: params.pinned_at as number | null,
           });
           break;
 
