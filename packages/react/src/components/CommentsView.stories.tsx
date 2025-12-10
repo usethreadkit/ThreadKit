@@ -269,3 +269,80 @@ export const WithPendingReplies: Story = {
     onLoadPendingReplies: (parentId) => console.log('Load pending replies for:', parentId),
   },
 };
+
+export const WithPinnedComments: Story = {
+  args: {
+    comments: [
+      {
+        id: 'pinned-1',
+        userId: 'user-mod',
+        userName: 'moderator',
+        text: '📌 **Welcome!** Please read our community guidelines before posting.',
+        timestamp: Date.now() - 86400000, // 1 day ago
+        upvotes: 50,
+        downvotes: 2,
+        children: [],
+        depth: 0,
+        status: 'approved',
+        pageUrl: 'https://example.com',
+        pinned: true,
+      },
+      ...mockComments,
+    ],
+    currentUser: mockUser,
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'test-project',
+    sortBy: 'top',
+    allowVoting: true,
+    pinnedIds: [['pinned-1', Date.now() - 86400000]],
+    onPost: async (text) => console.log('Post:', text),
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+  },
+};
+
+export const WithMultiplePinnedComments: Story = {
+  args: {
+    comments: [
+      {
+        id: 'pinned-1',
+        userId: 'user-mod',
+        userName: 'moderator',
+        text: '📌 **Announcement:** We have new community guidelines!',
+        timestamp: Date.now() - 86400000,
+        upvotes: 50,
+        downvotes: 2,
+        children: [],
+        depth: 0,
+        status: 'approved',
+        pageUrl: 'https://example.com',
+        pinned: true,
+      },
+      {
+        id: 'pinned-2',
+        userId: 'user-admin',
+        userName: 'admin',
+        text: '🎉 **New Feature:** Check out our latest update!',
+        timestamp: Date.now() - 43200000, // 12 hours ago
+        upvotes: 35,
+        downvotes: 1,
+        children: [],
+        depth: 0,
+        status: 'approved',
+        pageUrl: 'https://example.com',
+        pinned: true,
+      },
+      ...mockComments,
+    ],
+    currentUser: mockUser,
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'test-project',
+    sortBy: 'top',
+    allowVoting: true,
+    pinnedIds: [
+      ['pinned-1', Date.now() - 86400000],
+      ['pinned-2', Date.now() - 43200000],
+    ],
+    onPost: async (text) => console.log('Post:', text),
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+  },
+};
