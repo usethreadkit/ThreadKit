@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { NotificationsPanel } from './NotificationsPanel';
 import type { Notification } from './NotificationsPanel';
-import { I18nProvider } from '../i18n';
+import { TranslationProvider } from '../i18n';
 
 const meta = {
   title: 'Components/NotificationsPanel',
@@ -12,11 +12,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <I18nProvider>
+      <TranslationProvider>
         <div style={{ padding: '20px' }}>
           <Story />
         </div>
-      </I18nProvider>
+      </TranslationProvider>
     ),
   ],
 } satisfies Meta<typeof NotificationsPanel>;

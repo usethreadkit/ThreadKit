@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { NewCommentsBanner } from './NewCommentsBanner';
-import { I18nProvider } from '../i18n';
+import { TranslationProvider } from '../i18n';
 
 const meta = {
   title: 'Components/NewCommentsBanner',
@@ -11,9 +11,9 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <I18nProvider>
+      <TranslationProvider>
         <Story />
-      </I18nProvider>
+      </TranslationProvider>
     ),
   ],
 } satisfies Meta<typeof NewCommentsBanner>;

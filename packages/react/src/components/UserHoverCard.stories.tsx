@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { UserHoverCard } from './UserHoverCard';
-import { I18nProvider } from '../i18n';
+import { TranslationProvider } from '../i18n';
 import type { UserProfile } from '../types';
 
 const meta = {
@@ -12,11 +12,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <I18nProvider>
+      <TranslationProvider>
         <div style={{ padding: '100px' }}>
           <Story />
         </div>
-      </I18nProvider>
+      </TranslationProvider>
     ),
   ],
 } satisfies Meta<typeof UserHoverCard>;

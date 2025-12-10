@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Comment } from './Comment';
-import { I18nProvider } from '../i18n';
+import { TranslationProvider } from '../i18n';
 import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
 import type { Comment as CommentType, User } from '../types';
 
@@ -13,11 +13,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <I18nProvider>
+      <TranslationProvider>
         <ScoreDisplayProvider>
           <Story />
         </ScoreDisplayProvider>
-      </I18nProvider>
+      </TranslationProvider>
     ),
   ],
 } satisfies Meta<typeof Comment>;

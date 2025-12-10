@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SignInPrompt } from './SignInPrompt';
-import { I18nProvider } from '../i18n';
+import { TranslationProvider } from '../i18n';
 import { AuthProvider } from '../auth/AuthContext';
 
 const meta = {
@@ -12,14 +12,14 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <I18nProvider>
+      <TranslationProvider>
         <AuthProvider
           apiUrl="https://api.usethreadkit.com/v1"
           projectId="test-project"
         >
           <Story />
         </AuthProvider>
-      </I18nProvider>
+      </TranslationProvider>
     ),
   ],
 } satisfies Meta<typeof SignInPrompt>;
