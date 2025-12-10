@@ -684,7 +684,7 @@ function ThreadKitInner({
   const handleUpdateSocialLinks = useCallback(async (socialLinks: import('./types').SocialLinks) => {
     try {
       const token = localStorage.getItem('threadkit_token');
-      await fetch(`${apiUrl}/users/me`, {
+      const response = await fetch(`${apiUrl}/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -693,6 +693,19 @@ function ThreadKitInner({
         },
         body: JSON.stringify({ social_links: socialLinks }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update social links');
+      }
+
+      // Broadcast update to other instances (same as auth system)
+      try {
+        const authSyncChannel = new BroadcastChannel('threadkit-auth-sync');
+        authSyncChannel.postMessage({ type: 'threadkit:login' });
+        authSyncChannel.close();
+      } catch {
+        // BroadcastChannel not supported, ignore
+      }
     } catch (err) {
       onError?.(err instanceof Error ? err : new Error('Failed to update social links'));
     }

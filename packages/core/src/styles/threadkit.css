@@ -886,7 +886,6 @@
   display: flex;
   gap: 8px;
   margin-top: 4px;
-  padding-left: 60px;
 }
 
 .threadkit-chat-input {
@@ -1553,6 +1552,15 @@ button.threadkit-new-comments-banner:hover {
 .threadkit-theme-toggle-icon {
   width: 12px;
   height: 12px;
+}
+
+/* Theme section overrides */
+.threadkit-settings-section.threadkit-theme-section {
+  padding: 0;
+}
+
+.threadkit-settings-section.threadkit-theme-section .threadkit-settings-item {
+  padding: 4px;
 }
 
 .threadkit-settings-divider {

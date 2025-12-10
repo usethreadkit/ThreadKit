@@ -95,6 +95,7 @@ export function SettingsPanel({
   const hideDeleteModeRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const checkUsernameRef = useRef<number | null>(null);
+  const saveSocialLinksRef = useRef<number | null>(null);
 
   // Debounced username availability check
   useEffect(() => {
@@ -153,6 +154,49 @@ export function SettingsPanel({
       }
     };
   }, [newName, editingName, currentUser?.name, apiUrl]);
+
+  // Auto-save social links with debounce
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Check if any social link has changed
+    const hasChanges =
+      twitter !== (currentUser.socialLinks?.twitter || '') ||
+      github !== (currentUser.socialLinks?.github || '') ||
+      facebook !== (currentUser.socialLinks?.facebook || '') ||
+      whatsapp !== (currentUser.socialLinks?.whatsapp || '') ||
+      telegram !== (currentUser.socialLinks?.telegram || '') ||
+      instagram !== (currentUser.socialLinks?.instagram || '') ||
+      tiktok !== (currentUser.socialLinks?.tiktok || '') ||
+      snapchat !== (currentUser.socialLinks?.snapchat || '') ||
+      discord !== (currentUser.socialLinks?.discord || '');
+
+    if (!hasChanges) return;
+
+    if (saveSocialLinksRef.current) {
+      clearTimeout(saveSocialLinksRef.current);
+    }
+
+    saveSocialLinksRef.current = window.setTimeout(() => {
+      onUpdateSocialLinks({
+        twitter: twitter || undefined,
+        github: github || undefined,
+        facebook: facebook || undefined,
+        whatsapp: whatsapp || undefined,
+        telegram: telegram || undefined,
+        instagram: instagram || undefined,
+        tiktok: tiktok || undefined,
+        snapchat: snapchat || undefined,
+        discord: discord || undefined,
+      });
+    }, 1000);
+
+    return () => {
+      if (saveSocialLinksRef.current) {
+        clearTimeout(saveSocialLinksRef.current);
+      }
+    };
+  }, [twitter, github, facebook, whatsapp, telegram, instagram, tiktok, snapchat, discord, currentUser, onUpdateSocialLinks]);
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -269,6 +313,7 @@ export function SettingsPanel({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={30}
           className="threadkit-settings-name-input"
           placeholder={`https://${platform}.com/your-profile`}
         />
@@ -341,7 +386,7 @@ export function SettingsPanel({
                         }}
                       />
                       <button
-                        className="threadkit-action-btn"
+                        className="threadkit-submit-btn"
                         onClick={handleSaveName}
                         disabled={usernameAvailable === false || checkingUsername || !!usernameError}
                       >
@@ -376,9 +421,9 @@ export function SettingsPanel({
               </div>
 
               {/* Theme Toggle */}
-              <div className="threadkit-settings-section">
+              <div className="threadkit-settings-section threadkit-theme-section">
                 <div className="threadkit-settings-item">
-                  <span>{t('theme')}</span>
+                  <span></span>
                   <div className="threadkit-theme-toggle">
                     <button
                       onClick={() => onThemeChange('system')}
@@ -484,26 +529,6 @@ export function SettingsPanel({
                     {renderSocialLinkInput('tiktok', tiktok, setTiktok)}
                     {renderSocialLinkInput('snapchat', snapchat, setSnapchat)}
                     {renderSocialLinkInput('discord', discord, setDiscord)}
-
-                    <button
-                      className="threadkit-action-btn"
-                      onClick={() => {
-                        onUpdateSocialLinks({
-                          twitter: twitter || undefined,
-                          github: github || undefined,
-                          facebook: facebook || undefined,
-                          whatsapp: whatsapp || undefined,
-                          telegram: telegram || undefined,
-                          instagram: instagram || undefined,
-                          tiktok: tiktok || undefined,
-                          snapchat: snapchat || undefined,
-                          discord: discord || undefined,
-                        });
-                        setActiveSection(null); // Close section after saving
-                      }}
-                    >
-                      {t('saveSocialLinks')}
-                    </button>
                   </div>
                 )}
               </div>
