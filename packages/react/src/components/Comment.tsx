@@ -53,6 +53,7 @@ export function Comment({
   getUserProfile,
   fetchUserProfile,
   plugins,
+  focusedCommentId,
 }: CommentProps) {
   const t = useTranslation();
   const { mode: scoreDisplayMode, toggleMode: toggleScoreDisplay } = useScoreDisplay();
@@ -100,7 +101,8 @@ export function Comment({
     setIsEditing(false);
   };
 
-  const commentClassName = `threadkit-comment${highlighted ? ' threadkit-highlighted' : ''}${isDeleted ? ' threadkit-deleted' : ''}`;
+  const isFocused = focusedCommentId === comment.id;
+  const commentClassName = `threadkit-comment${highlighted ? ' threadkit-highlighted' : ''}${isDeleted ? ' threadkit-deleted' : ''}${isFocused ? ' threadkit-focused' : ''}`;
 
   if (collapsed) {
     return (
@@ -560,6 +562,7 @@ export function Comment({
                   getUserProfile={getUserProfile}
                   fetchUserProfile={fetchUserProfile}
                   plugins={plugins}
+                  focusedCommentId={focusedCommentId}
                 />
               ))}
             </div>

@@ -302,4 +302,6 @@ export interface CommentProps {
   fetchUserProfile?: (userId: string) => Promise<void>;
   /** Plugins for extending content rendering */
   plugins?: ThreadKitPlugin[];
+  /** Currently focused comment ID (for keyboard navigation) */
+  focusedCommentId?: string | null;
 }

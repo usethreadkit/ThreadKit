@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin } from '../types';
 import type { TypingUser } from '@threadkit/core';
 import { Comment } from './Comment';
@@ -6,6 +6,7 @@ import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
 import { useTranslation } from '../i18n';
 import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
+import { useKeyboardShortcuts, getDefaultShortcuts } from '../hooks/useKeyboardShortcuts';
 
 interface CommentsViewProps {
   comments: CommentType[];
@@ -89,6 +90,7 @@ export function CommentsView({
   plugins,
 }: CommentsViewProps) {
   const t = useTranslation();
+  const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
 
   const handleReply = useCallback(
     (parentId: string) => {
@@ -96,6 +98,73 @@ export function CommentsView({
     },
     [onReplyStart]
   );
+
+  // Keyboard navigation helpers
+  const getAllVisibleComments = useCallback(() => {
+    // Get all comment elements in DOM order (visual order)
+    return Array.from(document.querySelectorAll('.threadkit-comment:not(.threadkit-comment-collapsed)'));
+  }, []);
+
+  // Keyboard navigation handlers
+  const focusInput = useCallback(() => {
+    const textarea = document.querySelector('.threadkit-comment-form textarea') as HTMLTextAreaElement;
+    textarea?.focus();
+    setFocusedCommentId(null);
+  }, []);
+
+  const nextComment = useCallback(() => {
+    const allComments = getAllVisibleComments();
+    if (allComments.length === 0) return;
+
+    if (!focusedCommentId) {
+      // Focus first comment
+      const firstId = allComments[0].getAttribute('data-comment-id');
+      if (firstId) {
+        setFocusedCommentId(firstId);
+        allComments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Find current comment and move to next
+    const currentIndex = allComments.findIndex(el => el.getAttribute('data-comment-id') === focusedCommentId);
+    if (currentIndex >= 0 && currentIndex < allComments.length - 1) {
+      const nextId = allComments[currentIndex + 1].getAttribute('data-comment-id');
+      if (nextId) {
+        setFocusedCommentId(nextId);
+        allComments[currentIndex + 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [focusedCommentId, getAllVisibleComments]);
+
+  const prevComment = useCallback(() => {
+    const allComments = getAllVisibleComments();
+    if (allComments.length === 0) return;
+
+    if (!focusedCommentId) return;
+
+    // Find current comment and move to previous
+    const currentIndex = allComments.findIndex(el => el.getAttribute('data-comment-id') === focusedCommentId);
+    if (currentIndex > 0) {
+      const prevId = allComments[currentIndex - 1].getAttribute('data-comment-id');
+      if (prevId) {
+        setFocusedCommentId(prevId);
+        allComments[currentIndex - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else if (currentIndex === 0) {
+      // Go back to input
+      focusInput();
+    }
+  }, [focusedCommentId, getAllVisibleComments, focusInput]);
+
+  // Setup keyboard shortcuts
+  const shortcuts = useMemo(() => getDefaultShortcuts({
+    focusInput,
+    nextComment,
+    prevComment,
+  }), [focusInput, nextComment, prevComment]);
+
+  useKeyboardShortcuts({ shortcuts });
 
   return (
     <ScoreDisplayProvider>
@@ -163,13 +232,14 @@ export function CommentsView({
                 onReport={onReport}
                 onPermalink={onPermalink}
                 onCollapse={onCollapse}
-                  getUserProfile={getUserProfile}
-                  fetchUserProfile={fetchUserProfile}
-                  plugins={plugins}
-                  highlightedCommentId={highlightedCommentId}
-                  collapsedThreads={collapsedThreads}
-                  pendingReplies={pendingReplies}
-                />
+                getUserProfile={getUserProfile}
+                fetchUserProfile={fetchUserProfile}
+                plugins={plugins}
+                highlightedCommentId={highlightedCommentId}
+                collapsedThreads={collapsedThreads}
+                pendingReplies={pendingReplies}
+                focusedCommentId={focusedCommentId}
+              />
             ))}
           </div>
         )}

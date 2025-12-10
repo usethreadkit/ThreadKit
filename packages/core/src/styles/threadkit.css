@@ -129,6 +129,13 @@
   border-radius: var(--threadkit-radius);
 }
 
+/* Keyboard focused comment */
+.threadkit-comment.threadkit-focused {
+  outline: 2px solid var(--threadkit-primary);
+  outline-offset: 2px;
+  border-radius: var(--threadkit-radius);
+}
+
 @keyframes threadkit-highlight-pulse {
   0% {
     background-color: var(--threadkit-primary);
