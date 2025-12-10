@@ -26,6 +26,8 @@ pub fn router() -> Router<AppState> {
         .route("/sites/{id}/moderators/{user_id}", delete(remove_moderator))
         // Site comment feed (moderator+)
         .route("/sites/{id}/comments", get(get_site_comments))
+        // Site comment feed for owners (owner only via secret key)
+        .route("/sites/{id}/owner/comments", get(get_site_comments_owner))
         // Posting controls (admin+)
         .route("/sites/{id}/posting", get(get_posting_status).put(set_site_posting))
         .route("/pages/{page_id}/posting", get(get_page_posting_status).put(set_page_posting))
@@ -376,6 +378,82 @@ pub async fn get_site_comments(
     auth.require_moderator()?;
 
     if site_id != project_id.0.site_id {
+        return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
+    }
+
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(50).min(100);
+
+    // Get comment index from site's comment feed
+    let comment_refs = state
+        .redis
+        .get_site_comment_index(site_id, offset, limit + 1)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let has_more = comment_refs.len() > limit;
+    let comment_refs: Vec<_> = comment_refs.into_iter().take(limit).collect();
+
+    // Group by page_id for efficient page tree fetches
+    let mut page_ids: Vec<Uuid> = comment_refs.iter().map(|(page_id, _)| *page_id).collect();
+    page_ids.sort();
+    page_ids.dedup();
+
+    // Fetch all needed page trees in parallel
+    let tree_futures: Vec<_> = page_ids
+        .iter()
+        .map(|&page_id| state.redis.get_page_tree(page_id))
+        .collect();
+
+    let tree_results = futures::future::join_all(tree_futures).await;
+
+    // Build page_id -> tree map
+    let mut trees = std::collections::HashMap::new();
+    for (page_id, result) in page_ids.iter().zip(tree_results) {
+        if let Ok(Some(tree)) = result {
+            trees.insert(*page_id, tree);
+        }
+    }
+
+    // Find each comment in its page tree
+    let mut comments = Vec::with_capacity(comment_refs.len());
+    for (page_id, comment_id) in comment_refs {
+        if let Some(tree) = trees.get(&page_id) {
+            if let Some(comment) = find_comment_in_tree(&tree.comments, comment_id) {
+                comments.push(SiteCommentItem {
+                    page_id,
+                    comment: comment.clone(),
+                });
+            }
+        }
+    }
+
+    Ok(Json(SiteCommentsResponse { comments, has_more }))
+}
+
+/// Get site comments (owner only - requires secret API key)
+#[utoipa::path(
+    get,
+    path = "/sites/{id}/owner/comments",
+    tag = "admin",
+    params(
+        ("id" = Uuid, Path, description = "Site ID"),
+        SiteCommentsQuery
+    ),
+    responses(
+        (status = 200, description = "List of comments", body = SiteCommentsResponse),
+        (status = 403, description = "Not the owner")
+    ),
+    security(("secret_key" = []))
+)]
+pub async fn get_site_comments_owner(
+    State(state): State<AppState>,
+    owner: OwnerAccess,
+    Path(site_id): Path<Uuid>,
+    Query(query): Query<SiteCommentsQuery>,
+) -> Result<Json<SiteCommentsResponse>, (StatusCode, String)> {
+    // Verify site_id matches
+    if site_id != owner.site_id {
         return Err((StatusCode::FORBIDDEN, "Site ID mismatch".into()));
     }
 
