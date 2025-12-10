@@ -120,10 +120,9 @@ export const bg: LocaleMetadata = {
   editFocusedComment: 'Редактиране на коментар',
   replyToFocusedComment: 'Отговор',
   deleteFocusedComment: 'Изтриване на коментар',
-  collapseFocusedComment: 'Свиване',
-  expandFocusedComment: 'Разгъване',
   upvoteFocusedComment: 'Гласуване нагоре',
   downvoteFocusedComment: 'Гласуване надолу',
+  toggleCollapseFocusedComment: 'Превключи свиване',
   confirmYesNo: 'Потвърждение да/не',
   cancelClose: 'Отказ/затваряне',
 

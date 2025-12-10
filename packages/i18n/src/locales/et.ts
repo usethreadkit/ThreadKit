@@ -120,10 +120,9 @@ export const et: LocaleMetadata = {
   editFocusedComment: 'Muuda kommentaari',
   replyToFocusedComment: 'Vasta',
   deleteFocusedComment: 'Kustuta kommentaar',
-  collapseFocusedComment: 'Ahenda',
-  expandFocusedComment: 'Laienda',
   upvoteFocusedComment: 'Hääleta üles',
   downvoteFocusedComment: 'Hääleta alla',
+  toggleCollapseFocusedComment: 'Lülita ahendamine',
   confirmYesNo: 'Kinnita jah/ei',
   cancelClose: 'Tühista/sulge',
 

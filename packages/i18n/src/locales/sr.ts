@@ -120,10 +120,9 @@ export const sr: LocaleMetadata = {
   editFocusedComment: 'Измени коментар',
   replyToFocusedComment: 'Одговори',
   deleteFocusedComment: 'Обриши коментар',
-  collapseFocusedComment: 'Скупи',
-  expandFocusedComment: 'Прошири',
   upvoteFocusedComment: 'Гласај за',
   downvoteFocusedComment: 'Гласај против',
+  toggleCollapseFocusedComment: 'Пребаци сажимање',
   confirmYesNo: 'Потврди да/не',
   cancelClose: 'Откажи/затвори',
 

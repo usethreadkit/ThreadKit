@@ -120,10 +120,9 @@ export const my: LocaleMetadata = {
   editFocusedComment: 'မှတ်ချက်တည်းဖြတ်',
   replyToFocusedComment: 'ပြန်ကြား',
   deleteFocusedComment: 'မှတ်ချက်ဖျက်',
-  collapseFocusedComment: 'ခေါက်သိမ်း',
-  expandFocusedComment: 'ချဲ့ထွင်',
   upvoteFocusedComment: 'သဘောတူမဲ',
   downvoteFocusedComment: 'သဘောမတူမဲ',
+  toggleCollapseFocusedComment: 'ချုံ့ခြင်းကို ပြောင်းလဲရန်',
   confirmYesNo: 'အတည်ပြု ဟုတ်/မဟုတ်',
   cancelClose: 'ပယ်ဖျက်/ပိတ်',
 

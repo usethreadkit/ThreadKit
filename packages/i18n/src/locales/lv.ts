@@ -120,10 +120,9 @@ export const lv: LocaleMetadata = {
   editFocusedComment: 'Rediģēt komentāru',
   replyToFocusedComment: 'Atbildēt',
   deleteFocusedComment: 'Dzēst komentāru',
-  collapseFocusedComment: 'Sakļaut',
-  expandFocusedComment: 'Izvērst',
   upvoteFocusedComment: 'Balsot par',
   downvoteFocusedComment: 'Balsot pret',
+  toggleCollapseFocusedComment: 'Pārslēgt sakļaušanu',
   confirmYesNo: 'Apstiprināt jā/nē',
   cancelClose: 'Atcelt/aizvērt',
 

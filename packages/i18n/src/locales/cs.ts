@@ -120,10 +120,9 @@ export const cs: LocaleMetadata = {
   editFocusedComment: 'Upravit komentář',
   replyToFocusedComment: 'Odpovědět',
   deleteFocusedComment: 'Smazat komentář',
-  collapseFocusedComment: 'Sbalit',
-  expandFocusedComment: 'Rozbalit',
   upvoteFocusedComment: 'Hlasovat pro',
   downvoteFocusedComment: 'Hlasovat proti',
+  toggleCollapseFocusedComment: 'Přepnout sbalení',
   confirmYesNo: 'Potvrdit ano/ne',
   cancelClose: 'Zrušit/zavřít',
 

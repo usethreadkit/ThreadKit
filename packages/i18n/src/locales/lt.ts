@@ -120,10 +120,9 @@ export const lt: LocaleMetadata = {
   editFocusedComment: 'Redaguoti komentarą',
   replyToFocusedComment: 'Atsakyti',
   deleteFocusedComment: 'Ištrinti komentarą',
-  collapseFocusedComment: 'Suskleisti',
-  expandFocusedComment: 'Išskleisti',
   upvoteFocusedComment: 'Balsuoti už',
   downvoteFocusedComment: 'Balsuoti prieš',
+  toggleCollapseFocusedComment: 'Perjungti sutraukimą',
   confirmYesNo: 'Patvirtinti taip/ne',
   cancelClose: 'Atšaukti/uždaryti',
 

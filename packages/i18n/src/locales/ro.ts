@@ -120,10 +120,9 @@ export const ro: LocaleMetadata = {
   editFocusedComment: 'Editează comentariul',
   replyToFocusedComment: 'Răspunde',
   deleteFocusedComment: 'Șterge comentariul',
-  collapseFocusedComment: 'Restrânge',
-  expandFocusedComment: 'Extinde',
   upvoteFocusedComment: 'Votează pozitiv',
   downvoteFocusedComment: 'Votează negativ',
+  toggleCollapseFocusedComment: 'Comutare restrângere',
   confirmYesNo: 'Confirmă da/nu',
   cancelClose: 'Anulează/închide',
 

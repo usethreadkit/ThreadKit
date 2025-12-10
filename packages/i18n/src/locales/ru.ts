@@ -120,10 +120,9 @@ export const ru: LocaleMetadata = {
   editFocusedComment: 'Редактировать комментарий',
   replyToFocusedComment: 'Ответить',
   deleteFocusedComment: 'Удалить комментарий',
-  collapseFocusedComment: 'Свернуть',
-  expandFocusedComment: 'Развернуть',
   upvoteFocusedComment: 'Голосовать за',
   downvoteFocusedComment: 'Голосовать против',
+  toggleCollapseFocusedComment: 'Переключить сворачивание',
   confirmYesNo: 'Подтвердить да/нет',
   cancelClose: 'Отменить/закрыть',
 

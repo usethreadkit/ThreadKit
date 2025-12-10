@@ -120,10 +120,9 @@ export const zh: LocaleMetadata = {
   editFocusedComment: '编辑评论',
   replyToFocusedComment: '回复',
   deleteFocusedComment: '删除评论',
-  collapseFocusedComment: '折叠',
-  expandFocusedComment: '展开',
   upvoteFocusedComment: '点赞',
   downvoteFocusedComment: '点踩',
+  toggleCollapseFocusedComment: '切换折叠',
   confirmYesNo: '确认是/否',
   cancelClose: '取消/关闭',
 

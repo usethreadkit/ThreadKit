@@ -120,10 +120,9 @@ export const id: LocaleMetadata = {
   editFocusedComment: 'Edit komentar',
   replyToFocusedComment: 'Balas',
   deleteFocusedComment: 'Hapus komentar',
-  collapseFocusedComment: 'Ciutkan',
-  expandFocusedComment: 'Perluas',
   upvoteFocusedComment: 'Suara positif',
   downvoteFocusedComment: 'Suara negatif',
+  toggleCollapseFocusedComment: 'Alihkan lipat',
   confirmYesNo: 'Konfirmasi ya/tidak',
   cancelClose: 'Batal/tutup',
 

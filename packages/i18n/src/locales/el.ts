@@ -120,10 +120,9 @@ export const el: LocaleMetadata = {
   editFocusedComment: 'Επεξεργασία σχολίου',
   replyToFocusedComment: 'Απάντηση',
   deleteFocusedComment: 'Διαγραφή σχολίου',
-  collapseFocusedComment: 'Σύμπτυξη',
-  expandFocusedComment: 'Ανάπτυξη',
   upvoteFocusedComment: 'Θετική ψήφος',
   downvoteFocusedComment: 'Αρνητική ψήφος',
+  toggleCollapseFocusedComment: 'Εναλλαγή σύμπτυξης',
   confirmYesNo: 'Επιβεβαίωση ναι/όχι',
   cancelClose: 'Ακύρωση/κλείσιμο',
 

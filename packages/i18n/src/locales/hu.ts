@@ -120,10 +120,9 @@ export const hu: LocaleMetadata = {
   editFocusedComment: 'Hozzászólás szerkesztése',
   replyToFocusedComment: 'Válasz',
   deleteFocusedComment: 'Hozzászólás törlése',
-  collapseFocusedComment: 'Összecsukás',
-  expandFocusedComment: 'Kibontás',
   upvoteFocusedComment: 'Felszavazás',
   downvoteFocusedComment: 'Leszavazás',
+  toggleCollapseFocusedComment: 'Összecsukás váltása',
   confirmYesNo: 'Megerősítés igen/nem',
   cancelClose: 'Mégse/bezárás',
 

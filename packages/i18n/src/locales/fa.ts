@@ -120,10 +120,9 @@ export const fa: LocaleMetadata = {
   editFocusedComment: 'ویرایش نظر',
   replyToFocusedComment: 'پاسخ',
   deleteFocusedComment: 'حذف نظر',
-  collapseFocusedComment: 'جمع کردن',
-  expandFocusedComment: 'باز کردن',
   upvoteFocusedComment: 'رأی مثبت',
   downvoteFocusedComment: 'رأی منفی',
+  toggleCollapseFocusedComment: 'تغییر وضعیت جمع شدن',
   confirmYesNo: 'تأیید بله/خیر',
   cancelClose: 'لغو/بستن',
 

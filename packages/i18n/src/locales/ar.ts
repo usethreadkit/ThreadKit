@@ -120,10 +120,9 @@ export const ar: LocaleMetadata = {
   editFocusedComment: 'تحرير التعليق',
   replyToFocusedComment: 'رد',
   deleteFocusedComment: 'حذف التعليق',
-  collapseFocusedComment: 'طي',
-  expandFocusedComment: 'توسيع',
   upvoteFocusedComment: 'تصويت إيجابي',
   downvoteFocusedComment: 'تصويت سلبي',
+  toggleCollapseFocusedComment: 'تبديل الطي',
   confirmYesNo: 'تأكيد نعم/لا',
   cancelClose: 'إلغاء/إغلاق',
 

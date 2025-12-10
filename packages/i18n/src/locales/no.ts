@@ -120,10 +120,9 @@ export const no: LocaleMetadata = {
   editFocusedComment: 'Rediger kommentar',
   replyToFocusedComment: 'Svar',
   deleteFocusedComment: 'Slett kommentar',
-  collapseFocusedComment: 'Skjul',
-  expandFocusedComment: 'Utvid',
   upvoteFocusedComment: 'Stem opp',
   downvoteFocusedComment: 'Stem ned',
+  toggleCollapseFocusedComment: 'Veksle sammenslåing',
   confirmYesNo: 'Bekreft ja/nei',
   cancelClose: 'Avbryt/lukk',
 

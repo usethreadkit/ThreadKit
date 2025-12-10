@@ -120,10 +120,9 @@ export const uk: LocaleMetadata = {
   editFocusedComment: 'Редагувати коментар',
   replyToFocusedComment: 'Відповісти',
   deleteFocusedComment: 'Видалити коментар',
-  collapseFocusedComment: 'Згорнути',
-  expandFocusedComment: 'Розгорнути',
   upvoteFocusedComment: 'Голосувати за',
   downvoteFocusedComment: 'Голосувати проти',
+  toggleCollapseFocusedComment: 'Перемкнути згортання',
   confirmYesNo: 'Підтвердити так/ні',
   cancelClose: 'Скасувати/закрити',
 

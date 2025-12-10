@@ -120,10 +120,9 @@ export const pt: LocaleMetadata = {
   editFocusedComment: 'Editar comentário',
   replyToFocusedComment: 'Responder',
   deleteFocusedComment: 'Excluir comentário',
-  collapseFocusedComment: 'Recolher',
-  expandFocusedComment: 'Expandir',
   upvoteFocusedComment: 'Votar a favor',
   downvoteFocusedComment: 'Votar contra',
+  toggleCollapseFocusedComment: 'Alternar recolher',
   confirmYesNo: 'Confirmar sim/não',
   cancelClose: 'Cancelar/fechar',
 

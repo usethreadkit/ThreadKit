@@ -120,10 +120,9 @@ export const th: LocaleMetadata = {
   editFocusedComment: 'แก้ไขความคิดเห็น',
   replyToFocusedComment: 'ตอบกลับ',
   deleteFocusedComment: 'ลบความคิดเห็น',
-  collapseFocusedComment: 'ยุบ',
-  expandFocusedComment: 'ขยาย',
   upvoteFocusedComment: 'โหวตขึ้น',
   downvoteFocusedComment: 'โหวตลง',
+  toggleCollapseFocusedComment: 'สลับการยุบ',
   confirmYesNo: 'ยืนยัน ใช่/ไม่ใช่',
   cancelClose: 'ยกเลิก/ปิด',
 

@@ -120,10 +120,9 @@ export const ja: LocaleMetadata = {
   editFocusedComment: 'コメントを編集',
   replyToFocusedComment: '返信',
   deleteFocusedComment: 'コメントを削除',
-  collapseFocusedComment: '折りたたむ',
-  expandFocusedComment: '展開',
   upvoteFocusedComment: '賛成票',
   downvoteFocusedComment: '反対票',
+  toggleCollapseFocusedComment: '折りたたみ切替',
   confirmYesNo: 'はい/いいえを確認',
   cancelClose: 'キャンセル/閉じる',
 

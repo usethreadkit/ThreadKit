@@ -120,10 +120,9 @@ export const sk: LocaleMetadata = {
   editFocusedComment: 'Upraviť komentár',
   replyToFocusedComment: 'Odpovedať',
   deleteFocusedComment: 'Vymazať komentár',
-  collapseFocusedComment: 'Zbaliť',
-  expandFocusedComment: 'Rozbaliť',
   upvoteFocusedComment: 'Hlasovať za',
   downvoteFocusedComment: 'Hlasovať proti',
+  toggleCollapseFocusedComment: 'Prepnúť zbalenie',
   confirmYesNo: 'Potvrdiť áno/nie',
   cancelClose: 'Zrušiť/zavrieť',
 

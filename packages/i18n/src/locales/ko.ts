@@ -120,10 +120,9 @@ export const ko: LocaleMetadata = {
   editFocusedComment: '댓글 편집',
   replyToFocusedComment: '답글',
   deleteFocusedComment: '댓글 삭제',
-  collapseFocusedComment: '접기',
-  expandFocusedComment: '펼치기',
   upvoteFocusedComment: '추천',
   downvoteFocusedComment: '비추천',
+  toggleCollapseFocusedComment: '접기 전환',
   confirmYesNo: '예/아니오 확인',
   cancelClose: '취소/닫기',
 

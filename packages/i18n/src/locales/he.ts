@@ -120,10 +120,9 @@ export const he: LocaleMetadata = {
   editFocusedComment: 'ערוך תגובה',
   replyToFocusedComment: 'השב',
   deleteFocusedComment: 'מחק תגובה',
-  collapseFocusedComment: 'כווץ',
-  expandFocusedComment: 'הרחב',
   upvoteFocusedComment: 'הצבע בעד',
   downvoteFocusedComment: 'הצבע נגד',
+  toggleCollapseFocusedComment: 'החלף כיווץ',
   confirmYesNo: 'אשר כן/לא',
   cancelClose: 'ביטול/סגירה',
 

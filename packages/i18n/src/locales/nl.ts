@@ -120,10 +120,9 @@ export const nl: LocaleMetadata = {
   editFocusedComment: 'Opmerking bewerken',
   replyToFocusedComment: 'Antwoorden',
   deleteFocusedComment: 'Opmerking verwijderen',
-  collapseFocusedComment: 'Inklappen',
-  expandFocusedComment: 'Uitklappen',
   upvoteFocusedComment: 'Omhoog stemmen',
   downvoteFocusedComment: 'Omlaag stemmen',
+  toggleCollapseFocusedComment: 'Inklappen schakelen',
   confirmYesNo: 'Bevestig ja/nee',
   cancelClose: 'Annuleren/sluiten',
 

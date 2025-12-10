@@ -120,10 +120,9 @@ export const tr: LocaleMetadata = {
   editFocusedComment: 'Yorumu düzenle',
   replyToFocusedComment: 'Yanıtla',
   deleteFocusedComment: 'Yorumu sil',
-  collapseFocusedComment: 'Daralt',
-  expandFocusedComment: 'Genişlet',
   upvoteFocusedComment: 'Yukarı oy ver',
   downvoteFocusedComment: 'Aşağı oy ver',
+  toggleCollapseFocusedComment: 'Daraltmayı değiştir',
   confirmYesNo: 'Evet/hayır onayla',
   cancelClose: 'İptal/kapat',
 

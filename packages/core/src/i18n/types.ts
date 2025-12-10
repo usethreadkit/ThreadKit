@@ -116,8 +116,7 @@ export interface TranslationStrings {
   editFocusedComment: string;
   replyToFocusedComment: string;
   deleteFocusedComment: string;
-  collapseFocusedComment: string;
-  expandFocusedComment: string;
+  toggleCollapseFocusedComment: string;
   upvoteFocusedComment: string;
   downvoteFocusedComment: string;
   confirmYesNo: string;
