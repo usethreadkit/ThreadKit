@@ -510,6 +510,12 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
         error: null,
       });
       onUserChange?.(updatedUser);
+
+      // Broadcast username update to other instances
+      if (this.authSyncChannel) {
+        this.log('[ThreadKit AuthManager] Broadcasting username update');
+        this.authSyncChannel.postMessage({ type: 'threadkit:login' });
+      }
     } catch (err) {
       this.setState({
         step: 'username-required',

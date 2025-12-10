@@ -442,6 +442,11 @@ pub async fn verify_otp(
     let key = req.email.as_ref().or(req.phone.as_ref())
         .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
 
+    // Rate limit verification attempts (5 attempts per 10 minutes)
+    let verify_key = format!("ratelimit:otp:verify:{}", key);
+    state.redis.check_rate_limit(&verify_key, 5, 600).await
+        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Too many verification attempts. Please request a new code.".into()))?;
+
     let verification = state.redis.get_verification_code(key).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::BAD_REQUEST, "No verification code found".into()))?;
@@ -1018,6 +1023,11 @@ pub async fn verify(
     let key = req.email.as_ref().or(req.phone.as_ref())
         .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
 
+    // Rate limit verification attempts (5 attempts per 10 minutes)
+    let verify_key = format!("ratelimit:verify:{}", key);
+    state.redis.check_rate_limit(&verify_key, 5, 600).await
+        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Too many verification attempts. Please request a new code.".into()))?;
+
     let verification = state.redis.get_verification_code(key).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::BAD_REQUEST, "No verification code found".into()))?;
@@ -1103,6 +1113,11 @@ pub async fn reset_password(
 ) -> Result<StatusCode, (StatusCode, String)> {
     let key = req.email.as_ref().or(req.phone.as_ref())
         .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+
+    // Rate limit reset attempts (5 attempts per 10 minutes)
+    let reset_key = format!("ratelimit:reset:{}", key);
+    state.redis.check_rate_limit(&reset_key, 5, 600).await
+        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Too many reset attempts. Please request a new code.".into()))?;
 
     let verification = state.redis.get_verification_code(key).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?

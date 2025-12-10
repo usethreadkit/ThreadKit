@@ -6,6 +6,7 @@ import { useTranslation } from '../i18n';
 import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
 import { GuestAwareUsername, formatUsername } from '../utils/username';
+import { normalizeUsername, validateUsername, MAX_USERNAME_LENGTH } from '@threadkit/core';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -517,7 +518,7 @@ export function ChatView({
   plugins,
 }: ChatViewProps) {
   const t = useTranslation();
-  const { state: authState, login, selectMethod, setOtpTarget, verifyOtp, plugins: authPlugins } = useAuth();
+  const { state: authState, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, plugins: authPlugins } = useAuth();
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const authInputRef = useRef<HTMLInputElement>(null);
@@ -525,12 +526,20 @@ export function ChatView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
   const hasInitialized = useRef(false);
+  const hasShownUsernameSuggestion = useRef(false);
+  const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const oauthWindowRef = useRef<Window | null>(null);
   const stepRef = useRef(authState.step);
   stepRef.current = authState.step;
   const isModOrAdmin = currentUser?.isModerator || currentUser?.isAdmin;
   const isLoggedIn = currentUser && !needsUsername;
+  const canSubmitUsername = username.trim().length >= 1 && isUsernameAvailable === true && !usernameError;
 
   // Flatten comments tree while preserving order and thread structure
   const flattenWithThreading = (nodes: Comment[], depth = 0): Array<{ comment: Comment; depth: number }> => {
@@ -588,6 +597,131 @@ export function ChatView({
     [onSend]
   );
 
+  // Check username availability with debouncing
+  const checkUsernameAvailability = useCallback(async (value: string) => {
+    // First validate format
+    const validationError = validateUsername(value);
+    if (validationError) {
+      setUsernameError(validationError);
+      setIsUsernameAvailable(null);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const headers: Record<string, string> = {
+        'projectid': projectId,
+        'Content-Type': 'application/json',
+      };
+      // Include auth token so server can exclude current user from check
+      if (authState.token) {
+        headers['Authorization'] = `Bearer ${authState.token}`;
+      }
+      const res = await fetch(`${apiUrl}/users/check-username`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ username: value }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.error) {
+          setUsernameError(data.error);
+          setIsUsernameAvailable(false);
+        } else {
+          setUsernameError(null);
+          setIsUsernameAvailable(data.available);
+        }
+      }
+    } catch {
+      // Ignore errors, user can still try to submit
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  }, [apiUrl, projectId, authState.token]);
+
+  // Initialize username from user's email or name when username-required step is shown (only once)
+  useEffect(() => {
+    if ((authState.step === 'username-required' || authState.step === 'otp-name') && !hasShownUsernameSuggestion.current) {
+      hasShownUsernameSuggestion.current = true;
+      let suggestion = '';
+
+      // For email users, use the part before @ as the suggestion
+      const email = authState.user?.email || authState.otpTarget;
+      if (email && email.includes('@')) {
+        const emailPrefix = email.split('@')[0];
+        suggestion = normalizeUsername(emailPrefix);
+      }
+
+      // Fall back to user's name if no email or email prefix is too short
+      if (suggestion.length < 2 && authState.user?.name) {
+        suggestion = normalizeUsername(authState.user.name);
+      }
+
+      if (suggestion) {
+        setUsername(suggestion);
+        // Immediately check availability of the suggested username
+        if (suggestion.length >= 1) {
+          checkUsernameAvailability(suggestion);
+        }
+      }
+    }
+  }, [authState.step, authState.user?.name, authState.user?.email, authState.otpTarget, checkUsernameAvailability]);
+
+  const handleUsernameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // Normalize on input: lowercase, replace spaces with hyphens, remove invalid chars
+    value = value.toLowerCase();
+    value = value.replace(/\s+/g, '-'); // Replace spaces with hyphens
+    value = value.replace(/[^a-z0-9\-_]/g, ''); // Remove invalid characters
+    value = value.slice(0, MAX_USERNAME_LENGTH); // Enforce max length
+
+    setUsername(value);
+    setUsernameError(null);
+    setIsUsernameAvailable(null);
+
+    // Debounce the availability check
+    if (usernameCheckTimeout.current) {
+      clearTimeout(usernameCheckTimeout.current);
+    }
+
+    if (value.length >= 1) {
+      usernameCheckTimeout.current = setTimeout(() => {
+        checkUsernameAvailability(value);
+      }, 300);
+    }
+  }, [checkUsernameAvailability]);
+
+  const handleUsernameSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (username.trim() && isUsernameAvailable && !usernameError && !isSubmittingUsername) {
+        setIsSubmittingUsername(true);
+        try {
+          if (authState.step === 'otp-name') {
+            // For otp-name, we need to verify with the username
+            await verifyOtp(otpCode.trim(), username.trim());
+          } else {
+            // For username-required, just update the username
+            await updateUsername(username.trim());
+          }
+        } finally {
+          setIsSubmittingUsername(false);
+        }
+      }
+    },
+    [username, isUsernameAvailable, usernameError, isSubmittingUsername, authState.step, otpCode, verifyOtp, updateUsername]
+  );
+
+  // Reset hasInitialized when user logs out
+  useEffect(() => {
+    if (!isLoggedIn) {
+      hasInitialized.current = false;
+      hasShownUsernameSuggestion.current = false;
+    }
+  }, [isLoggedIn]);
+
   // Initialize auth methods on mount if not logged in
   useEffect(() => {
     if (!isLoggedIn && !hasInitialized.current && authState.step === 'idle') {
@@ -598,7 +732,7 @@ export function ChatView({
 
   // Focus auth input when step changes
   useEffect(() => {
-    if (authState.step === 'otp-input' || authState.step === 'otp-verify') {
+    if (authState.step === 'otp-input' || authState.step === 'otp-verify' || authState.step === 'username-required' || authState.step === 'otp-name') {
       authInputRef.current?.focus();
     }
   }, [authState.step]);
@@ -762,6 +896,48 @@ export function ChatView({
               disabled={otpCode.length !== 6}
             >
               {t('verify')}
+            </button>
+          </form>
+          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+        </div>
+      );
+    }
+
+    // Username selection for new users (after OAuth/OTP login)
+    if (authState.step === 'username-required' || authState.step === 'otp-name') {
+      return (
+        <div className="threadkit-chat-signin">
+          <form onSubmit={handleUsernameSubmit} className="threadkit-username-inline-form">
+            <span className="threadkit-username-inline-label">{t('chooseUsername')}:</span>
+            <div className="threadkit-username-inline-input-wrapper">
+              <input
+                ref={authInputRef}
+                type="text"
+                className="threadkit-username-inline-input"
+                placeholder={t('usernamePlaceholder')}
+                value={username}
+                onChange={handleUsernameChange}
+                autoComplete="username"
+                maxLength={MAX_USERNAME_LENGTH}
+              />
+              {isCheckingUsername && (
+                <span className="threadkit-username-status threadkit-username-checking">{t('checking')}</span>
+              )}
+              {!isCheckingUsername && isUsernameAvailable === true && !usernameError && (
+                <span className="threadkit-username-status threadkit-username-available">✓</span>
+              )}
+              {!isCheckingUsername && (isUsernameAvailable === false || usernameError) && (
+                <span className="threadkit-username-status threadkit-username-taken">
+                  {usernameError || t('usernameTaken')}
+                </span>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="threadkit-submit-btn"
+              disabled={!canSubmitUsername || isSubmittingUsername}
+            >
+              {isSubmittingUsername ? t('loading') : authState.step === 'otp-name' ? t('continue') : t('save')}
             </button>
           </form>
           {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}

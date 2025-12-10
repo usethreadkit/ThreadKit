@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { ThreadKit } from '@threadkit/react';
 import '@threadkit/react/styles';
 
-type Mode = 'comments' | 'chat';
 type Theme = 'light' | 'dark';
 
 // Configuration for local development
@@ -12,16 +11,15 @@ const API_URL = 'http://localhost:8080/v1';
 const WS_URL = 'ws://localhost:8081';
 
 function App() {
-  const [mode, setMode] = useState<Mode>('comments');
   const [theme, setTheme] = useState<Theme>('light');
   const [pageUrl, setPageUrl] = useState('/demo');
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       <header style={{ marginBottom: 32 }}>
-        <h1 style={{ marginBottom: 8 }}>ThreadKit - Local Server</h1>
+        <h1 style={{ marginBottom: 8 }}>ThreadKit - Local Server (Two Instances)</h1>
         <p style={{ color: '#666', marginBottom: 16 }}>
-          Connects to your local ThreadKit server at <code>localhost:8080</code>
+          Testing chat and thread modes side-by-side at <code>localhost:8080</code>
         </p>
 
         <div
@@ -56,18 +54,6 @@ function App() {
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            Mode:
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as Mode)}
-              style={{ padding: '4px 8px' }}
-            >
-              <option value="comments">Comments</option>
-              <option value="chat">Chat</option>
-            </select>
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             Theme:
             <select
               value={theme}
@@ -92,28 +78,55 @@ function App() {
         </div>
       </header>
 
-      <main
-        style={{
-          background: theme === 'dark' ? '#1a1a1a' : '#fff',
-          borderRadius: 8,
-          padding: 24,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        }}
-      >
-        <ThreadKit
-          projectId={LOCAL_PROJECT_ID}
-          url={pageUrl}
-          mode={mode}
-          theme={theme}
-          sortBy="newest"
-          showPresence={mode === 'chat'}
-          showTyping={mode === 'chat'}
-          apiUrl={API_URL}
-          wsUrl={WS_URL}
-          debug={true}
-          onError={(error) => console.error('ThreadKit error:', error)}
-        />
-      </main>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <main
+          style={{
+            background: theme === 'dark' ? '#1a1a1a' : '#fff',
+            borderRadius: 8,
+            padding: 24,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 18 }}>Chat Mode</h2>
+          <ThreadKit
+            projectId={LOCAL_PROJECT_ID}
+            url={pageUrl}
+            mode="chat"
+            theme={theme}
+            sortBy="new"
+            showPresence={true}
+            showTyping={true}
+            apiUrl={API_URL}
+            wsUrl={WS_URL}
+            debug={true}
+            onError={(error) => console.error('ThreadKit chat error:', error)}
+          />
+        </main>
+
+        <main
+          style={{
+            background: theme === 'dark' ? '#1a1a1a' : '#fff',
+            borderRadius: 8,
+            padding: 24,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 18 }}>Thread Mode</h2>
+          <ThreadKit
+            projectId={LOCAL_PROJECT_ID}
+            url={pageUrl}
+            mode="comments"
+            theme={theme}
+            sortBy="new"
+            showPresence={false}
+            showTyping={false}
+            apiUrl={API_URL}
+            wsUrl={WS_URL}
+            debug={true}
+            onError={(error) => console.error('ThreadKit thread error:', error)}
+          />
+        </main>
+      </div>
 
       <footer style={{ marginTop: 32, color: '#666', fontSize: 14 }}>
         <p>
