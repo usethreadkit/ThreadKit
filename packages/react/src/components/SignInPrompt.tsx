@@ -31,18 +31,32 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
   stepRef.current = state.step; // Keep ref in sync with state
   const hasShownUsernameSuggestion = useRef(false);
 
-  // Fetch auth methods on mount
+  // Fetch auth methods on mount (only if not already authenticated)
   useEffect(() => {
-    if (!hasInitialized.current && state.step === 'idle') {
+    if (!hasInitialized.current && state.step === 'idle' && !state.user && !state.token) {
       hasInitialized.current = true;
       login();
     }
-  }, [state.step, login]);
+  }, [state.step, state.user, state.token, login]);
 
   // Focus input when step changes to OTP input or username-required
+  // Only focus if this component's container is visible to prevent focus stealing across multiple ThreadKit instances
   useEffect(() => {
     if (state.step === 'otp-input' || state.step === 'otp-verify' || state.step === 'otp-name' || state.step === 'username-required') {
-      inputRef.current?.focus();
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        const input = inputRef.current;
+        if (!input) return;
+
+        // Check if the input is visible in the viewport
+        const rect = input.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight && rect.left >= 0 && rect.right <= window.innerWidth;
+
+        // Only focus if visible - prevents stealing focus from other ThreadKit instances
+        if (isVisible) {
+          input.focus();
+        }
+      });
     }
   }, [state.step]);
 
