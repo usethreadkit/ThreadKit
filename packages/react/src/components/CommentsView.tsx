@@ -30,6 +30,8 @@ interface CommentsViewProps {
   onLoadPendingReplies?: (parentId: string) => void;
   /** Map of comment ID (or null for root) -> users typing for that context */
   typingByComment?: Map<string | null, TypingUser[]>;
+  /** Whether keyboard navigation shortcuts are enabled */
+  keyboardNavigationEnabled?: boolean;
   onSortChange?: (sort: SortBy) => void;
   onPost: (text: string, parentId?: string) => Promise<void>;
   onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -72,6 +74,7 @@ export function CommentsView({
   onLoadPendingComments,
   onLoadPendingReplies,
   typingByComment,
+  keyboardNavigationEnabled = true,
   onSortChange,
   onPost,
   onVote,
@@ -233,7 +236,8 @@ export function CommentsView({
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
-    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    // Use specific path to avoid selecting nested comment buttons
+    const commentMain = commentEl.querySelector(':scope > .threadkit-comment-wrapper > .threadkit-comment-content > .threadkit-comment-main');
     if (!commentMain) return;
 
     const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
@@ -254,7 +258,8 @@ export function CommentsView({
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
-    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    // Use specific path to avoid selecting nested comment buttons
+    const commentMain = commentEl.querySelector(':scope > .threadkit-comment-wrapper > .threadkit-comment-content > .threadkit-comment-main');
     if (!commentMain) return;
 
     const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
@@ -275,7 +280,8 @@ export function CommentsView({
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
-    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    // Use specific path to avoid selecting nested comment buttons
+    const commentMain = commentEl.querySelector(':scope > .threadkit-comment-wrapper > .threadkit-comment-content > .threadkit-comment-main');
     if (!commentMain) return;
 
     const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
@@ -364,7 +370,7 @@ export function CommentsView({
     downvote: downvoteComment,
   }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, collapseComment, expandComment, upvoteComment, downvoteComment]);
 
-  useKeyboardShortcuts({ shortcuts });
+  useKeyboardShortcuts({ shortcuts, enabled: keyboardNavigationEnabled });
 
   return (
     <ScoreDisplayProvider>

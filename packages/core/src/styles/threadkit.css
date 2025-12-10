@@ -1791,6 +1791,53 @@ button.threadkit-new-comments-banner:hover {
   text-decoration: underline;
 }
 
+/* Keyboard Navigation Settings */
+.threadkit-keyboard-settings {
+  padding: 8px 12px;
+}
+
+.threadkit-keyboard-shortcuts-table {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.threadkit-keyboard-shortcuts-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.threadkit-keyboard-shortcuts-table th {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--threadkit-border);
+  font-weight: 600;
+  color: var(--threadkit-text);
+}
+
+.threadkit-keyboard-shortcuts-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--threadkit-border);
+  color: var(--threadkit-text-muted);
+}
+
+.threadkit-keyboard-shortcuts-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.threadkit-keyboard-shortcuts-table kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--threadkit-text);
+  background: var(--threadkit-bg-secondary);
+  border: 1px solid var(--threadkit-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--threadkit-border);
+}
+
 /* ===== Notifications Panel ===== */
 
 .threadkit-notifications {

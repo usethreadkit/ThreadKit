@@ -106,6 +106,24 @@ export const defaultTranslations: TranslationStrings = {
   holdToDelete: 'Hold to delete account (15s)',
   holdForSeconds: 'Hold for {seconds} more seconds...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Keyboard Navigation',
+  enableKeyboardShortcuts: 'Enable keyboard shortcuts',
+  key: 'Key',
+  action: 'Action',
+  nextComment: 'Next comment',
+  previousComment: 'Previous comment',
+  focusCommentInput: 'Focus comment input',
+  editFocusedComment: 'Edit focused comment',
+  replyToFocusedComment: 'Reply to focused comment',
+  deleteFocusedComment: 'Delete focused comment',
+  collapseFocusedComment: 'Collapse focused comment',
+  expandFocusedComment: 'Expand focused comment',
+  upvoteFocusedComment: 'Upvote focused comment',
+  downvoteFocusedComment: 'Downvote focused comment',
+  confirmYesNo: 'Confirm yes/no',
+  cancelClose: 'Cancel/close',
+
   // Username
   usernameTaken: 'Taken',
   usernameAvailable: 'Available',

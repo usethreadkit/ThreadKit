@@ -105,6 +105,24 @@ export interface TranslationStrings {
   holdToDelete: string;
   holdForSeconds: string;
 
+  // Keyboard navigation
+  keyboardNavigation: string;
+  enableKeyboardShortcuts: string;
+  key: string;
+  action: string;
+  nextComment: string;
+  previousComment: string;
+  focusCommentInput: string;
+  editFocusedComment: string;
+  replyToFocusedComment: string;
+  deleteFocusedComment: string;
+  collapseFocusedComment: string;
+  expandFocusedComment: string;
+  upvoteFocusedComment: string;
+  downvoteFocusedComment: string;
+  confirmYesNo: string;
+  cancelClose: string;
+
   // Username
   usernameTaken: string;
   usernameAvailable: string;

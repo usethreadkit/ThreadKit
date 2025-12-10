@@ -42,6 +42,7 @@ interface SettingsPanelProps {
   theme: 'light' | 'dark' | 'system';
   blockedUsers: BlockedUser[];
   apiUrl?: string;
+  keyboardNavigationEnabled?: boolean;
   onLogin: () => void;
   onLogout: () => void;
   onUpdateAvatar: (avatar: string) => void;
@@ -49,6 +50,7 @@ interface SettingsPanelProps {
   onUpdateSocialLinks: (socialLinks: SocialLinks) => void;
   onUnblock: (userId: string) => void;
   onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
+  onKeyboardNavigationChange?: (enabled: boolean) => void;
   onDeleteAccount: () => void;
 }
 
@@ -61,6 +63,7 @@ export function SettingsPanel({
   theme,
   blockedUsers,
   apiUrl = DEFAULT_API_URL,
+  keyboardNavigationEnabled = true,
   onLogin,
   onLogout,
   onUpdateAvatar: _onUpdateAvatar,
@@ -68,6 +71,7 @@ export function SettingsPanel({
   onUpdateSocialLinks,
   onUnblock,
   onThemeChange,
+  onKeyboardNavigationChange,
   onDeleteAccount,
 }: SettingsPanelProps) {
   const t = useTranslation();
@@ -563,6 +567,89 @@ export function SettingsPanel({
                       <input type="checkbox" />
                       <span>{t('weeklyDigest')}</span>
                     </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Keyboard Navigation */}
+              <div className="threadkit-settings-section">
+                <button
+                  className="threadkit-settings-item"
+                  onClick={() => setActiveSection(activeSection === 'keyboard' ? null : 'keyboard')}
+                >
+                  {t('keyboardNavigation')}
+                  <span className="threadkit-settings-arrow">{activeSection === 'keyboard' ? '▲' : '▼'}</span>
+                </button>
+                {activeSection === 'keyboard' && (
+                  <div className="threadkit-keyboard-settings">
+                    <label className="threadkit-settings-toggle">
+                      <input
+                        type="checkbox"
+                        checked={keyboardNavigationEnabled}
+                        onChange={(e) => onKeyboardNavigationChange?.(e.target.checked)}
+                      />
+                      <span>{t('enableKeyboardShortcuts')}</span>
+                    </label>
+                    <div className="threadkit-keyboard-shortcuts-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>{t('key')}</th>
+                            <th>{t('action')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><kbd>j</kbd></td>
+                            <td>{t('nextComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>k</kbd></td>
+                            <td>{t('previousComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>c</kbd></td>
+                            <td>{t('focusCommentInput')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>e</kbd></td>
+                            <td>{t('editFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>r</kbd></td>
+                            <td>{t('replyToFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>d</kbd></td>
+                            <td>{t('deleteFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>-</kbd></td>
+                            <td>{t('collapseFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>=</kbd></td>
+                            <td>{t('expandFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>f</kbd></td>
+                            <td>{t('upvoteFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>s</kbd></td>
+                            <td>{t('downvoteFocusedComment')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>y</kbd> / <kbd>n</kbd></td>
+                            <td>{t('confirmYesNo')}</td>
+                          </tr>
+                          <tr>
+                            <td><kbd>Esc</kbd></td>
+                            <td>{t('cancelClose')}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
