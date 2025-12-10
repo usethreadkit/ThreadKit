@@ -109,6 +109,24 @@ export const bg: LocaleMetadata = {
   holdToDelete: 'Задръж за изтриване на акаунт (15с)',
   holdForSeconds: 'Задръж за още {seconds} секунди...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Навигация с клавиатура',
+  enableKeyboardShortcuts: 'Активиране на клавишни комбинации',
+  key: 'Клавиш',
+  action: 'Действие',
+  nextComment: 'Следващ коментар',
+  previousComment: 'Предишен коментар',
+  focusCommentInput: 'Фокус на въвеждане',
+  editFocusedComment: 'Редактиране на коментар',
+  replyToFocusedComment: 'Отговор',
+  deleteFocusedComment: 'Изтриване на коментар',
+  collapseFocusedComment: 'Свиване',
+  expandFocusedComment: 'Разгъване',
+  upvoteFocusedComment: 'Гласуване нагоре',
+  downvoteFocusedComment: 'Гласуване надолу',
+  confirmYesNo: 'Потвърждение да/не',
+  cancelClose: 'Отказ/затваряне',
+
   // Username
   usernameTaken: 'Заето',
   usernameAvailable: 'Налично',

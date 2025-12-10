@@ -109,6 +109,24 @@ export const ru: LocaleMetadata = {
   holdToDelete: 'Удерживайте для удаления (15с)',
   holdForSeconds: 'Удерживайте ещё {seconds} секунд...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Навигация с клавиатуры',
+  enableKeyboardShortcuts: 'Включить горячие клавиши',
+  key: 'Клавиша',
+  action: 'Действие',
+  nextComment: 'Следующий комментарий',
+  previousComment: 'Предыдущий комментарий',
+  focusCommentInput: 'Фокус на вводе',
+  editFocusedComment: 'Редактировать комментарий',
+  replyToFocusedComment: 'Ответить',
+  deleteFocusedComment: 'Удалить комментарий',
+  collapseFocusedComment: 'Свернуть',
+  expandFocusedComment: 'Развернуть',
+  upvoteFocusedComment: 'Голосовать за',
+  downvoteFocusedComment: 'Голосовать против',
+  confirmYesNo: 'Подтвердить да/нет',
+  cancelClose: 'Отменить/закрыть',
+
   // Username
   usernameTaken: 'Занято',
   usernameAvailable: 'Доступно',

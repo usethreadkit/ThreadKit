@@ -109,6 +109,24 @@ export const th: LocaleMetadata = {
   holdToDelete: 'กดค้างไว้เพื่อลบบัญชี (15วิ)',
   holdForSeconds: 'กดค้างไว้ต่ออีก {seconds} วินาที...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'การนำทางด้วยแป้นพิมพ์',
+  enableKeyboardShortcuts: 'เปิดใช้งานแป้นลัด',
+  key: 'ปุ่ม',
+  action: 'การกระทำ',
+  nextComment: 'ความคิดเห็นถัดไป',
+  previousComment: 'ความคิดเห็นก่อนหน้า',
+  focusCommentInput: 'โฟกัสที่ช่องป้อน',
+  editFocusedComment: 'แก้ไขความคิดเห็น',
+  replyToFocusedComment: 'ตอบกลับ',
+  deleteFocusedComment: 'ลบความคิดเห็น',
+  collapseFocusedComment: 'ยุบ',
+  expandFocusedComment: 'ขยาย',
+  upvoteFocusedComment: 'โหวตขึ้น',
+  downvoteFocusedComment: 'โหวตลง',
+  confirmYesNo: 'ยืนยัน ใช่/ไม่ใช่',
+  cancelClose: 'ยกเลิก/ปิด',
+
   // Username
   usernameTaken: 'ไม่ว่าง',
   usernameAvailable: 'ว่าง',

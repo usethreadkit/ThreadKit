@@ -109,6 +109,24 @@ export const sr: LocaleMetadata = {
   holdToDelete: 'Drži za brisanje naloga (15s)',
   holdForSeconds: 'Drži još {seconds} sekundi...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Навигација тастатуром',
+  enableKeyboardShortcuts: 'Омогући пречице тастатуре',
+  key: 'Тастер',
+  action: 'Радња',
+  nextComment: 'Следећи коментар',
+  previousComment: 'Претходни коментар',
+  focusCommentInput: 'Фокусирај унос',
+  editFocusedComment: 'Измени коментар',
+  replyToFocusedComment: 'Одговори',
+  deleteFocusedComment: 'Обриши коментар',
+  collapseFocusedComment: 'Скупи',
+  expandFocusedComment: 'Прошири',
+  upvoteFocusedComment: 'Гласај за',
+  downvoteFocusedComment: 'Гласај против',
+  confirmYesNo: 'Потврди да/не',
+  cancelClose: 'Откажи/затвори',
+
   // Username
   usernameTaken: 'Заузето',
   usernameAvailable: 'Доступно',

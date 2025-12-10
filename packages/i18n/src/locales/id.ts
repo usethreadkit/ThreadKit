@@ -109,6 +109,24 @@ export const id: LocaleMetadata = {
   holdToDelete: 'Tahan untuk menghapus akun (15d)',
   holdForSeconds: 'Tahan selama {seconds} detik lagi...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Navigasi Keyboard',
+  enableKeyboardShortcuts: 'Aktifkan pintasan keyboard',
+  key: 'Tombol',
+  action: 'Aksi',
+  nextComment: 'Komentar berikutnya',
+  previousComment: 'Komentar sebelumnya',
+  focusCommentInput: 'Fokus input',
+  editFocusedComment: 'Edit komentar',
+  replyToFocusedComment: 'Balas',
+  deleteFocusedComment: 'Hapus komentar',
+  collapseFocusedComment: 'Ciutkan',
+  expandFocusedComment: 'Perluas',
+  upvoteFocusedComment: 'Suara positif',
+  downvoteFocusedComment: 'Suara negatif',
+  confirmYesNo: 'Konfirmasi ya/tidak',
+  cancelClose: 'Batal/tutup',
+
   // Username
   usernameTaken: 'Terpakai',
   usernameAvailable: 'Tersedia',

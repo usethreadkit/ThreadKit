@@ -109,6 +109,24 @@ export const fa: LocaleMetadata = {
   holdToDelete: 'برای حذف حساب (15 ثانیه) نگه دارید',
   holdForSeconds: '{seconds} ثانیه دیگر نگه دارید...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'ناوبری صفحه‌کلید',
+  enableKeyboardShortcuts: 'فعال‌سازی میانبرهای صفحه‌کلید',
+  key: 'کلید',
+  action: 'عمل',
+  nextComment: 'نظر بعدی',
+  previousComment: 'نظر قبلی',
+  focusCommentInput: 'تمرکز ورودی',
+  editFocusedComment: 'ویرایش نظر',
+  replyToFocusedComment: 'پاسخ',
+  deleteFocusedComment: 'حذف نظر',
+  collapseFocusedComment: 'جمع کردن',
+  expandFocusedComment: 'باز کردن',
+  upvoteFocusedComment: 'رأی مثبت',
+  downvoteFocusedComment: 'رأی منفی',
+  confirmYesNo: 'تأیید بله/خیر',
+  cancelClose: 'لغو/بستن',
+
   // Username
   usernameTaken: 'گرفته شده',
   usernameAvailable: 'موجود',

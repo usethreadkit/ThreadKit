@@ -109,6 +109,24 @@ export const sv: LocaleMetadata = {
   holdToDelete: 'Håll för att ta bort konto (15s)',
   holdForSeconds: 'Håll i {seconds} sekunder till...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Tangentbordsnavigering',
+  enableKeyboardShortcuts: 'Aktivera kortkommandon',
+  key: 'Tangent',
+  action: 'Åtgärd',
+  nextComment: 'Nästa kommentar',
+  previousComment: 'Föregående kommentar',
+  focusCommentInput: 'Fokusera inmatning',
+  editFocusedComment: 'Redigera kommentar',
+  replyToFocusedComment: 'Svara',
+  deleteFocusedComment: 'Ta bort kommentar',
+  collapseFocusedComment: 'Komprimera',
+  expandFocusedComment: 'Expandera',
+  upvoteFocusedComment: 'Rösta upp',
+  downvoteFocusedComment: 'Rösta ner',
+  confirmYesNo: 'Bekräfta ja/nej',
+  cancelClose: 'Avbryt/stäng',
+
   // Username
   usernameTaken: 'Upptaget',
   usernameAvailable: 'Tillgängligt',

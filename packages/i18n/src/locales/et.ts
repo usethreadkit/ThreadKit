@@ -109,6 +109,24 @@ export const et: LocaleMetadata = {
   holdToDelete: 'Hoia all, et kustutada konto (15s)',
   holdForSeconds: 'Hoia all veel {seconds} sekundit...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Klaviatuuri navigeerimine',
+  enableKeyboardShortcuts: 'Luba klaviatuuri otseteed',
+  key: 'Klahv',
+  action: 'Tegevus',
+  nextComment: 'Järgmine kommentaar',
+  previousComment: 'Eelmine kommentaar',
+  focusCommentInput: 'Fokuseeri sisend',
+  editFocusedComment: 'Muuda kommentaari',
+  replyToFocusedComment: 'Vasta',
+  deleteFocusedComment: 'Kustuta kommentaar',
+  collapseFocusedComment: 'Ahenda',
+  expandFocusedComment: 'Laienda',
+  upvoteFocusedComment: 'Hääleta üles',
+  downvoteFocusedComment: 'Hääleta alla',
+  confirmYesNo: 'Kinnita jah/ei',
+  cancelClose: 'Tühista/sulge',
+
   // Username
   usernameTaken: 'Võetud',
   usernameAvailable: 'Saadaval',

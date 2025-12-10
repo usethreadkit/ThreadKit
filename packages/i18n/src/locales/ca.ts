@@ -107,7 +107,25 @@ export const ca: LocaleMetadata = {
   deleteAccount: 'Elimina el compte',
   accountDeleted: 'Compte eliminat',
   holdToDelete: 'Mantén premut per eliminar el compte (15s)',
-  holdForSeconds: 'Mantén premut {seconds} segons més...', 
+  holdForSeconds: 'Mantén premut {seconds} segons més...',
+
+  // Keyboard navigation
+  keyboardNavigation: 'Navegació per teclat',
+  enableKeyboardShortcuts: 'Activar dreceres de teclat',
+  key: 'Tecla',
+  action: 'Acció',
+  nextComment: 'Comentari següent',
+  previousComment: 'Comentari anterior',
+  focusCommentInput: 'Enfocar l\'entrada',
+  editFocusedComment: 'Editar comentari',
+  replyToFocusedComment: 'Respondre',
+  deleteFocusedComment: 'Eliminar comentari',
+  collapseFocusedComment: 'Contraure',
+  expandFocusedComment: 'Expandir',
+  upvoteFocusedComment: 'Votar a favor',
+  downvoteFocusedComment: 'Votar en contra',
+  confirmYesNo: 'Confirmar sí/no',
+  cancelClose: 'Cancel·lar/tancar',
 
   // Username
   usernameTaken: 'Ocupat',

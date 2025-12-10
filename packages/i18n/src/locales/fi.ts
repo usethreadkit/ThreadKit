@@ -109,6 +109,24 @@ export const fi: LocaleMetadata = {
   holdToDelete: 'Pidä painettuna poistaaksesi tilin (15s)',
   holdForSeconds: 'Pidä vielä {seconds} sekuntia...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Näppäimistönavigointi',
+  enableKeyboardShortcuts: 'Ota näppäinoikotiet käyttöön',
+  key: 'Näppäin',
+  action: 'Toiminto',
+  nextComment: 'Seuraava kommentti',
+  previousComment: 'Edellinen kommentti',
+  focusCommentInput: 'Kohdista syöte',
+  editFocusedComment: 'Muokkaa kommenttia',
+  replyToFocusedComment: 'Vastaa',
+  deleteFocusedComment: 'Poista kommentti',
+  collapseFocusedComment: 'Tiivistä',
+  expandFocusedComment: 'Laajenna',
+  upvoteFocusedComment: 'Äänes tä ylös',
+  downvoteFocusedComment: 'Äänestä alas',
+  confirmYesNo: 'Vahvista kyllä/ei',
+  cancelClose: 'Peruuta/sulje',
+
   // Username
   usernameTaken: 'Varattu',
   usernameAvailable: 'Käytettävissä',

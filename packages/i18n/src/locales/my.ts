@@ -109,6 +109,24 @@ export const my: LocaleMetadata = {
   holdToDelete: 'အကောင့်ဖျက်ရန် ဖိထားပါ (15s)',
   holdForSeconds: '{seconds} စက္ကန့် ဖိထားပါ...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'ကီးဘုတ်လမ်းညွှန်',
+  enableKeyboardShortcuts: 'ကီးဘုတ်အတိုကောက်များ ဖွင့်ပါ',
+  key: 'ခလုတ်',
+  action: 'လုပ်ဆောင်ချက်',
+  nextComment: 'နောက်မှတ်ချက်',
+  previousComment: 'ယခင်မှတ်ချက်',
+  focusCommentInput: 'အာရုံစိုက်ထည့်သွင်းမှု',
+  editFocusedComment: 'မှတ်ချက်တည်းဖြတ်',
+  replyToFocusedComment: 'ပြန်ကြား',
+  deleteFocusedComment: 'မှတ်ချက်ဖျက်',
+  collapseFocusedComment: 'ခေါက်သိမ်း',
+  expandFocusedComment: 'ချဲ့ထွင်',
+  upvoteFocusedComment: 'သဘောတူမဲ',
+  downvoteFocusedComment: 'သဘောမတူမဲ',
+  confirmYesNo: 'အတည်ပြု ဟုတ်/မဟုတ်',
+  cancelClose: 'ပယ်ဖျက်/ပိတ်',
+
   // Username
   usernameTaken: 'အသုံးပြုပြီး',
   usernameAvailable: 'ရနိုင်သည်',

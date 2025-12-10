@@ -109,6 +109,24 @@ export const lt: LocaleMetadata = {
   holdToDelete: 'Laikykite, kad ištrintumėte paskyrą (15s)',
   holdForSeconds: 'Laikykite dar {seconds} sekundžių...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Klaviatūros navigacija',
+  enableKeyboardShortcuts: 'Įjungti klaviatūros sparčiuosius klavišus',
+  key: 'Klavišas',
+  action: 'Veiksmas',
+  nextComment: 'Kitas komentaras',
+  previousComment: 'Ankstesnis komentaras',
+  focusCommentInput: 'Fokusuoti įvestį',
+  editFocusedComment: 'Redaguoti komentarą',
+  replyToFocusedComment: 'Atsakyti',
+  deleteFocusedComment: 'Ištrinti komentarą',
+  collapseFocusedComment: 'Suskleisti',
+  expandFocusedComment: 'Išskleisti',
+  upvoteFocusedComment: 'Balsuoti už',
+  downvoteFocusedComment: 'Balsuoti prieš',
+  confirmYesNo: 'Patvirtinti taip/ne',
+  cancelClose: 'Atšaukti/uždaryti',
+
   // Username
   usernameTaken: 'Užimtas',
   usernameAvailable: 'Prieinamas',

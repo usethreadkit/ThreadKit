@@ -109,6 +109,24 @@ export const nl: LocaleMetadata = {
   holdToDelete: 'Houd ingedrukt om te verwijderen (15s)',
   holdForSeconds: 'Nog {seconds} seconden ingedrukt houden...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Toetsenbordnavigatie',
+  enableKeyboardShortcuts: 'Sneltoetsen inschakelen',
+  key: 'Toets',
+  action: 'Actie',
+  nextComment: 'Volgende opmerking',
+  previousComment: 'Vorige opmerking',
+  focusCommentInput: 'Focus invoer',
+  editFocusedComment: 'Opmerking bewerken',
+  replyToFocusedComment: 'Antwoorden',
+  deleteFocusedComment: 'Opmerking verwijderen',
+  collapseFocusedComment: 'Inklappen',
+  expandFocusedComment: 'Uitklappen',
+  upvoteFocusedComment: 'Omhoog stemmen',
+  downvoteFocusedComment: 'Omlaag stemmen',
+  confirmYesNo: 'Bevestig ja/nee',
+  cancelClose: 'Annuleren/sluiten',
+
   // Username
   usernameTaken: 'Bezet',
   usernameAvailable: 'Beschikbaar',

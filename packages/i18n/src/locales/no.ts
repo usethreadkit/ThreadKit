@@ -109,6 +109,24 @@ export const no: LocaleMetadata = {
   holdToDelete: 'Hold for å slette konto (15s)',
   holdForSeconds: 'Hold i {seconds} sekunder til...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Tastaturnavigering',
+  enableKeyboardShortcuts: 'Aktiver tastatursnarveier',
+  key: 'Tast',
+  action: 'Handling',
+  nextComment: 'Neste kommentar',
+  previousComment: 'Forrige kommentar',
+  focusCommentInput: 'Fokuser inndata',
+  editFocusedComment: 'Rediger kommentar',
+  replyToFocusedComment: 'Svar',
+  deleteFocusedComment: 'Slett kommentar',
+  collapseFocusedComment: 'Skjul',
+  expandFocusedComment: 'Utvid',
+  upvoteFocusedComment: 'Stem opp',
+  downvoteFocusedComment: 'Stem ned',
+  confirmYesNo: 'Bekreft ja/nei',
+  cancelClose: 'Avbryt/lukk',
+
   // Username
   usernameTaken: 'Opptatt',
   usernameAvailable: 'Tilgjengelig',

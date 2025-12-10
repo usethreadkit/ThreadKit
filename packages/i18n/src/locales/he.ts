@@ -109,6 +109,24 @@ export const he: LocaleMetadata = {
   holdToDelete: 'החזק כדי למחוק חשבון (15שנ)',
   holdForSeconds: 'החזק למשך {seconds} שניות נוספות...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'ניווט מקלדת',
+  enableKeyboardShortcuts: 'הפעל קיצורי מקלדת',
+  key: 'מקש',
+  action: 'פעולה',
+  nextComment: 'תגובה הבאה',
+  previousComment: 'תגובה קודמת',
+  focusCommentInput: 'מיקוד קלט',
+  editFocusedComment: 'ערוך תגובה',
+  replyToFocusedComment: 'השב',
+  deleteFocusedComment: 'מחק תגובה',
+  collapseFocusedComment: 'כווץ',
+  expandFocusedComment: 'הרחב',
+  upvoteFocusedComment: 'הצבע בעד',
+  downvoteFocusedComment: 'הצבע נגד',
+  confirmYesNo: 'אשר כן/לא',
+  cancelClose: 'ביטול/סגירה',
+
   // Username
   usernameTaken: 'תפוס',
   usernameAvailable: 'פנוי',

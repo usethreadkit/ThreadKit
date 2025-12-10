@@ -109,6 +109,24 @@ export const ja: LocaleMetadata = {
   holdToDelete: '長押しで削除（15秒）',
   holdForSeconds: 'あと{seconds}秒長押し...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'キーボードナビゲーション',
+  enableKeyboardShortcuts: 'キーボードショートカットを有効にする',
+  key: 'キー',
+  action: 'アクション',
+  nextComment: '次のコメント',
+  previousComment: '前のコメント',
+  focusCommentInput: '入力欄にフォーカス',
+  editFocusedComment: 'コメントを編集',
+  replyToFocusedComment: '返信',
+  deleteFocusedComment: 'コメントを削除',
+  collapseFocusedComment: '折りたたむ',
+  expandFocusedComment: '展開',
+  upvoteFocusedComment: '賛成票',
+  downvoteFocusedComment: '反対票',
+  confirmYesNo: 'はい/いいえを確認',
+  cancelClose: 'キャンセル/閉じる',
+
   // Username
   usernameTaken: '使用済み',
   usernameAvailable: '利用可能',

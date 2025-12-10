@@ -109,6 +109,24 @@ export const cs: LocaleMetadata = {
   holdToDelete: 'Podržte pro smazání účtu (15s)',
   holdForSeconds: 'Držte ještě {seconds} sekund...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Navigace klávesnicí',
+  enableKeyboardShortcuts: 'Povolit klávesové zkratky',
+  key: 'Klávesa',
+  action: 'Akce',
+  nextComment: 'Další komentář',
+  previousComment: 'Předchozí komentář',
+  focusCommentInput: 'Zaměřit vstup',
+  editFocusedComment: 'Upravit komentář',
+  replyToFocusedComment: 'Odpovědět',
+  deleteFocusedComment: 'Smazat komentář',
+  collapseFocusedComment: 'Sbalit',
+  expandFocusedComment: 'Rozbalit',
+  upvoteFocusedComment: 'Hlasovat pro',
+  downvoteFocusedComment: 'Hlasovat proti',
+  confirmYesNo: 'Potvrdit ano/ne',
+  cancelClose: 'Zrušit/zavřít',
+
   // Username
   usernameTaken: 'Zabrané',
   usernameAvailable: 'Dostupné',

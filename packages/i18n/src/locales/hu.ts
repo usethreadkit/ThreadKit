@@ -109,6 +109,24 @@ export const hu: LocaleMetadata = {
   holdToDelete: 'Tartsd lenyomva a törléshez (15mp)',
   holdForSeconds: 'Tartsd még {seconds} másodpercig...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Billentyűzetes navigáció',
+  enableKeyboardShortcuts: 'Billentyűparancsok engedélyezése',
+  key: 'Billentyű',
+  action: 'Művelet',
+  nextComment: 'Következő hozzászólás',
+  previousComment: 'Előző hozzászólás',
+  focusCommentInput: 'Beviteli mező fókuszálása',
+  editFocusedComment: 'Hozzászólás szerkesztése',
+  replyToFocusedComment: 'Válasz',
+  deleteFocusedComment: 'Hozzászólás törlése',
+  collapseFocusedComment: 'Összecsukás',
+  expandFocusedComment: 'Kibontás',
+  upvoteFocusedComment: 'Felszavazás',
+  downvoteFocusedComment: 'Leszavazás',
+  confirmYesNo: 'Megerősítés igen/nem',
+  cancelClose: 'Mégse/bezárás',
+
   // Username
   usernameTaken: 'Foglalt',
   usernameAvailable: 'Elérhető',

@@ -107,7 +107,25 @@ export const uk: LocaleMetadata = {
   deleteAccount: 'Видалити акаунт',
   accountDeleted: 'Акаунт видалено',
   holdToDelete: 'Утримуйте для видалення (15с)',
-  holdForSeconds: 'Утримуйте ще {seconds} с...', 
+  holdForSeconds: 'Утримуйте ще {seconds} с...',
+
+  // Keyboard navigation
+  keyboardNavigation: 'Навігація з клавіатури',
+  enableKeyboardShortcuts: 'Увімкнути гарячі клавіші',
+  key: 'Клавіша',
+  action: 'Дія',
+  nextComment: 'Наступний коментар',
+  previousComment: 'Попередній коментар',
+  focusCommentInput: 'Фокус на введенні',
+  editFocusedComment: 'Редагувати коментар',
+  replyToFocusedComment: 'Відповісти',
+  deleteFocusedComment: 'Видалити коментар',
+  collapseFocusedComment: 'Згорнути',
+  expandFocusedComment: 'Розгорнути',
+  upvoteFocusedComment: 'Голосувати за',
+  downvoteFocusedComment: 'Голосувати проти',
+  confirmYesNo: 'Підтвердити так/ні',
+  cancelClose: 'Скасувати/закрити',
 
   // Username
   usernameTaken: 'Зайнято',

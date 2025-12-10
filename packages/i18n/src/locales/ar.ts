@@ -109,6 +109,24 @@ export const ar: LocaleMetadata = {
   holdToDelete: 'اضغط باستمرار لحذف الحساب (15 ثانية)',
   holdForSeconds: 'اضغط لمدة {seconds} ثوانٍ أخرى...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'التنقل بلوحة المفاتيح',
+  enableKeyboardShortcuts: 'تمكين اختصارات لوحة المفاتيح',
+  key: 'المفتاح',
+  action: 'الإجراء',
+  nextComment: 'التعليق التالي',
+  previousComment: 'التعليق السابق',
+  focusCommentInput: 'تركيز الإدخال',
+  editFocusedComment: 'تحرير التعليق',
+  replyToFocusedComment: 'رد',
+  deleteFocusedComment: 'حذف التعليق',
+  collapseFocusedComment: 'طي',
+  expandFocusedComment: 'توسيع',
+  upvoteFocusedComment: 'تصويت إيجابي',
+  downvoteFocusedComment: 'تصويت سلبي',
+  confirmYesNo: 'تأكيد نعم/لا',
+  cancelClose: 'إلغاء/إغلاق',
+
   // Username
   usernameTaken: 'مأخوذ',
   usernameAvailable: 'متاح',

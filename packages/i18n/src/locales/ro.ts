@@ -109,6 +109,24 @@ export const ro: LocaleMetadata = {
   holdToDelete: 'Ține apăsat pentru a șterge contul (15s)',
   holdForSeconds: 'Ține apăsat încă {seconds} secunde...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Navigare cu tastatura',
+  enableKeyboardShortcuts: 'Activează scurtături de tastatură',
+  key: 'Tastă',
+  action: 'Acțiune',
+  nextComment: 'Comentariul următor',
+  previousComment: 'Comentariul anterior',
+  focusCommentInput: 'Focalizează intrarea',
+  editFocusedComment: 'Editează comentariul',
+  replyToFocusedComment: 'Răspunde',
+  deleteFocusedComment: 'Șterge comentariul',
+  collapseFocusedComment: 'Restrânge',
+  expandFocusedComment: 'Extinde',
+  upvoteFocusedComment: 'Votează pozitiv',
+  downvoteFocusedComment: 'Votează negativ',
+  confirmYesNo: 'Confirmă da/nu',
+  cancelClose: 'Anulează/închide',
+
   // Username
   usernameTaken: 'Ocupat',
   usernameAvailable: 'Disponibil',

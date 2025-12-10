@@ -109,6 +109,24 @@ export const fr: LocaleMetadata = {
   holdToDelete: 'Maintenir pour supprimer (15s)',
   holdForSeconds: 'Maintenir encore {seconds} secondes...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Navigation au clavier',
+  enableKeyboardShortcuts: 'Activer les raccourcis clavier',
+  key: 'Touche',
+  action: 'Action',
+  nextComment: 'Commentaire suivant',
+  previousComment: 'Commentaire précédent',
+  focusCommentInput: 'Concentrer l\'entrée',
+  editFocusedComment: 'Modifier le commentaire',
+  replyToFocusedComment: 'Répondre',
+  deleteFocusedComment: 'Supprimer le commentaire',
+  collapseFocusedComment: 'Réduire',
+  expandFocusedComment: 'Développer',
+  upvoteFocusedComment: 'Voter pour',
+  downvoteFocusedComment: 'Voter contre',
+  confirmYesNo: 'Confirmer oui/non',
+  cancelClose: 'Annuler/fermer',
+
   // Username
   usernameTaken: 'Pris',
   usernameAvailable: 'Disponible',

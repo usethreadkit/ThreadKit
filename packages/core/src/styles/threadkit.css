@@ -1810,19 +1810,13 @@ button.threadkit-new-comments-banner:hover {
 .threadkit-keyboard-shortcuts-table th {
   text-align: left;
   padding: 8px;
-  border-bottom: 1px solid var(--threadkit-border);
   font-weight: 600;
   color: var(--threadkit-text);
 }
 
 .threadkit-keyboard-shortcuts-table td {
   padding: 8px;
-  border-bottom: 1px solid var(--threadkit-border);
   color: var(--threadkit-text-muted);
-}
-
-.threadkit-keyboard-shortcuts-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .threadkit-keyboard-shortcuts-table kbd {

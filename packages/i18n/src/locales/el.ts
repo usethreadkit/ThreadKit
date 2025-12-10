@@ -109,6 +109,24 @@ export const el: LocaleMetadata = {
   holdToDelete: 'Κράτα πατημένο για διαγραφή (15δ)',
   holdForSeconds: 'Κράτα πατημένο για {seconds} δευτερόλεπτα ακόμα...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Πλοήγηση πληκτρολογίου',
+  enableKeyboardShortcuts: 'Ενεργοποίηση συντομεύσεων πληκτρολογίου',
+  key: 'Πλήκτρο',
+  action: 'Ενέργεια',
+  nextComment: 'Επόμενο σχόλιο',
+  previousComment: 'Προηγούμενο σχόλιο',
+  focusCommentInput: 'Εστίαση εισόδου',
+  editFocusedComment: 'Επεξεργασία σχολίου',
+  replyToFocusedComment: 'Απάντηση',
+  deleteFocusedComment: 'Διαγραφή σχολίου',
+  collapseFocusedComment: 'Σύμπτυξη',
+  expandFocusedComment: 'Ανάπτυξη',
+  upvoteFocusedComment: 'Θετική ψήφος',
+  downvoteFocusedComment: 'Αρνητική ψήφος',
+  confirmYesNo: 'Επιβεβαίωση ναι/όχι',
+  cancelClose: 'Ακύρωση/κλείσιμο',
+
   // Username
   usernameTaken: 'Κατειλημμένο',
   usernameAvailable: 'Διαθέσιμο',

@@ -109,6 +109,24 @@ export const lv: LocaleMetadata = {
   holdToDelete: 'Turiet, lai dzēstu kontu (15s)',
   holdForSeconds: 'Turiet vēl {seconds} sekundes...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Tastatūras navigācija',
+  enableKeyboardShortcuts: 'Iespējot tastatūras īsinājumtaustiņus',
+  key: 'Taustiņš',
+  action: 'Darbība',
+  nextComment: 'Nākamais komentārs',
+  previousComment: 'Iepriekšējais komentārs',
+  focusCommentInput: 'Fokusēt ievadi',
+  editFocusedComment: 'Rediģēt komentāru',
+  replyToFocusedComment: 'Atbildēt',
+  deleteFocusedComment: 'Dzēst komentāru',
+  collapseFocusedComment: 'Sakļaut',
+  expandFocusedComment: 'Izvērst',
+  upvoteFocusedComment: 'Balsot par',
+  downvoteFocusedComment: 'Balsot pret',
+  confirmYesNo: 'Apstiprināt jā/nē',
+  cancelClose: 'Atcelt/aizvērt',
+
   // Username
   usernameTaken: 'Aizņemts',
   usernameAvailable: 'Pieejams',

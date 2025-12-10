@@ -109,6 +109,24 @@ export const ko: LocaleMetadata = {
   holdToDelete: '길게 눌러 계정 삭제 (15초)',
   holdForSeconds: '{seconds}초 더 누르세요...',
 
+  // Keyboard navigation
+  keyboardNavigation: '키보드 탐색',
+  enableKeyboardShortcuts: '키보드 단축키 활성화',
+  key: '키',
+  action: '동작',
+  nextComment: '다음 댓글',
+  previousComment: '이전 댓글',
+  focusCommentInput: '입력 포커스',
+  editFocusedComment: '댓글 편집',
+  replyToFocusedComment: '답글',
+  deleteFocusedComment: '댓글 삭제',
+  collapseFocusedComment: '접기',
+  expandFocusedComment: '펼치기',
+  upvoteFocusedComment: '추천',
+  downvoteFocusedComment: '비추천',
+  confirmYesNo: '예/아니오 확인',
+  cancelClose: '취소/닫기',
+
   // Username
   usernameTaken: '사용 중',
   usernameAvailable: '사용 가능',

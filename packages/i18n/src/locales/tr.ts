@@ -109,6 +109,24 @@ export const tr: LocaleMetadata = {
   holdToDelete: 'Hesabı silmek için basılı tut (15sn)',
   holdForSeconds: '{seconds} saniye daha basılı tut...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Klavye Navigasyonu',
+  enableKeyboardShortcuts: 'Klavye kısayollarını etkinleştir',
+  key: 'Tuş',
+  action: 'Eylem',
+  nextComment: 'Sonraki yorum',
+  previousComment: 'Önceki yorum',
+  focusCommentInput: 'Girişe odaklan',
+  editFocusedComment: 'Yorumu düzenle',
+  replyToFocusedComment: 'Yanıtla',
+  deleteFocusedComment: 'Yorumu sil',
+  collapseFocusedComment: 'Daralt',
+  expandFocusedComment: 'Genişlet',
+  upvoteFocusedComment: 'Yukarı oy ver',
+  downvoteFocusedComment: 'Aşağı oy ver',
+  confirmYesNo: 'Evet/hayır onayla',
+  cancelClose: 'İptal/kapat',
+
   // Username
   usernameTaken: 'Alındı',
   usernameAvailable: 'Mevcut',

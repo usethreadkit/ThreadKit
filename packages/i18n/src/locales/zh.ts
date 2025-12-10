@@ -109,6 +109,24 @@ export const zh: LocaleMetadata = {
   holdToDelete: '长按删除账户（15秒）',
   holdForSeconds: '再按住{seconds}秒...',
 
+  // Keyboard navigation
+  keyboardNavigation: '键盘导航',
+  enableKeyboardShortcuts: '启用键盘快捷键',
+  key: '按键',
+  action: '操作',
+  nextComment: '下一条评论',
+  previousComment: '上一条评论',
+  focusCommentInput: '聚焦输入框',
+  editFocusedComment: '编辑评论',
+  replyToFocusedComment: '回复',
+  deleteFocusedComment: '删除评论',
+  collapseFocusedComment: '折叠',
+  expandFocusedComment: '展开',
+  upvoteFocusedComment: '点赞',
+  downvoteFocusedComment: '点踩',
+  confirmYesNo: '确认是/否',
+  cancelClose: '取消/关闭',
+
   // Username
   usernameTaken: '已被占用',
   usernameAvailable: '可用',

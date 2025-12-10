@@ -109,6 +109,24 @@ export const hr: LocaleMetadata = {
   holdToDelete: 'Držite za brisanje računa (15s)',
   holdForSeconds: 'Držite još {seconds} sekundi...',
 
+  // Keyboard navigation
+  keyboardNavigation: 'Navigacija tipkovnicom',
+  enableKeyboardShortcuts: 'Omogući prečace tipkovnice',
+  key: 'Tipka',
+  action: 'Radnja',
+  nextComment: 'Sljedeći komentar',
+  previousComment: 'Prethodni komentar',
+  focusCommentInput: 'Fokusiraj unos',
+  editFocusedComment: 'Uredi komentar',
+  replyToFocusedComment: 'Odgovori',
+  deleteFocusedComment: 'Izbriši komentar',
+  collapseFocusedComment: 'Skupi',
+  expandFocusedComment: 'Proširi',
+  upvoteFocusedComment: 'Glasaj za',
+  downvoteFocusedComment: 'Glasaj protiv',
+  confirmYesNo: 'Potvrdi da/ne',
+  cancelClose: 'Otkaži/zatvori',
+
   // Username
   usernameTaken: 'Zauzeto',
   usernameAvailable: 'Dostupno',
