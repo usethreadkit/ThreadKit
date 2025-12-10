@@ -99,6 +99,10 @@ export function CommentsView({
     [onReplyStart]
   );
 
+  const handleCommentClick = useCallback((commentId: string) => {
+    setFocusedCommentId(commentId);
+  }, []);
+
   // Keyboard navigation helpers
   const getAllVisibleComments = useCallback(() => {
     // Get all comment elements in DOM order (visual order)
@@ -162,9 +166,12 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the edit button by text content
-    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
-    const editBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('edit'));
+    // Find the comment's own action buttons (not from nested comments)
+    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    if (!commentMain) return;
+
+    const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const editBtn = buttons.find(btn => btn.textContent?.toLowerCase().trim().includes('edit'));
     if (editBtn) {
       editBtn.click();
       // Auto-focus the edit textarea after a short delay
@@ -180,9 +187,12 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the reply button by text content
-    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
-    const replyBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('reply'));
+    // Find the comment's own action buttons (not from nested comments)
+    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    if (!commentMain) return;
+
+    const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const replyBtn = buttons.find(btn => btn.textContent?.toLowerCase().trim().includes('reply'));
     if (replyBtn) {
       replyBtn.click();
       // Auto-focus the reply textarea after a short delay
@@ -198,17 +208,51 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the delete button by text content
-    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
-    const deleteBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('delete'));
+    // Find the comment's own action buttons (not from nested comments)
+    const commentMain = commentEl.querySelector('.threadkit-comment-main');
+    if (!commentMain) return;
+
+    const buttons = Array.from(commentMain.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const deleteBtn = buttons.find(btn => btn.textContent?.toLowerCase().trim().includes('delete'));
     deleteBtn?.click();
   }, [focusedCommentId]);
 
   const confirmYes = useCallback(() => {
     // Find any visible confirmation dialog and click "Yes"
     const yesBtn = document.querySelector('.threadkit-confirm-yes') as HTMLButtonElement;
-    yesBtn?.click();
-  }, []);
+    if (!yesBtn) return;
+
+    // If we have a focused comment, remember the previous one to select after deletion
+    if (focusedCommentId) {
+      const allComments = getAllVisibleComments();
+      const currentIndex = allComments.findIndex(el => el.getAttribute('data-comment-id') === focusedCommentId);
+
+      // Find the previous comment to select after deletion
+      let nextFocusId: string | null = null;
+      if (currentIndex > 0) {
+        nextFocusId = allComments[currentIndex - 1].getAttribute('data-comment-id');
+      } else if (currentIndex === 0 && allComments.length > 1) {
+        // If deleting first comment, select the new first comment (what was second)
+        nextFocusId = allComments[1].getAttribute('data-comment-id');
+      }
+
+      yesBtn.click();
+
+      // After deletion, set focus to the next comment
+      if (nextFocusId) {
+        setTimeout(() => {
+          setFocusedCommentId(nextFocusId);
+          const nextEl = document.querySelector(`[data-comment-id="${nextFocusId}"]`);
+          nextEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      } else {
+        // No comments left, clear focus
+        setFocusedCommentId(null);
+      }
+    } else {
+      yesBtn.click();
+    }
+  }, [focusedCommentId, getAllVisibleComments]);
 
   const confirmNo = useCallback(() => {
     // Find any visible confirmation dialog and click "No"
@@ -303,6 +347,7 @@ export function CommentsView({
                 collapsedThreads={collapsedThreads}
                 pendingReplies={pendingReplies}
                 focusedCommentId={focusedCommentId}
+                onCommentClick={handleCommentClick}
               />
             ))}
           </div>

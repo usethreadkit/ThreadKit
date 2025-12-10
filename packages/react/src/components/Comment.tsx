@@ -54,6 +54,7 @@ export function Comment({
   fetchUserProfile,
   plugins,
   focusedCommentId,
+  onCommentClick,
 }: CommentProps) {
   const t = useTranslation();
   const { mode: scoreDisplayMode, toggleMode: toggleScoreDisplay } = useScoreDisplay();
@@ -132,7 +133,11 @@ export function Comment({
   }
 
   return (
-    <div className={commentClassName} data-comment-id={comment.id} id={`threadkit-${comment.id}`}>
+    <div
+      className={commentClassName}
+      data-comment-id={comment.id}
+      id={`threadkit-${comment.id}`}
+    >
       <div className="threadkit-comment-wrapper">
         {/* Vote column - hidden for deleted comments */}
         {onVote && !isDeleted && (
@@ -161,7 +166,16 @@ export function Comment({
         {/* Content column */}
         <div className="threadkit-comment-content">
           {/* Main content (excluding replies) */}
-          <div className="threadkit-comment-main">
+          <div
+            className="threadkit-comment-main"
+            onClick={(e) => {
+              // Select comment when clicking on its content (but not buttons)
+              const target = e.target as HTMLElement;
+              if (onCommentClick && !target.closest('button, a, textarea, input')) {
+                onCommentClick(comment.id);
+              }
+            }}
+          >
           {/* Header line */}
           <div className="threadkit-comment-header">
             <button
@@ -567,6 +581,7 @@ export function Comment({
                   fetchUserProfile={fetchUserProfile}
                   plugins={plugins}
                   focusedCommentId={focusedCommentId}
+                  onCommentClick={onCommentClick}
                 />
               ))}
             </div>

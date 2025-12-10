@@ -304,4 +304,6 @@ export interface CommentProps {
   plugins?: ThreadKitPlugin[];
   /** Currently focused comment ID (for keyboard navigation) */
   focusedCommentId?: string | null;
+  /** Handler for clicking on a comment to select it */
+  onCommentClick?: (commentId: string) => void;
 }
