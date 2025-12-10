@@ -4,7 +4,6 @@ import type { TypingUser } from '@threadkit/core';
 import { Comment } from './Comment';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
-import { NewCommentsBanner } from './NewCommentsBanner';
 import { useTranslation } from '../i18n';
 import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
 
@@ -123,20 +122,13 @@ export function CommentsView({
             <CommentForm
               placeholder={t('writeComment')}
               onSubmit={onPost}
+              pendingCount={pendingRootCount}
+              onLoadPending={onLoadPendingComments}
             />
           ) : (
             <SignInPrompt apiUrl={apiUrl} projectId={projectId} />
           )}
         </div>
-
-        {pendingRootCount > 0 && onLoadPendingComments && (
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <NewCommentsBanner
-              count={pendingRootCount}
-              onClick={onLoadPendingComments}
-            />
-          </div>
-        )}
 
         {comments.length === 0 ? (
           <div className="threadkit-empty">

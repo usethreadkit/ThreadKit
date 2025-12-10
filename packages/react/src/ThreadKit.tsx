@@ -138,7 +138,7 @@ function ThreadKitInner({
   onSignIn: _onSignIn,
   innerRef,
 }: ThreadKitInnerProps) {
-  const { state: authState, login, logout, registerPlugin } = useAuth();
+  const { state: authState, login, logout, registerPlugin, updateUsername } = useAuth();
   const t = useTranslation();
   const isRTL = useRTL();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -180,7 +180,7 @@ function ThreadKitInner({
     }
   }, []);
 
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(theme);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'system'>(theme);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [userProfileCache, setUserProfileCache] = useState<Map<string, UserProfile>>(new Map());
 
@@ -674,9 +674,12 @@ function ThreadKitInner({
   }, []);
 
   const handleUpdateName = useCallback(async (name: string) => {
-    // TODO: Implement name update via API
-    console.log('Update name:', name);
-  }, []);
+    try {
+      await updateUsername(name);
+    } catch (err) {
+      onError?.(err instanceof Error ? err : new Error('Failed to update username'));
+    }
+  }, [updateUsername, onError]);
 
   const handleUpdateSocialLinks = useCallback(async (socialLinks: import('./types').SocialLinks) => {
     try {

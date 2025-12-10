@@ -91,6 +91,11 @@
   --threadkit-text-muted: #6e7071;
 }
 
+/* Invert dark icons in dark mode for visibility */
+.threadkit-root[data-theme="dark"] .threadkit-social-link-input-group .threadkit-social-icon svg {
+  filter: invert(1);
+}
+
 /* Reset for all elements within threadkit */
 .threadkit-root *,
 .threadkit-root *::before,
@@ -530,14 +535,39 @@
 /* Social Link Input Group in Settings Panel */
 .threadkit-social-link-input-group {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 12px; /* Consistent with other settings items */
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px;
 }
 
 .threadkit-social-link-input-group label {
-  font-size: 12px;
-  color: var(--threadkit-text-secondary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.threadkit-social-link-input-group .threadkit-social-icon {
+  width: 20px;
+  height: 20px;
+  background: none;
+  border-radius: 0;
+}
+
+.threadkit-social-link-input-group input {
+  flex: 1;
+  padding: 4px 0;
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  color: var(--threadkit-text);
+  font-size: 13px;
+}
+
+.threadkit-social-link-input-group input:focus {
+  border-bottom-color: var(--threadkit-primary);
 }
 
 /* Social Links in User Hover Card */
@@ -880,11 +910,43 @@
   border-bottom-color: var(--threadkit-primary);
 }
 
+.threadkit-chat-input .threadkit-submit-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  align-self: flex-end;
+}
+
 .threadkit-chat-signin {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 0;
+}
+
+.threadkit-chat-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 2px 12px;
+  background: transparent;
+  color: var(--threadkit-text-muted);
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  width: fit-content;
+  margin-left: auto;
+}
+
+.threadkit-chat-presence,
+.threadkit-chat-typing {
+  white-space: nowrap;
+}
+
+.threadkit-chat-separator {
+  opacity: 0.5;
 }
 
 /* ===== Loading & Empty States ===== */
@@ -939,21 +1001,21 @@
 
 /* ===== Real-time Updates ===== */
 
-.threadkit-new-comments-banner {
+button.threadkit-new-comments-banner {
   display: inline-block;
-  padding: 6px 12px;
-  background: #eee;
+  padding: 2px 12px;
+  background: transparent;
   color: var(--threadkit-text-muted);
   border: none;
   border-radius: 12px;
   cursor: pointer;
   font-size: 13px;
-  margin: 0 auto 16px;
+  margin: 0 auto;
   transition: background-color 0.15s ease;
 }
 
-.threadkit-new-comments-banner:hover {
-  background: var(--threadkit-bg-hover);
+button.threadkit-new-comments-banner:hover {
+  background: var(--threadkit-bg-secondary);
   color: var(--threadkit-text);
 }
 
@@ -1453,6 +1515,44 @@
 
 .threadkit-settings-value {
   font-size: 14px;
+}
+
+/* Theme Toggle */
+.threadkit-theme-toggle {
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--threadkit-border);
+  background: var(--threadkit-bg-secondary);
+  padding: 1px;
+}
+
+.threadkit-theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--threadkit-text);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.threadkit-theme-toggle-btn:hover {
+  background: var(--threadkit-bg-hover);
+}
+
+.threadkit-theme-toggle-btn.active {
+  background: var(--threadkit-bg);
+  border: 1px solid var(--threadkit-border);
+}
+
+.threadkit-theme-toggle-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .threadkit-settings-divider {

@@ -4,6 +4,33 @@ import { useTranslation } from '../i18n';
 import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
 import { Avatar } from './Avatar';
 import { GuestAwareUsername } from '../utils/username';
+import { SOCIAL_ICONS } from '../auth/icons';
+import { SettingsIcon } from '../icons/ui';
+
+// Theme toggle icons
+function DesktopIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+      <path d="M14.25 1c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 14.25 12h-3.727c.099 1.041.52 1.872 1.292 2.757A.752.752 0 0 1 11.25 16h-6.5a.75.75 0 0 1-.565-1.243c.772-.885 1.192-1.716 1.292-2.757H1.75A1.75 1.75 0 0 1 0 10.25v-7.5C0 1.784.784 1 1.75 1ZM1.75 2.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25ZM9.018 12H6.982a5.72 5.72 0 0 1-.765 2.5h3.566a5.72 5.72 0 0 1-.765-2.5Z" />
+    </svg>
+  );
+}
+
+function SunIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+      <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061Zm-9.193-9.193a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061Z" />
+    </svg>
+  );
+}
+
+function MoonIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+      <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z" />
+    </svg>
+  );
+}
 
 interface BlockedUser {
   id: string;
@@ -12,7 +39,7 @@ interface BlockedUser {
 
 interface SettingsPanelProps {
   currentUser?: User;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   blockedUsers: BlockedUser[];
   apiUrl?: string;
   onLogin: () => void;
@@ -21,7 +48,7 @@ interface SettingsPanelProps {
   onUpdateName: (name: string) => void;
   onUpdateSocialLinks: (socialLinks: SocialLinks) => void;
   onUnblock: (userId: string) => void;
-  onThemeChange: (theme: 'light' | 'dark') => void;
+  onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
   onDeleteAccount: () => void;
 }
 
@@ -226,21 +253,28 @@ export function SettingsPanel({
   }, [isHolding, deleted, onDeleteAccount]);
 
   const renderSocialLinkInput = (
-    label: string,
+    platform: string,
     value: string,
     setValue: (value: string) => void
-  ) => (
-    <div className="threadkit-social-link-input-group">
-      <label>{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="threadkit-settings-name-input" // Reusing username input styling
-        placeholder={`https://${label.toLowerCase()}.com/your-profile`}
-      />
-    </div>
-  );
+  ) => {
+    const Icon = SOCIAL_ICONS[platform];
+    if (!Icon) return null;
+
+    return (
+      <div className="threadkit-social-link-input-group">
+        <label>
+          <Icon className="threadkit-social-icon" />
+        </label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="threadkit-settings-name-input"
+          placeholder={`https://${platform}.com/your-profile`}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="threadkit-settings" ref={containerRef}>
@@ -250,10 +284,7 @@ export function SettingsPanel({
         aria-label={t('settings')}
         title={t('settings')}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
+        <SettingsIcon />
       </button>
 
       {isOpen && (
@@ -346,13 +377,32 @@ export function SettingsPanel({
 
               {/* Theme Toggle */}
               <div className="threadkit-settings-section">
-                <button
-                  className="threadkit-settings-item"
-                  onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
-                >
-                  {t('theme')}: {theme}
-                  <span className="threadkit-settings-value">{theme === 'light' ? '☀️' : '🌙'}</span>
-                </button>
+                <div className="threadkit-settings-item">
+                  <span>{t('theme')}</span>
+                  <div className="threadkit-theme-toggle">
+                    <button
+                      onClick={() => onThemeChange('system')}
+                      className={`threadkit-theme-toggle-btn ${theme === 'system' ? 'active' : ''}`}
+                      aria-label="System theme"
+                    >
+                      <DesktopIcon className="threadkit-theme-toggle-icon" />
+                    </button>
+                    <button
+                      onClick={() => onThemeChange('light')}
+                      className={`threadkit-theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+                      aria-label="Light theme"
+                    >
+                      <SunIcon className="threadkit-theme-toggle-icon" />
+                    </button>
+                    <button
+                      onClick={() => onThemeChange('dark')}
+                      className={`threadkit-theme-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+                      aria-label="Dark theme"
+                    >
+                      <MoonIcon className="threadkit-theme-toggle-icon" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Blocked Users */}
@@ -425,15 +475,15 @@ export function SettingsPanel({
                 </button>
                 {activeSection === 'social' && (
                   <div className="threadkit-social-links-settings">
-                    {renderSocialLinkInput('Twitter', twitter, setTwitter)}
-                    {renderSocialLinkInput('GitHub', github, setGithub)}
-                    {renderSocialLinkInput('Facebook', facebook, setFacebook)}
-                    {renderSocialLinkInput('WhatsApp', whatsapp, setWhatsapp)}
-                    {renderSocialLinkInput('Telegram', telegram, setTelegram)}
-                    {renderSocialLinkInput('Instagram', instagram, setInstagram)}
-                    {renderSocialLinkInput('TikTok', tiktok, setTiktok)}
-                    {renderSocialLinkInput('Snapchat', snapchat, setSnapchat)}
-                    {renderSocialLinkInput('Discord', discord, setDiscord)}
+                    {renderSocialLinkInput('twitter', twitter, setTwitter)}
+                    {renderSocialLinkInput('github', github, setGithub)}
+                    {renderSocialLinkInput('facebook', facebook, setFacebook)}
+                    {renderSocialLinkInput('whatsapp', whatsapp, setWhatsapp)}
+                    {renderSocialLinkInput('telegram', telegram, setTelegram)}
+                    {renderSocialLinkInput('instagram', instagram, setInstagram)}
+                    {renderSocialLinkInput('tiktok', tiktok, setTiktok)}
+                    {renderSocialLinkInput('snapchat', snapchat, setSnapchat)}
+                    {renderSocialLinkInput('discord', discord, setDiscord)}
 
                     <button
                       className="threadkit-action-btn"

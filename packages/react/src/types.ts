@@ -97,8 +97,8 @@ export interface ThreadKitProps {
   url: string;
   /** Display mode: 'comments' for threaded, 'chat' for live stream */
   mode?: ThreadKitMode;
-  /** Theme: 'light' or 'dark' */
-  theme?: 'light' | 'dark';
+  /** Theme: 'light', 'dark', or 'system' */
+  theme?: 'light' | 'dark' | 'system';
 
   // Styling customization
   /** Additional CSS class name(s) to apply to the root element */
@@ -253,6 +253,8 @@ export interface CommentFormProps {
   autoFocus?: boolean;
   onSubmit: (text: string, parentId?: string) => Promise<void>;
   onCancel?: () => void;
+  pendingCount?: number;
+  onLoadPending?: () => void;
 }
 
 export interface CommentProps {

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
@@ -541,6 +541,12 @@ export function ChatView({
   const isLoggedIn = currentUser && !needsUsername;
   const canSubmitUsername = username.trim().length >= 1 && isUsernameAvailable === true && !usernameError;
 
+  // Filter out current user from typing users (don't show "you are typing")
+  const otherTypingUsers = useMemo(() => {
+    if (!currentUser) return typingUsers;
+    return typingUsers.filter(user => user.userId !== currentUser.id);
+  }, [typingUsers, currentUser]);
+
   // Flatten comments tree while preserving order and thread structure
   const flattenWithThreading = (nodes: Comment[], depth = 0): Array<{ comment: Comment; depth: number }> => {
     const result: Array<{ comment: Comment; depth: number }> = [];
@@ -1009,17 +1015,23 @@ export function ChatView({
       </form>
       {renderSignInArea()}
 
-      {showPresence && wsConnected && (
-        <div className="threadkit-chat-presence">
-          {presenceCount} {presenceCount === 1 ? t('personOnline') : t('peopleOnline')}
+      {(showPresence && wsConnected) || otherTypingUsers.length > 0 ? (
+        <div className="threadkit-chat-status">
+          {otherTypingUsers.length > 0 && (
+            <>
+              <span className="threadkit-chat-typing">
+                {otherTypingUsers.length} {otherTypingUsers.length === 1 ? t('personTyping') : t('peopleTyping')}
+              </span>
+              {showPresence && wsConnected && <span className="threadkit-chat-separator">|</span>}
+            </>
+          )}
+          {showPresence && wsConnected && (
+            <span className="threadkit-chat-presence">
+              {presenceCount} {presenceCount === 1 ? t('personOnline') : t('peopleOnline')}
+            </span>
+          )}
         </div>
-      )}
-
-      {typingUsers.length > 0 && (
-        <div className="threadkit-typing-indicator">
-          {typingUsers.length} {typingUsers.length === 1 ? t('personTyping') : t('peopleTyping')}
-        </div>
-      )}
+      ) : null}
 
       <div className="threadkit-chat-messages" ref={messagesRef}>
         {messages.map(({ comment, depth }) => (

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { CommentFormProps } from '../types';
 import { useTranslation } from '../i18n';
+import { NewCommentsBanner } from './NewCommentsBanner';
 
 const FORMATTING_HELP = [
   { input: '*italics*', output: 'italics', style: 'italic' },
@@ -17,6 +18,8 @@ export function CommentForm({
   autoFocus,
   onSubmit,
   onCancel,
+  pendingCount,
+  onLoadPending,
 }: CommentFormProps) {
   const t = useTranslation();
   const [text, setText] = useState('');
@@ -81,6 +84,9 @@ export function CommentForm({
           </button>
         )}
         <div className="threadkit-form-actions-spacer" />
+        {pendingCount && pendingCount > 0 && onLoadPending && (
+          <NewCommentsBanner count={pendingCount} onClick={onLoadPending} />
+        )}
         <button
           type="button"
           className="threadkit-formatting-help-toggle"

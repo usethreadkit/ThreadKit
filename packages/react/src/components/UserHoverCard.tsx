@@ -43,7 +43,13 @@ export function UserHoverCard({
 
   const profile = getUserProfile?.(userId);
 
+  // Check if this is an anonymous user (guest with no ID or ID starting with 'guest-' or 'anon-')
+  const isAnonymous = !userId || userId.startsWith('guest-') || userId.startsWith('anon-');
+
   const showCard = () => {
+    // Don't show card for anonymous users
+    if (isAnonymous) return;
+
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     // Trigger fetch on hover
@@ -52,7 +58,7 @@ export function UserHoverCard({
     }
 
     timeoutRef.current = setTimeout(() => {
-      if (triggerRef.current) {
+      if (triggerRef.current && profile) {
         const rect = triggerRef.current.getBoundingClientRect();
         // Position above the trigger using fixed positioning
         // Calculate bottom to avoid needing the card's height
@@ -78,8 +84,8 @@ export function UserHoverCard({
     };
   }, []);
 
-  // Only show hover card if we have real profile data
-  if (!profile) {
+  // Don't add hover triggers for anonymous users
+  if (isAnonymous) {
     return <>{children}</>;
   }
 
@@ -93,7 +99,7 @@ export function UserHoverCard({
       >
         {children}
       </span>
-      {isVisible && position && createPortal(
+      {isVisible && position && profile && createPortal(
         <div
           ref={cardRef}
           className="threadkit-root threadkit-hover-card"
