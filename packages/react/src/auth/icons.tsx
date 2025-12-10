@@ -71,26 +71,29 @@ export function GitHubIcon({ className }: IconProps) {
 
 export function EthereumIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
+    <svg className={className} viewBox="0 0 784.37 1277.39" fill="none">
+      <polygon fill="#343434" points="392.07,0 383.5,29.11 383.5,873.74 392.07,882.29 784.13,650.54" />
+      <polygon fill="#8C8C8C" points="392.07,0 -0,650.54 392.07,882.29 392.07,472.33" />
+      <polygon fill="#3C3C3B" points="392.07,956.52 387.24,962.41 387.24,1263.28 392.07,1277.38 784.37,724.89" />
+      <polygon fill="#8C8C8C" points="392.07,1277.38 392.07,956.52 -0,724.89" />
+      <polygon fill="#141414" points="392.07,882.29 784.13,650.54 392.07,472.33" />
+      <polygon fill="#393939" points="0,650.54 392.07,882.29 392.07,472.33" />
     </svg>
   );
 }
 
 export function SolanaIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <svg className={className} viewBox="0 0 397.7 311.7" fill="none">
       <defs>
-        <linearGradient id="solana-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#00FFA3' }} />
-          <stop offset="50%" style={{ stopColor: '#03E1FF' }} />
-          <stop offset="100%" style={{ stopColor: '#DC1FFF' }} />
+        <linearGradient id="solana-gradient" x1="360.879%" y1="351.582%" x2="-101.077%" y2="-101.077%">
+          <stop offset="0%" stopColor="#00FFA3" />
+          <stop offset="100%" stopColor="#DC1FFF" />
         </linearGradient>
       </defs>
-      <path
-        fill="url(#solana-grad)"
-        d="M4.5 18.5h12.9c.3 0 .5-.1.7-.3l2.4-2.5c.2-.2.2-.5 0-.7-.1-.1-.2-.2-.4-.2H7.2c-.3 0-.5.1-.7.3l-2.4 2.5c-.2.2-.2.5 0 .7.1.1.2.2.4.2zm0-6h12.9c.3 0 .5-.1.7-.3l2.4-2.5c.2-.2.2-.5 0-.7-.1-.1-.2-.2-.4-.2H7.2c-.3 0-.5.1-.7.3L4.1 11.6c-.2.2-.2.5 0 .7.1.1.2.2.4.2zm2.7-6.3l-2.4 2.5c-.2.2-.2.5 0 .7.1.1.2.2.4.2h12.9c.3 0 .5-.1.7-.3l2.4-2.5c.2-.2.2-.5 0-.7-.1-.1-.2-.2-.4-.2H7.9c-.3 0-.5.1-.7.3z"
-      />
+      <path d="M64.6,237.9c2.4-2.4,5.7-3.8,9.2-3.8h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,237.9z" fill="url(#solana-gradient)"/>
+      <path d="M64.6,3.8C67.1,1.4,70.4,0,73.8,0h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,3.8z" fill="url(#solana-gradient)"/>
+      <path d="M333.1,120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8,0-8.7,7-4.6,11.1l62.7,62.7c2.4,2.4,5.7,3.8,9.2,3.8h317.4c5.8,0,8.7-7,4.6-11.1L333.1,120.1z" fill="url(#solana-gradient)"/>
     </svg>
   );
 }
