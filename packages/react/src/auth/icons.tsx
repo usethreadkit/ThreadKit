@@ -69,34 +69,6 @@ export function GitHubIcon({ className }: IconProps) {
   );
 }
 
-export function EthereumIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 784.37 1277.39" fill="none">
-      <polygon fill="#343434" points="392.07,0 383.5,29.11 383.5,873.74 392.07,882.29 784.13,650.54" />
-      <polygon fill="#8C8C8C" points="392.07,0 -0,650.54 392.07,882.29 392.07,472.33" />
-      <polygon fill="#3C3C3B" points="392.07,956.52 387.24,962.41 387.24,1263.28 392.07,1277.38 784.37,724.89" />
-      <polygon fill="#8C8C8C" points="392.07,1277.38 392.07,956.52 -0,724.89" />
-      <polygon fill="#141414" points="392.07,882.29 784.13,650.54 392.07,472.33" />
-      <polygon fill="#393939" points="0,650.54 392.07,882.29 392.07,472.33" />
-    </svg>
-  );
-}
-
-export function SolanaIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 397.7 311.7" fill="none">
-      <defs>
-        <linearGradient id="solana-gradient" x1="360.879%" y1="351.582%" x2="-101.077%" y2="-101.077%">
-          <stop offset="0%" stopColor="#00FFA3" />
-          <stop offset="100%" stopColor="#DC1FFF" />
-        </linearGradient>
-      </defs>
-      <path d="M64.6,237.9c2.4-2.4,5.7-3.8,9.2-3.8h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,237.9z" fill="url(#solana-gradient)"/>
-      <path d="M64.6,3.8C67.1,1.4,70.4,0,73.8,0h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,3.8z" fill="url(#solana-gradient)"/>
-      <path d="M333.1,120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8,0-8.7,7-4.6,11.1l62.7,62.7c2.4,2.4,5.7,3.8,9.2,3.8h317.4c5.8,0,8.7-7,4.6-11.1L333.1,120.1z" fill="url(#solana-gradient)"/>
-    </svg>
-  );
-}
 
 export function LoadingSpinner({ className }: IconProps) {
   return (
@@ -239,8 +211,6 @@ export const AUTH_ICONS: Record<string, React.ComponentType<IconProps>> = {
   phone: PhoneIcon,
   google: GoogleIcon,
   github: GitHubIcon,
-  ethereum: EthereumIcon,
-  solana: SolanaIcon,
   anonymous: AnonymousIcon,
 };
 

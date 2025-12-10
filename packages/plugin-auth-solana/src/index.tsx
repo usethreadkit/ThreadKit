@@ -468,3 +468,215 @@ export function createSolanaAuthPlugin(options: SolanaAuthPluginOptions) {
 
 // Re-export ThreadKitPlugin type for convenience
 export type { ThreadKitPlugin };
+
+// ============================================================================
+// Auth Plugin Integration
+// ============================================================================
+
+// Import AuthPlugin type from @threadkit/react
+import type { AuthPlugin, AuthPluginRenderProps } from '@threadkit/react';
+
+// Solana icon component
+function SolanaIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 397.7 311.7" fill="none">
+      <defs>
+        <linearGradient id="solana-gradient" x1="360.879%" y1="351.582%" x2="-101.077%" y2="-101.077%">
+          <stop offset="0%" stopColor="#00FFA3" />
+          <stop offset="100%" stopColor="#DC1FFF" />
+        </linearGradient>
+      </defs>
+      <path d="M64.6,237.9c2.4-2.4,5.7-3.8,9.2-3.8h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,237.9z" fill="url(#solana-gradient)"/>
+      <path d="M64.6,3.8C67.1,1.4,70.4,0,73.8,0h317.4c5.8,0,8.7,7,4.6,11.1l-62.7,62.7c-2.4,2.4-5.7,3.8-9.2,3.8H6.5c-5.8,0-8.7-7-4.6-11.1L64.6,3.8z" fill="url(#solana-gradient)"/>
+      <path d="M333.1,120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8,0-8.7,7-4.6,11.1l62.7,62.7c2.4,2.4,5.7,3.8,9.2,3.8h317.4c5.8,0,8.7-7,4.6-11.1L333.1,120.1z" fill="url(#solana-gradient)"/>
+    </svg>
+  );
+}
+
+/**
+ * Create an AuthPlugin for use with ThreadKit's auth system.
+ *
+ * This allows Solana authentication to appear in the login modal alongside
+ * email, phone, and OAuth options.
+ *
+ * @example
+ * ```tsx
+ * import { createSolanaAuthPlugin } from '@threadkit/plugin-auth-solana';
+ *
+ * const { Provider, authPlugin } = createSolanaAuthPlugin({
+ *   provider: { mode: 'standalone' },
+ * });
+ *
+ * <Provider>
+ *   <ThreadKit authPlugins={[authPlugin]} ... />
+ * </Provider>
+ * ```
+ */
+export function createSolanaAuthPluginForThreadKit(
+  options: Omit<SolanaAuthPluginOptions, 'apiUrl' | 'apiKey'>
+): { Provider: React.ComponentType<{ children: ReactNode }>; authPlugin: AuthPlugin } {
+  const { Provider } = createSolanaAuthPlugin({
+    ...options,
+    // These will be passed at render time from ThreadKit
+    apiUrl: '',
+    apiKey: '',
+  });
+
+  const authPlugin: AuthPlugin = {
+    id: 'solana',
+    name: 'Solana',
+    type: 'web3',
+    Icon: SolanaIcon,
+    render: ({ onSuccess, onError, onCancel, apiUrl, apiKey }: AuthPluginRenderProps) => {
+      // Render a modal/UI for wallet connection
+      return (
+        <SolanaAuthModal
+          apiUrl={apiUrl}
+          apiKey={apiKey}
+          onSuccess={onSuccess}
+          onError={onError}
+          onCancel={onCancel}
+          providerConfig={options.provider}
+        />
+      );
+    },
+  };
+
+  return { Provider, authPlugin };
+}
+
+// Internal modal component for the auth flow
+function SolanaAuthModal({
+  apiUrl,
+  apiKey,
+  onSuccess,
+  onError,
+  onCancel,
+  providerConfig,
+}: {
+  apiUrl: string;
+  apiKey: string;
+  onSuccess: AuthPluginRenderProps['onSuccess'];
+  onError: AuthPluginRenderProps['onError'];
+  onCancel: AuthPluginRenderProps['onCancel'];
+  providerConfig: StandaloneConfig | ExternalConfig;
+}) {
+  const [step, setStep] = useState<'connect' | 'sign' | 'loading'>('connect');
+  const [error, setError] = useState<string | null>(null);
+
+  const { address, isConnected, connect, wallets } = useWallet();
+  const wallet = useSolanaWallet();
+  const { connection } = useConnection();
+
+  // Auto-advance when connected
+  useEffect(() => {
+    if (isConnected && address) {
+      setStep('sign');
+    }
+  }, [isConnected, address]);
+
+  const handleSign = useCallback(async () => {
+    if (!address || !wallet.signMessage) return;
+
+    setStep('loading');
+    setError(null);
+
+    try {
+      // 1. Get nonce
+      const nonceRes = await fetch(
+        `${apiUrl}/auth/solana/nonce?address=${encodeURIComponent(address)}`,
+        {
+          headers: { 'projectid': apiKey },
+        }
+      );
+      if (!nonceRes.ok) throw new Error('Failed to get nonce');
+      const { message } = await nonceRes.json();
+
+      // 2. Sign
+      const messageBytes = new TextEncoder().encode(message);
+      const signature = await wallet.signMessage(messageBytes);
+
+      // 3. Verify
+      const verifyRes = await fetch(`${apiUrl}/auth/solana/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'projectid': apiKey,
+        },
+        body: JSON.stringify({
+          address,
+          message,
+          signature: Array.from(signature),
+        }),
+      });
+      if (!verifyRes.ok) throw new Error('Signature verification failed');
+      const { token, refresh_token, user } = await verifyRes.json();
+
+      // 4. Success callback
+      onSuccess(token, refresh_token, {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        email_verified: user.email_verified,
+        phone_verified: false,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Authentication failed';
+      setError(msg);
+      onError(msg);
+      setStep('sign');
+    }
+  }, [address, wallet, connection, apiUrl, apiKey, onSuccess, onError]);
+
+  const truncatedAddress = address
+    ? `${address.slice(0, 4)}...${address.slice(-4)}`
+    : '';
+
+  return (
+    <div className="tk-auth-web3-modal">
+      {step === 'connect' && (
+        <div className="tk-auth-web3-connect">
+          <h3>Connect your wallet</h3>
+          <div className="tk-auth-web3-connectors">
+            {wallets.map((w) => (
+              <button
+                key={w.name}
+                onClick={() => connect()}
+                className="tk-auth-method-btn"
+              >
+                {w.name}
+              </button>
+            ))}
+          </div>
+          <button onClick={onCancel} className="tk-auth-web3-cancel">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {step === 'sign' && (
+        <div className="tk-auth-web3-sign">
+          <h3>Sign message</h3>
+          <p>Connected as {truncatedAddress}</p>
+          <p className="tk-auth-subtitle">
+            Sign a message to verify ownership of your wallet
+          </p>
+          {error && <p className="tk-auth-error">{error}</p>}
+          <button onClick={handleSign} className="tk-auth-submit-btn">
+            Sign to continue
+          </button>
+          <button onClick={onCancel} className="tk-auth-web3-cancel">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {step === 'loading' && (
+        <div className="tk-auth-loading">
+          <p>Verifying signature...</p>
+        </div>
+      )}
+    </div>
+  );
+}
