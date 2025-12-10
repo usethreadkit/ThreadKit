@@ -142,18 +142,26 @@ export function CommentsView({
   }, []);
 
   const collapseComment = useCallback(() => {
+    console.log('collapseComment called', { focusedCommentId, hasOnCollapse: !!onCollapse, isCollapsed: focusedCommentId ? collapsedThreads?.has(focusedCommentId) : null });
     if (!focusedCommentId || !onCollapse) return;
     // Only collapse if not already collapsed
     if (!collapsedThreads?.has(focusedCommentId)) {
+      console.log('Calling onCollapse to collapse:', focusedCommentId);
       onCollapse(focusedCommentId);
+    } else {
+      console.log('Already collapsed, skipping');
     }
   }, [focusedCommentId, onCollapse, collapsedThreads]);
 
   const expandComment = useCallback(() => {
+    console.log('expandComment called', { focusedCommentId, hasOnCollapse: !!onCollapse, isCollapsed: focusedCommentId ? collapsedThreads?.has(focusedCommentId) : null });
     if (!focusedCommentId || !onCollapse) return;
     // Only expand if currently collapsed
     if (collapsedThreads?.has(focusedCommentId)) {
+      console.log('Calling onCollapse to expand:', focusedCommentId);
       onCollapse(focusedCommentId);
+    } else {
+      console.log('Not collapsed, skipping');
     }
   }, [focusedCommentId, collapsedThreads, onCollapse]);
 
@@ -313,11 +321,18 @@ export function CommentsView({
   }, []);
 
   const cancelAction = useCallback(() => {
-    // Only handle confirmation dialogs with ESC
-    // Don't cancel edit/reply forms to preserve user's text
+    // First check for confirmation dialogs
     const noBtn = document.querySelector('.threadkit-confirm-no') as HTMLButtonElement;
     if (noBtn) {
       noBtn.click();
+      return;
+    }
+
+    // Then check for cancel buttons in edit/reply forms
+    // Note: The forms should preserve text when closed and reopened
+    const cancelBtn = document.querySelector('.threadkit-cancel-btn') as HTMLButtonElement;
+    if (cancelBtn) {
+      cancelBtn.click();
       return;
     }
   }, []);
