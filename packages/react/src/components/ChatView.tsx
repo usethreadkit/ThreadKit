@@ -575,18 +575,18 @@ export function ChatView({
       if (!text || isSubmitting) return;
 
       setIsSubmitting(true);
-      setInputValue('');
-
-      // Refocus input for mobile - blur first to ensure focus change is detected
-      requestAnimationFrame(() => {
-        inputRef.current?.blur();
-        requestAnimationFrame(() => {
-          inputRef.current?.focus();
-        });
-      });
 
       try {
         await onSend(text);
+        // Only clear and refocus after successful send
+        setInputValue('');
+        // Simple focus call - more reliable than blur/focus dance
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+      } catch (error) {
+        // Keep the message in input if send fails
+        console.error('Failed to send message:', error);
       } finally {
         setIsSubmitting(false);
       }
