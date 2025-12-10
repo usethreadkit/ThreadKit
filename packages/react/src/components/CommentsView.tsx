@@ -165,6 +165,16 @@ export function CommentsView({
     }
   }, [focusedCommentId, collapsedThreads, onCollapse]);
 
+  const upvoteComment = useCallback(() => {
+    if (!focusedCommentId || !onVote) return;
+    onVote(focusedCommentId, 'up');
+  }, [focusedCommentId, onVote]);
+
+  const downvoteComment = useCallback(() => {
+    if (!focusedCommentId || !onVote) return;
+    onVote(focusedCommentId, 'down');
+  }, [focusedCommentId, onVote]);
+
   // Keyboard navigation handlers
   const focusInput = useCallback(() => {
     const textarea = document.querySelector('.threadkit-comment-form textarea') as HTMLTextAreaElement;
@@ -350,7 +360,9 @@ export function CommentsView({
     cancelAction,
     collapseAll: collapseComment,
     expandAll: expandComment,
-  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, collapseComment, expandComment]);
+    upvote: upvoteComment,
+    downvote: downvoteComment,
+  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, collapseComment, expandComment, upvoteComment, downvoteComment]);
 
   useKeyboardShortcuts({ shortcuts });
 

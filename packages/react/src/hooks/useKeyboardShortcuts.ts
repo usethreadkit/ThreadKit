@@ -71,6 +71,8 @@ export function getDefaultShortcuts(actions: {
   confirmYes?: () => void;
   confirmNo?: () => void;
   cancelAction?: () => void;
+  upvote?: () => void;
+  downvote?: () => void;
 }): KeyboardShortcut[] {
   const shortcuts: KeyboardShortcut[] = [];
 
@@ -92,7 +94,7 @@ export function getDefaultShortcuts(actions: {
 
   if (actions.expandAll) {
     shortcuts.push({
-      key: '+',
+      key: '=',
       handler: actions.expandAll,
       description: 'Expand focused comment',
     });
@@ -159,6 +161,22 @@ export function getDefaultShortcuts(actions: {
       key: 'Escape',
       handler: actions.cancelAction,
       description: 'Cancel/close',
+    });
+  }
+
+  if (actions.upvote) {
+    shortcuts.push({
+      key: 'f',
+      handler: actions.upvote,
+      description: 'Upvote focused comment',
+    });
+  }
+
+  if (actions.downvote) {
+    shortcuts.push({
+      key: 's',
+      handler: actions.downvote,
+      description: 'Downvote focused comment',
     });
   }
 

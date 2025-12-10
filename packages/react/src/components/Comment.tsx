@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatTimestamp } from '@threadkit/core';
 import type { CommentProps } from '../types';
 import { CommentForm } from './CommentForm';
@@ -61,6 +61,11 @@ export function Comment({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [confirmingAction, setConfirmingAction] = useState<'block' | 'delete' | 'ban' | null>(null);
+
+  // Sync internal collapsed state with prop changes (for keyboard shortcuts)
+  useEffect(() => {
+    setCollapsed(initialCollapsed);
+  }, [initialCollapsed]);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState<string>('');
   const [reportSubmitted, setReportSubmitted] = useState(false);
@@ -107,7 +112,17 @@ export function Comment({
 
   if (collapsed) {
     return (
-      <div className={`${commentClassName} threadkit-comment-collapsed`} data-comment-id={comment.id}>
+      <div
+        className={`${commentClassName} threadkit-comment-collapsed`}
+        data-comment-id={comment.id}
+        onClick={(e) => {
+          // Select comment when clicking on collapsed area (but not the expand button)
+          const target = e.target as HTMLElement;
+          if (onCommentClick && !target.closest('button')) {
+            onCommentClick(comment.id);
+          }
+        }}
+      >
         <button
           className="threadkit-expand-btn"
           onClick={handleCollapse}
@@ -551,7 +566,7 @@ export function Comment({
                 <Comment
                   key={child.id}
                   comment={child}
-                  
+                  currentUser={currentUser}
                   needsUsername={needsUsername}
                   apiUrl={apiUrl}
                   projectId={projectId}
