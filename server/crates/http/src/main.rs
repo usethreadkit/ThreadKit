@@ -527,8 +527,6 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
             moderation_mode: moderation,
             auth,
             display: DisplaySettings::default(),
-            require_verification: false,
-            auto_approve_verified: true,
             rate_limits: Default::default(),
             content_moderation: ContentModerationSettings::default(),
             turnstile: TurnstileSettings::default(),

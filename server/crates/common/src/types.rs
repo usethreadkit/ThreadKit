@@ -430,8 +430,6 @@ pub struct SiteSettings {
     pub moderation_mode: ModerationMode,
     pub auth: AuthSettings,
     pub display: DisplaySettings,
-    pub require_verification: bool,
-    pub auto_approve_verified: bool,
     pub rate_limits: SiteRateLimitSettings,
     pub content_moderation: ContentModerationSettings,
     pub turnstile: TurnstileSettings,

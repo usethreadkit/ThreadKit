@@ -7,11 +7,21 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --filter '@threadkit/*' test:run",
-    "test:coverage": "pnpm -r --filter '@threadkit/*' test:run -- --coverage"
+    "test:coverage": "pnpm -r --filter '@threadkit/*' test:run -- --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "8.6.14",
+    "@storybook/addon-interactions": "8.6.14",
+    "@storybook/addon-links": "8.6.14",
+    "@storybook/addon-themes": "8.6.14",
+    "@storybook/react": "8.6.14",
+    "@storybook/react-vite": "8.6.14",
     "openapi-typescript": "^7.10.1",
-    "typescript": "^5.3.3"
+    "storybook": "8.6.14",
+    "typescript": "^5.3.3",
+    "vite": "^6.4.1"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
