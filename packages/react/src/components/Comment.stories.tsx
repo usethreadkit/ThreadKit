@@ -210,3 +210,60 @@ Plus some **bold text** and *italic text* and even some \`inline code\`.
     onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
   },
 };
+
+export const Focused: Story = {
+  args: {
+    comment: mockComment,
+    currentUser: mockUser,
+    focusedCommentId: '1',
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    onCommentClick: (commentId) => console.log('Comment clicked:', commentId),
+  },
+};
+
+export const WithKeyboardNavigation: Story = {
+  args: {
+    comment: mockComment,
+    currentUser: mockUser,
+    index: 2,
+    totalSiblings: 5,
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    onPrev: () => console.log('Navigate to previous comment'),
+    onNext: () => console.log('Navigate to next comment'),
+    onCommentClick: (commentId) => console.log('Comment clicked:', commentId),
+  },
+};
+
+export const WithPendingReplies: Story = {
+  args: {
+    comment: mockComment,
+    currentUser: mockUser,
+    pendingRepliesCount: 5,
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    onLoadPendingReplies: (parentId) => console.log('Load pending replies for:', parentId),
+  },
+};
+
+export const WithUserProfile: Story = {
+  args: {
+    comment: mockComment,
+    currentUser: mockUser,
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    getUserProfile: (userId) => ({
+      id: userId,
+      name: 'johndoe',
+      avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+      bio: 'Software developer and open source enthusiast',
+      social_links: {
+        twitter: 'johndoe',
+        github: 'johndoe',
+      },
+      comment_count: 42,
+      joined_at: Date.now() - 86400000 * 365, // 1 year ago
+    }),
+    fetchUserProfile: (userId) => {
+      console.log('Fetch user profile:', userId);
+      return Promise.resolve();
+    },
+  },
+};

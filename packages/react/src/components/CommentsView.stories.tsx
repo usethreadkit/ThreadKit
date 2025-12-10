@@ -209,3 +209,63 @@ export const NoVoting: Story = {
     onSortChange: (sort) => console.log('Sort changed:', sort),
   },
 };
+
+export const WithCollapsedThreads: Story = {
+  args: {
+    comments: mockComments,
+    currentUser: mockUser,
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'test-project',
+    sortBy: 'top',
+    allowVoting: true,
+    collapsedThreads: new Set(['1']),
+    onPost: async (text) => console.log('Post:', text),
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    onCollapse: (commentId) => console.log('Collapse toggled:', commentId),
+  },
+};
+
+export const WithHighlightedComment: Story = {
+  args: {
+    comments: mockComments,
+    currentUser: mockUser,
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'test-project',
+    sortBy: 'top',
+    allowVoting: true,
+    highlightedCommentId: '2',
+    onPost: async (text) => console.log('Post:', text),
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+  },
+};
+
+export const WithPendingReplies: Story = {
+  args: {
+    comments: mockComments,
+    currentUser: mockUser,
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'test-project',
+    sortBy: 'top',
+    allowVoting: true,
+    pendingReplies: new Map([
+      ['1', [
+        {
+          id: 'pending-1',
+          userId: 'user-5',
+          userName: 'emma',
+          text: 'This is a pending reply',
+          timestamp: Date.now(),
+          upvotes: 0,
+          downvotes: 0,
+          children: [],
+          depth: 1,
+          status: 'approved',
+          pageUrl: 'https://example.com',
+        },
+      ]],
+    ]),
+    onPost: async (text) => console.log('Post:', text),
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+    onLoadPendingReplies: (parentId) => console.log('Load pending replies for:', parentId),
+  },
+};

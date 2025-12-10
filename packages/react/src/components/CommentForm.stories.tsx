@@ -63,3 +63,27 @@ export const WithCustomPlaceholder: Story = {
     },
   },
 };
+
+export const WithPendingComments: Story = {
+  args: {
+    placeholder: 'Write a comment...',
+    pendingCount: 3,
+    onSubmit: async (text) => {
+      console.log('Submitted:', text);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    },
+    onLoadPending: () => console.log('Load pending comments clicked'),
+  },
+};
+
+export const WithLargePendingCount: Story = {
+  args: {
+    placeholder: 'Write a comment...',
+    pendingCount: 42,
+    onSubmit: async (text) => {
+      console.log('Submitted:', text);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    },
+    onLoadPending: () => console.log('Load pending comments clicked'),
+  },
+};
