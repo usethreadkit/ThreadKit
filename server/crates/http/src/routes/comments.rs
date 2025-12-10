@@ -34,6 +34,7 @@ pub fn router() -> Router<AppState> {
         .route("/comments", get(get_comments).post(create_comment))
         .route("/comments/{id}", put(update_comment).delete(delete_comment))
         .route("/comments/{id}/vote", post(vote_comment))
+        .route("/comments/{id}/pin", post(pin_comment))
         .route("/comments/{id}/report", post(report_comment))
         .route("/pages/my_votes", get(get_my_votes))
 }
@@ -76,6 +77,20 @@ pub struct VoteResponse {
     pub upvotes: i64,
     pub downvotes: i64,
     pub user_vote: Option<VoteDirection>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PinRequest {
+    /// Page URL where the comment exists
+    pub page_url: String,
+    /// Path to the comment (array of UUIDs from root to target)
+    pub path: Vec<Uuid>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PinResponse {
+    pub pinned: bool,
+    pub pinned_at: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -177,7 +192,7 @@ pub async fn get_comments(
 
     // Run all Redis reads concurrently using tokio::join!
     let redis_start = Instant::now();
-    let (tree_result, blocked_users, pageviews) = tokio::join!(
+    let (tree_result, blocked_users, pageviews, pinned) = tokio::join!(
         // Primary: get the page tree
         state.redis.get_or_create_page_tree(page_id),
         // Get blocked users (if authenticated)
@@ -201,6 +216,14 @@ pub async fn get_comments(
             } else {
                 None
             }
+        },
+        // Get pinned comment IDs
+        async {
+            state
+                .redis
+                .get_pinned_comments(page_id)
+                .await
+                .unwrap_or_default()
         }
     );
     let redis_elapsed = redis_start.elapsed();
@@ -249,6 +272,7 @@ pub async fn get_comments(
         tree,
         total,
         pageviews,
+        pinned,
     };
 
     let json_response = Json(response);
@@ -802,16 +826,15 @@ pub async fn vote_comment(
 
     let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
-    // Get existing vote from per-page vote structure
-    let existing_vote = state
+    // Use atomic vote operation to prevent race conditions
+    let (new_vote, new_upvotes, new_downvotes, upvote_delta, downvote_delta) = state
         .redis
-        .get_page_votes(auth.user_id, page_id)
+        .atomic_vote(auth.user_id, page_id, comment_id, &req.path, req.direction)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .get(&comment_id)
-        .copied();
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let mut tree = state
+    // Get author_id for karma update (we still need to fetch the tree for this)
+    let tree = state
         .redis
         .get_page_tree(page_id)
         .await
@@ -819,46 +842,16 @@ pub async fn vote_comment(
         .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
 
     let comment = tree
-        .find_by_path_mut(&req.path)
+        .find_by_path(&req.path)
         .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
 
-    let (new_vote, upvote_delta, downvote_delta): (Option<VoteDirection>, i64, i64) =
-        match (existing_vote, req.direction) {
-            // No existing vote, add new vote
-            (None, VoteDirection::Up) => (Some(VoteDirection::Up), 1, 0),
-            (None, VoteDirection::Down) => (Some(VoteDirection::Down), 0, 1),
-
-            // Same vote, remove it
-            (Some(VoteDirection::Up), VoteDirection::Up) => (None, -1, 0),
-            (Some(VoteDirection::Down), VoteDirection::Down) => (None, 0, -1),
-
-            // Different vote, switch
-            (Some(VoteDirection::Up), VoteDirection::Down) => (Some(VoteDirection::Down), -1, 1),
-            (Some(VoteDirection::Down), VoteDirection::Up) => (Some(VoteDirection::Up), 1, -1),
-        };
-
-    // Update counts
-    comment.upvotes = (comment.upvotes + upvote_delta).max(0);
-    comment.downvotes = (comment.downvotes + downvote_delta).max(0);
-
-    let new_upvotes = comment.upvotes;
-    let new_downvotes = comment.downvotes;
     let author_id = comment.author_id;
 
-    // Update tree timestamp so ETag changes and clients get fresh data on reload
-    tree.updated_at = chrono::Utc::now().timestamp();
-
-    // Save tree
-    state
-        .redis
-        .set_page_tree(page_id, &tree)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    // Update ETag cache with new timestamp
+    // Update ETag cache with new timestamp (tree was updated by Lua script)
     state.etag_cache.insert(page_id, tree.updated_at).await;
 
-    // Fire-and-forget: vote index, karma update, and WebSocket publish
+    // Fire-and-forget: karma update and WebSocket publish
+    // Note: Vote storage is now handled atomically in the Lua script
     {
         let redis = state.redis.clone();
         let user_id = auth.user_id;
@@ -867,22 +860,6 @@ pub async fn vote_comment(
         tokio::spawn(async move {
             // Run all updates concurrently
             tokio::join!(
-                // Update user vote index (legacy)
-                async {
-                    if new_vote.is_some() {
-                        let _ = redis.add_user_vote_index(user_id, page_id, comment_id).await;
-                    } else {
-                        let _ = redis.remove_user_vote_index(user_id, page_id, comment_id).await;
-                    }
-                },
-                // Update per-page votes (new structure for efficient loading)
-                async {
-                    if let Some(dir) = new_vote {
-                        let _ = redis.set_page_vote(user_id, page_id, comment_id, dir).await;
-                    } else {
-                        let _ = redis.delete_page_vote(user_id, page_id, comment_id).await;
-                    }
-                },
                 // Update author karma (only if voting on someone else's comment)
                 async {
                     if author_id != user_id && author_id != DELETED_USER_ID && karma_delta != 0 {
@@ -906,7 +883,7 @@ pub async fn vote_comment(
                             .to_string(),
                         )
                         .await;
-                }
+                },
             );
         });
     }
@@ -915,6 +892,104 @@ pub async fn vote_comment(
         upvotes: new_upvotes,
         downvotes: new_downvotes,
         user_vote: new_vote,
+    }))
+}
+
+/// Pin or unpin a comment (moderator+)
+#[utoipa::path(
+    post,
+    path = "/comments/{id}/pin",
+    tag = "comments",
+    params(
+        ("id" = Uuid, Path, description = "Comment ID")
+    ),
+    request_body = PinRequest,
+    responses(
+        (status = 200, description = "Comment pin status toggled", body = PinResponse),
+        (status = 403, description = "Not a moderator"),
+        (status = 404, description = "Comment not found")
+    ),
+    security(("project_id" = []), ("bearer" = []))
+)]
+pub async fn pin_comment(
+    State(state): State<AppState>,
+    project_id: ProjectId,
+    auth: AuthUserWithRole,
+    Path(comment_id): Path<Uuid>,
+    Json(req): Json<PinRequest>,
+) -> Result<Json<PinResponse>, (StatusCode, String)> {
+    auth.require_moderator()?;
+
+    // Validate path
+    if req.path.is_empty() || *req.path.last().unwrap() != comment_id {
+        return Err((StatusCode::BAD_REQUEST, "Path must end with comment ID".into()));
+    }
+
+    let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
+
+    // Verify the comment exists in the tree
+    let tree = state
+        .redis
+        .get_page_tree(page_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Page not found".into()))?;
+
+    // Find the comment to verify it exists
+    tree.find_by_path(&req.path)
+        .ok_or((StatusCode::NOT_FOUND, "Comment not found".into()))?;
+
+    // Check current pin status from Redis sorted set
+    let is_pinned = state
+        .redis
+        .is_comment_pinned(page_id, comment_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Toggle pinned state
+    let new_pinned = !is_pinned;
+    let new_pinned_at = if new_pinned {
+        let timestamp = Utc::now().timestamp_millis();
+        state
+            .redis
+            .pin_comment(page_id, comment_id, timestamp)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        Some(timestamp)
+    } else {
+        state
+            .redis
+            .unpin_comment(page_id, comment_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        None
+    };
+
+    // Publish pin update for WebSocket subscribers
+    {
+        let redis = state.redis.clone();
+        tokio::spawn(async move {
+            let _ = redis
+                .publish(
+                    &format!("threadkit:page:{}:events", page_id),
+                    &serde_json::json!({
+                        "type": "pin_update",
+                        "page_id": page_id,
+                        "data": {
+                            "comment_id": comment_id,
+                            "pinned": new_pinned,
+                            "pinned_at": new_pinned_at,
+                        }
+                    })
+                    .to_string(),
+                )
+                .await;
+        });
+    }
+
+    Ok(Json(PinResponse {
+        pinned: new_pinned,
+        pinned_at: new_pinned_at,
     }))
 }
 

@@ -1,7 +1,9 @@
 import { useCallback, useState, useMemo } from 'react';
 import type { Comment as CommentType, User, UserProfile, SortBy, ThreadKitPlugin } from '../types';
 import type { TypingUser } from '@threadkit/core';
+import { extractPinnedComments } from '@threadkit/core';
 import { Comment } from './Comment';
+import { PinnedMessage } from './PinnedMessage';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
 import { useTranslation } from '../i18n';
@@ -13,13 +15,14 @@ interface CommentsViewProps {
   currentUser?: User;
   /** Whether the user needs to set their username before posting */
   needsUsername?: boolean;
-  maxDepth?: number;
   allowVoting?: boolean;
   sortBy?: SortBy;
   highlightedCommentId?: string | null;
   collapsedThreads?: Set<string>;
   apiUrl: string;
   projectId: string;
+  /** List of pinned comment IDs with their pinned timestamps */
+  pinnedIds?: Array<[string, number]>;
   /** Number of pending root-level comments waiting to be loaded */
   pendingRootCount?: number;
   /** Map of parent comment ID -> pending replies for that comment */
@@ -62,13 +65,13 @@ export function CommentsView({
   comments,
   currentUser,
   needsUsername = false,
-  maxDepth = 5,
   allowVoting = true,
   sortBy = 'top',
   highlightedCommentId,
   collapsedThreads,
   apiUrl,
   projectId,
+  pinnedIds = [],
   pendingRootCount = 0,
   pendingReplies,
   onLoadPendingComments,
@@ -94,6 +97,23 @@ export function CommentsView({
 }: CommentsViewProps) {
   const t = useTranslation();
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
+
+  // Extract pinned comments
+  const pinnedComments = useMemo(
+    () => extractPinnedComments(comments, pinnedIds),
+    [comments, pinnedIds]
+  );
+
+  // Navigate to a comment by scrolling it into view
+  const handleNavigateToComment = useCallback((commentId: string) => {
+    const element = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Briefly highlight the comment
+      element.classList.add('threadkit-comment-highlight');
+      setTimeout(() => element.classList.remove('threadkit-comment-highlight'), 2000);
+    }
+  }, []);
 
   const handleReply = useCallback(
     (parentId: string) => {
@@ -144,29 +164,12 @@ export function CommentsView({
     setFocusedCommentId(commentId);
   }, []);
 
-  const collapseComment = useCallback(() => {
-    console.log('collapseComment called', { focusedCommentId, hasOnCollapse: !!onCollapse, isCollapsed: focusedCommentId ? collapsedThreads?.has(focusedCommentId) : null });
+  const toggleCollapse = useCallback(() => {
+    console.log('toggleCollapse called', { focusedCommentId, hasOnCollapse: !!onCollapse, isCollapsed: focusedCommentId ? collapsedThreads?.has(focusedCommentId) : null });
     if (!focusedCommentId || !onCollapse) return;
-    // Only collapse if not already collapsed
-    if (!collapsedThreads?.has(focusedCommentId)) {
-      console.log('Calling onCollapse to collapse:', focusedCommentId);
-      onCollapse(focusedCommentId);
-    } else {
-      console.log('Already collapsed, skipping');
-    }
+    console.log('Toggling collapse for:', focusedCommentId);
+    onCollapse(focusedCommentId);
   }, [focusedCommentId, onCollapse, collapsedThreads]);
-
-  const expandComment = useCallback(() => {
-    console.log('expandComment called', { focusedCommentId, hasOnCollapse: !!onCollapse, isCollapsed: focusedCommentId ? collapsedThreads?.has(focusedCommentId) : null });
-    if (!focusedCommentId || !onCollapse) return;
-    // Only expand if currently collapsed
-    if (collapsedThreads?.has(focusedCommentId)) {
-      console.log('Calling onCollapse to expand:', focusedCommentId);
-      onCollapse(focusedCommentId);
-    } else {
-      console.log('Not collapsed, skipping');
-    }
-  }, [focusedCommentId, collapsedThreads, onCollapse]);
 
   const upvoteComment = useCallback(() => {
     if (!focusedCommentId || !onVote) return;
@@ -367,11 +370,10 @@ export function CommentsView({
     confirmYes,
     confirmNo,
     cancelAction,
-    collapseAll: collapseComment,
-    expandAll: expandComment,
+    toggleCollapse,
     upvote: upvoteComment,
     downvote: downvoteComment,
-  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, collapseComment, expandComment, upvoteComment, downvoteComment]);
+  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, toggleCollapse, upvoteComment, downvoteComment]);
 
   useKeyboardShortcuts({ shortcuts, enabled: keyboardNavigationEnabled });
 
@@ -408,6 +410,18 @@ export function CommentsView({
           )}
         </div>
 
+        {pinnedComments.length > 0 && (
+          <div className="threadkit-pinned-section">
+            {pinnedComments.map((comment) => (
+              <PinnedMessage
+                key={comment.id}
+                comment={comment}
+                onNavigate={handleNavigateToComment}
+              />
+            ))}
+          </div>
+        )}
+
         {comments.length === 0 ? (
           <div className="threadkit-empty">
             {t('noComments')}
@@ -422,7 +436,6 @@ export function CommentsView({
                 needsUsername={needsUsername}
                 apiUrl={apiUrl}
                 projectId={projectId}
-                maxDepth={maxDepth}
                 index={index}
                 totalSiblings={comments.length}
                 highlighted={highlightedCommentId === comment.id}

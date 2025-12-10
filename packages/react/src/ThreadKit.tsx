@@ -110,7 +110,6 @@ function ThreadKitInner({
   className,
   style,
   cssVariables,
-  maxDepth = 5,
   sortBy = 'top',
   allowVoting = true,
   showLastN: _showLastN = 100,
@@ -233,6 +232,7 @@ function ThreadKitInner({
     loading,
     error,
     pageId: fetchedPageId,
+    pinnedIds,
     postComment,
     deleteComment,
     editComment,
@@ -403,6 +403,13 @@ function ThreadKitInner({
     [updateComment]
   );
 
+  const handleWsPinUpdated = useCallback(
+    (_pageId: string, commentId: string, pinned: boolean, pinned_at: number | null) => {
+      updateComment(commentId, { pinned: pinned || undefined, pinned_at: pinned_at || undefined });
+    },
+    [updateComment]
+  );
+
   // WebSocket connection (enabled when wsUrl provided and pageId available from API)
   const { connected: _wsConnected, presenceCount: _presenceCount, typingUsers: _typingUsers, typingByComment, sendTyping: _sendTyping } = useWebSocket({
     wsUrl: wsUrl || '',
@@ -413,6 +420,7 @@ function ThreadKitInner({
     onCommentDeleted: handleWsCommentDeleted,
     onCommentEdited: handleWsCommentEdited,
     onVoteUpdated: handleWsVoteUpdated,
+    onPinUpdated: handleWsPinUpdated,
   });
 
   // Handler to load pending root comments (banner click)
@@ -574,28 +582,52 @@ function ThreadKitInner({
     async (commentId: string) => {
       try {
         const token = localStorage.getItem('threadkit_token');
-        const comment = comments.find((c) => c.id === commentId);
-        const newPinned = !comment?.pinned;
+
+        // Find comment and build path
+        const findCommentPath = (nodes: typeof comments, targetId: string, currentPath: string[] = []): string[] | null => {
+          for (const node of nodes) {
+            const newPath = [...currentPath, node.id];
+            if (node.id === targetId) {
+              return newPath;
+            }
+            const found = findCommentPath(node.children, targetId, newPath);
+            if (found) return found;
+          }
+          return null;
+        };
+
+        const path = findCommentPath(comments, commentId);
+        if (!path) {
+          throw new Error('Comment not found in tree');
+        }
 
         const response = await fetch(`${apiUrl}/comments/${commentId}/pin`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'projectid': projectId,
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ pinned: newPinned }),
+          body: JSON.stringify({
+            page_url: url,
+            path,
+          }),
         });
 
         if (!response.ok) {
           throw new Error('Failed to pin comment');
         }
 
-        updateComment(commentId, { pinned: newPinned });
+        const data = await response.json();
+        updateComment(commentId, {
+          pinned: data.pinned,
+          pinned_at: data.pinned_at,
+        });
       } catch (err) {
         onError?.(err instanceof Error ? err : new Error('Failed to pin'));
       }
     },
-    [apiUrl, comments, updateComment, onError]
+    [apiUrl, projectId, url, comments, updateComment, onError]
   );
 
   const handlePermalink = useCallback(
@@ -911,13 +943,13 @@ function ThreadKitInner({
           comments={comments}
           currentUser={currentUser}
           needsUsername={authState.step === 'username-required' || authState.user?.username_set === false}
-          maxDepth={maxDepth}
           allowVoting={allowVoting}
           sortBy={currentSort}
           highlightedCommentId={highlightedCommentId}
           collapsedThreads={collapsedThreads}
           apiUrl={apiUrl}
           projectId={projectId}
+          pinnedIds={pinnedIds}
           pendingRootCount={pendingRootComments.length}
           pendingReplies={pendingReplies}
           onLoadPendingComments={handleLoadPendingComments}

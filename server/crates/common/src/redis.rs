@@ -1,6 +1,10 @@
 use chrono::Utc;
 use fred::prelude::*;
+use fred::types::{CustomCommand, ClusterHash, Resp3Frame};
 use serde::{de::DeserializeOwned, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use uuid::Uuid;
 
 use crate::types::*;
@@ -29,6 +33,7 @@ const WEB3_NONCE_TTL: i64 = 600; // 10 minutes
 
 pub struct RedisClient {
     client: Client,
+    script_shas: HashMap<String, String>,
 }
 
 impl RedisClient {
@@ -36,7 +41,62 @@ impl RedisClient {
         let config = Config::from_url(url)?;
         let client = Client::new(config, None, None, None);
         client.init().await?;
-        Ok(RedisClient { client })
+
+        // Load Lua scripts and get their SHA1 hashes
+        let script_shas = Self::load_lua_scripts(&client).await?;
+
+        Ok(RedisClient { client, script_shas })
+    }
+
+    /// Load Lua scripts from the lua/ directory and return their SHA1 hashes
+    async fn load_lua_scripts(client: &Client) -> Result<HashMap<String, String>> {
+        let mut shas = HashMap::new();
+
+        let lua_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(|p| p.parent())
+            .ok_or_else(|| Error::Internal("Could not find project root".to_string()))?
+            .join("lua");
+
+        if !lua_dir.exists() {
+            return Err(Error::Internal(format!("Lua scripts directory not found: {:?}", lua_dir)));
+        }
+
+        // Load each .lua file
+        for entry in fs::read_dir(&lua_dir).map_err(|e| Error::Internal(format!("Failed to read lua directory: {}", e)))? {
+            let entry = entry.map_err(|e| Error::Internal(format!("Failed to read directory entry: {}", e)))?;
+            let path = entry.path();
+
+            if path.extension().and_then(|s| s.to_str()) == Some("lua") {
+                let script_name = path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .ok_or_else(|| Error::Internal("Invalid script filename".to_string()))?;
+
+                let script_content = fs::read_to_string(&path)
+                    .map_err(|e| Error::Internal(format!("Failed to read {}: {}", path.display(), e)))?;
+
+                // Use SCRIPT LOAD to load the script and get its SHA1
+                let cmd = CustomCommand::new("SCRIPT", ClusterHash::FirstKey, false);
+                let frame = client.custom_raw::<Value>(
+                    cmd,
+                    vec![Value::from("LOAD"), Value::from(script_content)]
+                ).await?;
+
+                // Extract SHA1 from Resp3Frame
+                let sha: String = match frame {
+                    Resp3Frame::BlobString { data, .. } | Resp3Frame::SimpleString { data, .. } => {
+                        String::from_utf8(data.to_vec())
+                            .map_err(|e| Error::Internal(format!("Invalid UTF-8 in SHA1: {}", e)))?
+                    }
+                    _ => return Err(Error::Internal("Unexpected response type from SCRIPT LOAD".to_string())),
+                };
+
+                println!("Loaded Lua script '{}' with SHA1: {}", script_name, sha);
+                shas.insert(script_name.to_string(), sha);
+            }
+        }
+
+        Ok(shas)
     }
 
     /// Ping Redis to check connectivity
@@ -346,57 +406,6 @@ impl RedisClient {
             .collect())
     }
 
-    /// Add a vote to user's vote index
-    pub async fn add_user_vote_index(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
-        let score = Utc::now().timestamp_millis() as f64;
-        let value = format!("{}:{}", page_id, comment_id);
-        self.client
-            .zadd::<(), _, _>(
-                format!("user:{}:votes", user_id),
-                None,
-                None,
-                false,
-                false,
-                (score, value),
-            )
-            .await?;
-        Ok(())
-    }
-
-    /// Remove a vote from user's vote index
-    pub async fn remove_user_vote_index(&self, user_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
-        let value = format!("{}:{}", page_id, comment_id);
-        self.client
-            .zrem::<(), _, _>(format!("user:{}:votes", user_id), value)
-            .await?;
-        Ok(())
-    }
-
-    /// Get user's votes
-    /// Returns Vec<(page_id, comment_id)>
-    pub async fn get_user_vote_index(&self, user_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
-        let items: Vec<String> = self
-            .client
-            .zrevrange(
-                format!("user:{}:votes", user_id),
-                offset as i64,
-                (offset + limit - 1) as i64,
-                false,
-            )
-            .await?;
-
-        Ok(items
-            .into_iter()
-            .filter_map(|s| {
-                let parts: Vec<&str> = s.split(':').collect();
-                if parts.len() == 2 {
-                    Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
-                } else {
-                    None
-                }
-            })
-            .collect())
-    }
 
     /// Add to moderation queue (uses page_id:comment_id format)
     pub async fn add_to_modqueue(&self, site_id: Uuid, page_id: Uuid, comment_id: Uuid) -> Result<()> {
@@ -789,6 +798,73 @@ impl RedisClient {
             }
         }
         Ok(result)
+    }
+
+    /// Atomically process a vote using a Lua script to prevent race conditions
+    /// Returns (new_vote, upvotes, downvotes, upvote_delta, downvote_delta)
+    pub async fn atomic_vote(
+        &self,
+        user_id: Uuid,
+        page_id: Uuid,
+        comment_id: Uuid,
+        path: &[Uuid],
+        direction: VoteDirection,
+    ) -> Result<(Option<VoteDirection>, i64, i64, i64, i64)> {
+        let vote_key = format!("votes:{}:{}", user_id, page_id);
+        let tree_key = format!("page:{}", page_id);
+        let direction_str = match direction {
+            VoteDirection::Up => "1",
+            VoteDirection::Down => "-1",
+        };
+        let path_json = serde_json::to_string(path)
+            .map_err(|e| Error::Internal(format!("Failed to serialize path: {}", e)))?;
+
+        let sha = self.script_shas.get("atomic_vote")
+            .ok_or_else(|| Error::Internal("atomic_vote script not loaded".to_string()))?;
+
+        // Use EVALSHA with custom_raw
+        let mut args: Vec<Value> = vec![sha.clone().into(), "2".into()]; // 2 keys
+        args.push(vote_key.into());
+        args.push(tree_key.into());
+        args.push(comment_id.to_string().into());
+        args.push(direction_str.to_string().into());
+        args.push(path_json.into());
+
+        let cmd = CustomCommand::new("EVALSHA", ClusterHash::FirstKey, false);
+        let frame = self
+            .client
+            .custom_raw::<Value>(cmd, args)
+            .await?;
+
+        // Extract array result from Resp3Frame
+        let result: Vec<Value> = match frame {
+            Resp3Frame::Array { data, .. } => {
+                data.into_iter()
+                    .map(|f| f.try_into())
+                    .collect::<std::result::Result<Vec<Value>, _>>()
+                    .map_err(|e: fred::error::Error| Error::Redis(e))?
+            }
+            _ => return Err(Error::Internal("Unexpected response type from EVALSHA".to_string())),
+        };
+
+        // Parse results
+        let final_vote = match result.get(0) {
+            Some(Value::String(s)) if !s.is_empty() => {
+                match s.to_string().as_str() {
+                    "1" => Some(VoteDirection::Up),
+                    "-1" => Some(VoteDirection::Down),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+
+        let upvotes: i64 = result.get(1).and_then(|v| v.as_i64()).unwrap_or(0);
+        let downvotes: i64 = result.get(2).and_then(|v| v.as_i64()).unwrap_or(0);
+        let upvote_delta: i64 = result.get(3).and_then(|v| v.as_i64()).unwrap_or(0);
+        let downvote_delta: i64 = result.get(4).and_then(|v| v.as_i64()).unwrap_or(0);
+
+        Ok((final_vote, upvotes, downvotes, upvote_delta, downvote_delta))
     }
 
     // ========================================================================
@@ -1728,6 +1804,65 @@ impl RedisClient {
             reset_at,
             limit: max_requests,
         })
+    }
+
+    // ========================================================================
+    // Pinned Messages
+    // ========================================================================
+
+    /// Pin a comment on a page
+    pub async fn pin_comment(&self, page_id: Uuid, comment_id: Uuid, timestamp: i64) -> Result<()> {
+        self.client
+            .zadd::<(), _, _>(
+                format!("page:{}:pinned", page_id),
+                None,
+                None,
+                false,
+                false,
+                (timestamp as f64, comment_id.to_string()),
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// Unpin a comment from a page
+    pub async fn unpin_comment(&self, page_id: Uuid, comment_id: Uuid) -> Result<()> {
+        self.client
+            .zrem::<(), _, _>(format!("page:{}:pinned", page_id), comment_id.to_string())
+            .await?;
+        Ok(())
+    }
+
+    /// Get all pinned comment IDs for a page (sorted by pinned timestamp, newest first)
+    /// Returns Vec<(comment_id, pinned_at)>
+    pub async fn get_pinned_comments(&self, page_id: Uuid) -> Result<Vec<(Uuid, i64)>> {
+        // ZREVRANGEBYSCORE with WITHSCORES - get all entries sorted newest first
+        let entries: Vec<(f64, String)> = self
+            .client
+            .zrevrangebyscore(
+                format!("page:{}:pinned", page_id),
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                true,
+                None
+            )
+            .await?;
+
+        Ok(entries
+            .into_iter()
+            .filter_map(|(score, id_str)| {
+                id_str.parse::<Uuid>().ok().map(|id| (id, score as i64))
+            })
+            .collect())
+    }
+
+    /// Check if a comment is pinned
+    pub async fn is_comment_pinned(&self, page_id: Uuid, comment_id: Uuid) -> Result<bool> {
+        let score: Option<f64> = self
+            .client
+            .zscore(format!("page:{}:pinned", page_id), comment_id.to_string())
+            .await?;
+        Ok(score.is_some())
     }
 
     // ========================================================================

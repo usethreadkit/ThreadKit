@@ -831,4 +831,7 @@ pub struct GetCommentsResponse {
     /// Pageview count (if enabled)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pageviews: Option<i64>,
+    /// List of pinned comment IDs with their pinned timestamps (sorted newest first)
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub pinned: Vec<(Uuid, i64)>,
 }

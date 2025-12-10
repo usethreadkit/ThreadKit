@@ -25,6 +25,8 @@ interface UseCommentsReturn {
   error: Error | null;
   /** Page ID from the server (for WebSocket subscription) */
   pageId: string | null;
+  /** List of pinned comment IDs with their pinned timestamps */
+  pinnedIds: Array<[string, number]>;
   postComment: (text: string, parentId?: string) => Promise<Comment>;
   deleteComment: (commentId: string) => Promise<void>;
   editComment: (commentId: string, newText: string) => Promise<void>;
@@ -100,6 +102,7 @@ export function useComments({
     loading: state.loading,
     error: state.error,
     pageId: state.pageId,
+    pinnedIds: state.pinnedIds,
     postComment: store.post.bind(store),
     deleteComment: store.delete.bind(store),
     editComment: store.edit.bind(store),

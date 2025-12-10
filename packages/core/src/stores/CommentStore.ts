@@ -70,6 +70,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
         loading: false,
         error: null,
         pageId: null,
+        pinnedIds: [],
       };
     } else {
       this.state = {
@@ -77,6 +78,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
         loading: false,
         error: null,
         pageId: null,
+        pinnedIds: [],
       };
     }
   }
@@ -174,10 +176,16 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       const data: GetCommentsResponse = await commentsResponse.json();
       const comments = pageTreeToComments(data.tree, votes);
 
+      // Convert pinned IDs from API format to frontend format
+      const pinnedIds: Array<[string, number]> = ((data as any).pinned || []).map(
+        ([id, timestamp]: [string, number]) => [id, timestamp]
+      );
+
       this.setState({
         comments: sortComments(comments, this.sortBy),
         loading: false,
         pageId: data.page_id,
+        pinnedIds,
       });
     } catch (err) {
       const error =

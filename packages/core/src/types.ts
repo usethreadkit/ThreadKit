@@ -21,6 +21,8 @@ export interface Comment {
   children: Comment[];
   edited?: boolean;
   pinned?: boolean;
+  /** Unix timestamp when comment was pinned */
+  pinned_at?: number;
   /** Author's karma score */
   karma?: number;
   /** Comment status: approved, pending, rejected, deleted */
@@ -200,6 +202,8 @@ export interface CommentStoreState {
   error: ThreadKitError | null;
   /** Page ID from the server (for WebSocket subscription) */
   pageId: string | null;
+  /** List of pinned comment IDs with their pinned timestamps */
+  pinnedIds: Array<[string, number]>;
 }
 
 export interface TypingUser {

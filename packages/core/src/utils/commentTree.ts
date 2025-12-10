@@ -219,3 +219,33 @@ export function flattenTree(comments: Comment[]): Comment[] {
   traverse(comments);
   return result;
 }
+
+/**
+ * Extract pinned comments by their IDs from the comment tree.
+ * The IDs are already sorted by pinned_at (newest first) from the API.
+ * @param comments - Comment tree to search
+ * @param pinnedIds - Array of [commentId, pinnedAt] tuples sorted newest first
+ */
+export function extractPinnedComments(
+  comments: Comment[],
+  pinnedIds: Array<[string, number]>
+): Comment[] {
+  if (pinnedIds.length === 0) return [];
+
+  const result: Comment[] = [];
+
+  // Find each pinned comment in the tree
+  for (const [commentId, pinnedAt] of pinnedIds) {
+    const comment = findComment(comments, commentId);
+    if (comment) {
+      // Add pinned metadata to the comment
+      result.push({
+        ...comment,
+        pinned: true,
+        pinned_at: pinnedAt,
+      });
+    }
+  }
+
+  return result;
+}
