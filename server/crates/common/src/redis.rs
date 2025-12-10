@@ -582,7 +582,8 @@ impl RedisClient {
         let key = match sort {
             SortOrder::New => format!("page:{}:comments:new", page_id),
             SortOrder::Top => format!("page:{}:comments:top", page_id),
-            SortOrder::Hot => format!("page:{}:comments:hot", page_id),
+            SortOrder::Controversial => format!("page:{}:comments:controversial", page_id),
+            SortOrder::Old => format!("page:{}:comments:old", page_id),
         };
 
         let ids: Vec<String> = self

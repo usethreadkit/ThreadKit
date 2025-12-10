@@ -59,8 +59,8 @@ struct Args {
     #[arg(long)]
     no_rate_limit: bool,
 
-    /// Allow localhost/127.0.0.1/::1 origins (development only)
-    #[arg(long)]
+    /// Allow localhost/127.0.0.1/::1 origins (enabled by default for development)
+    #[arg(long, default_value_t = true)]
     allow_localhost_origin: bool,
 
     /// Edit a site config: --edit-site SITE_ID KEY VALUE

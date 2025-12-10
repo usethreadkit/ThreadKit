@@ -7,18 +7,15 @@ export function sortComments(comments: Comment[], sortBy: SortBy): Comment[] {
   const sorted = [...comments];
 
   switch (sortBy) {
-    case 'votes':
+    case 'top':
       sorted.sort((a, b) => {
         const scoreA = a.upvotes - a.downvotes;
         const scoreB = b.upvotes - b.downvotes;
         return scoreB - scoreA;
       });
       break;
-    case 'newest':
+    case 'new':
       sorted.sort((a, b) => b.timestamp - a.timestamp);
-      break;
-    case 'oldest':
-      sorted.sort((a, b) => a.timestamp - b.timestamp);
       break;
     case 'controversial':
       // Controversial = high total votes but close to 50/50 split
@@ -32,6 +29,9 @@ export function sortComments(comments: Comment[], sortBy: SortBy): Comment[] {
         const scoreB = totalB * ratioB;
         return scoreB - scoreA;
       });
+      break;
+    case 'old':
+      sorted.sort((a, b) => a.timestamp - b.timestamp);
       break;
   }
 

@@ -61,7 +61,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   constructor(config: CommentStoreConfig) {
     super();
     this.config = config;
-    this.sortBy = config.sortBy ?? 'votes';
+    this.sortBy = config.sortBy ?? 'top';
 
     // Initialize state
     if (config.initialComments && config.initialComments.length > 0) {
@@ -124,12 +124,9 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
         'projectid': projectId,
       };
 
-      // Map our SortBy to server's SortOrder
-      const sortParam = this.mapSortByToSortOrder(this.sortBy);
-
       // Fetch comments
       const commentsPromise = fetch(
-        `${apiUrl}/comments?page_url=${encodeURIComponent(url)}&sort=${sortParam}`,
+        `${apiUrl}/comments?page_url=${encodeURIComponent(url)}&sort=${this.sortBy}`,
         { headers }
       );
 
@@ -413,7 +410,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    */
   addComment(comment: Comment): void {
     this.setState({
-      comments: addToTree(this.state.comments, comment, 'newest'),
+      comments: addToTree(this.state.comments, comment, 'new'),
     });
   }
 
@@ -467,20 +464,6 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   /**
    * Map our SortBy enum to the server's SortOrder enum
    */
-  private mapSortByToSortOrder(sortBy: SortBy): string {
-    switch (sortBy) {
-      case 'newest':
-        return 'new';
-      case 'votes':
-        return 'top';
-      case 'oldest':
-        return 'new'; // Server doesn't have oldest, we'll reverse client-side
-      case 'controversial':
-        return 'hot'; // Map to hot, closest equivalent
-      default:
-        return 'new';
-    }
-  }
 
   private async parseErrorResponse(response: Response): Promise<ThreadKitError> {
     let errorCode: ThreadKitErrorCode = 'UNKNOWN';
@@ -523,9 +506,13 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
     } else if (response.status === 401 || response.status === 403) {
       console.log('[ThreadKit] Checking auth error. errorText:', errorText);
       console.log('[ThreadKit] Contains "api key"?', errorText?.toLowerCase().includes('api key'));
+      console.log('[ThreadKit] Contains "origin"?', errorText?.toLowerCase().includes('origin'));
       console.log('[ThreadKit] Contains "unauthorized"?', errorText?.toLowerCase().includes('unauthorized'));
 
-      if (errorText?.toLowerCase().includes('api key')) {
+      if (errorText?.toLowerCase().includes('origin') && errorText?.toLowerCase().includes('not allowed')) {
+        errorCode = 'INVALID_ORIGIN';
+        errorMessage = errorText; // Use the server's origin error message
+      } else if (errorText?.toLowerCase().includes('api key')) {
         errorCode = 'INVALID_API_KEY';
         errorMessage = 'Invalid API key. Please check your ThreadKit configuration and ensure your API keys are correct.';
       } else if (errorText?.toLowerCase().includes('unauthorized')) {

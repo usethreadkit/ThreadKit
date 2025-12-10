@@ -50,10 +50,10 @@ interface CommentsViewProps {
 
 type SortOptionKey = 'sortTop' | 'sortNew' | 'sortControversial' | 'sortOld';
 const SORT_OPTIONS: { value: SortBy; key: SortOptionKey }[] = [
-  { value: 'votes', key: 'sortTop' },
-  { value: 'newest', key: 'sortNew' },
+  { value: 'top', key: 'sortTop' },
+  { value: 'new', key: 'sortNew' },
   { value: 'controversial', key: 'sortControversial' },
-  { value: 'oldest', key: 'sortOld' },
+  { value: 'old', key: 'sortOld' },
 ];
 
 export function CommentsView({
@@ -62,7 +62,7 @@ export function CommentsView({
   needsUsername = false,
   maxDepth = 5,
   allowVoting = true,
-  sortBy = 'votes',
+  sortBy = 'top',
   highlightedCommentId,
   collapsedThreads,
   apiUrl,

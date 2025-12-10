@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/react",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Privacy-first commenting and chat system for React",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
-    "@threadkit/core": "^0.0.12"
+    "@threadkit/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

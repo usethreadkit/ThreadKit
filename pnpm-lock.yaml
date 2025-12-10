@@ -427,8 +427,8 @@ importers:
   packages/i18n:
     dependencies:
       '@threadkit/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.0.12
+        version: 0.0.12
     devDependencies:
       typescript:
         specifier: ^5.3.3
@@ -625,8 +625,8 @@ importers:
   packages/react:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.11
-        version: 0.0.11
+        specifier: workspace:*
+        version: link:../core
     optionalDependencies:
       '@threadkit/plugin-latex':
         specifier: ^0.0.7
@@ -3425,6 +3425,9 @@ packages:
 
   '@threadkit/core@0.0.11':
     resolution: {integrity: sha512-J/op3KmaXgYR9hLlQOQu7BKBRpNgGVYoXqJYLU9yr392/W2dR/BSAyOr9uKcgku1xzGhehQPPRo0j8nLDIN92Q==}
+
+  '@threadkit/core@0.0.12':
+    resolution: {integrity: sha512-GPxmSfSMl7h82AS0ABzmrdGBt0ZnW25VNBgTrr1WidAGKhNL7A+398O6gcwl+KADze5j9DFhGDj5PvfgF/hCnw==}
 
   '@threadkit/plugin-latex@0.0.7':
     resolution: {integrity: sha512-ttjX63Wy5JwuvkIb5tt9eNlElhn6S4W1fIM7yrl2gFHp5/g+ylxhKf4hywGSo7b+HqECxL28lur4Z23zTh/RVA==}
@@ -11303,6 +11306,8 @@ snapshots:
       '@testing-library/dom': 10.4.1
 
   '@threadkit/core@0.0.11': {}
+
+  '@threadkit/core@0.0.12': {}
 
   '@threadkit/plugin-latex@0.0.7':
     dependencies:

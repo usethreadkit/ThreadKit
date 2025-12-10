@@ -68,7 +68,7 @@ export interface UserProfile {
 // ============================================================================
 
 export type ThreadKitMode = 'comments' | 'chat';
-export type SortBy = 'votes' | 'newest' | 'oldest' | 'controversial';
+export type SortBy = 'top' | 'new' | 'controversial' | 'old';
 
 // ============================================================================
 // WebSocket
@@ -136,6 +136,7 @@ export interface ThreadKitPlugin {
 export type ThreadKitErrorCode =
   | 'SITE_NOT_FOUND'
   | 'INVALID_API_KEY'
+  | 'INVALID_ORIGIN'
   | 'UNAUTHORIZED'
   | 'RATE_LIMITED'
   | 'NETWORK_ERROR'

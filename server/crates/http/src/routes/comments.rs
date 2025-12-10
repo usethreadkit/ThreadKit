@@ -47,7 +47,7 @@ pub fn router() -> Router<AppState> {
 pub struct GetCommentsQuery {
     /// URL of the page to get comments for
     pub page_url: String,
-    /// Sort order (new, top, hot)
+    /// Sort order (new, top, controversial, old)
     pub sort: Option<SortOrder>,
 }
 
@@ -1142,18 +1142,41 @@ fn sort_comments(comments: &mut [TreeComment], sort: SortOrder) {
                 b_score.cmp(&a_score)
             });
         }
-        SortOrder::Hot => {
-            // Simple hot algorithm: score / time_decay
-            let now = Utc::now().timestamp();
+        SortOrder::Controversial => {
+            // Controversial: high total votes but close to 50/50 split
             comments.sort_by(|a, b| {
-                let a_score = (a.upvotes - a.downvotes) as f64;
-                let b_score = (b.upvotes - b.downvotes) as f64;
-                let a_age = ((now - a.created_at) as f64 / 3600.0).max(1.0); // hours
-                let b_age = ((now - b.created_at) as f64 / 3600.0).max(1.0);
-                let a_hot = a_score / a_age.powf(1.5);
-                let b_hot = b_score / b_age.powf(1.5);
-                b_hot.partial_cmp(&a_hot).unwrap_or(std::cmp::Ordering::Equal)
+                let a_total = (a.upvotes + a.downvotes) as f64;
+                let b_total = (b.upvotes + b.downvotes) as f64;
+
+                if a_total == 0.0 && b_total == 0.0 {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                // Balance score: how close to 50/50 (0.0 = one-sided, 1.0 = perfectly balanced)
+                let a_balance = if a_total > 0.0 {
+                    let min_votes = a.upvotes.min(a.downvotes) as f64;
+                    min_votes / a_total
+                } else {
+                    0.0
+                };
+
+                let b_balance = if b_total > 0.0 {
+                    let min_votes = b.upvotes.min(b.downvotes) as f64;
+                    min_votes / b_total
+                } else {
+                    0.0
+                };
+
+                // Controversial score = total engagement * balance
+                let a_controversial = a_total * a_balance;
+                let b_controversial = b_total * b_balance;
+
+                b_controversial.partial_cmp(&a_controversial).unwrap_or(std::cmp::Ordering::Equal)
             });
+        }
+        SortOrder::Old => {
+            // Oldest first
+            comments.sort_by(|a, b| a.created_at.cmp(&b.created_at));
         }
     }
 

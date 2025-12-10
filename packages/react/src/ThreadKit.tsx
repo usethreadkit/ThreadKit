@@ -111,7 +111,7 @@ function ThreadKitInner({
   style,
   cssVariables,
   maxDepth = 5,
-  sortBy = 'votes',
+  sortBy = 'top',
   allowVoting = true,
   showLastN = 100,
   autoScroll = true,
@@ -164,7 +164,7 @@ function ThreadKitInner({
   const [currentSort, setCurrentSort] = useState<SortBy>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('threadkit_sort');
-      if (saved === 'votes' || saved === 'newest' || saved === 'oldest') {
+      if (saved === 'top' || saved === 'new' || saved === 'controversial' || saved === 'old') {
         return saved;
       }
     }
@@ -268,7 +268,7 @@ function ThreadKitInner({
 
   // Sort comments by newest for chat mode
   const chatComments = useMemo(() => {
-    if (mode === 'chat') return sortComments(comments, 'newest');
+    if (mode === 'chat') return sortComments(comments, 'new');
     return comments;
   }, [mode, comments]);
 
@@ -797,6 +797,21 @@ function ThreadKitInner({
                 https://usethreadkit.com/sites
               </a>
               {t('invalidApiKeyMessage').split('https://usethreadkit.com/sites')[1]}
+            </p>
+          </>
+        );
+        break;
+      case 'INVALID_ORIGIN':
+        errorContent = (
+          <>
+            <strong>Origin Not Allowed</strong>
+            <p>{error.message}</p>
+            <p style={{ fontSize: '0.9em', marginTop: '0.5rem', opacity: 0.8 }}>
+              Add your domain to the allowed origins list in your{' '}
+              <a href="https://usethreadkit.com/sites" target="_blank" rel="noopener noreferrer">
+                site settings
+              </a>
+              .
             </p>
           </>
         );

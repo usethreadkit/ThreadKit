@@ -601,7 +601,8 @@ pub enum SortOrder {
     #[default]
     New,
     Top,
-    Hot,
+    Controversial,
+    Old,
 }
 
 // ============================================================================
