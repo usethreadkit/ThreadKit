@@ -119,6 +119,7 @@ export function Comment({
           // Select comment when clicking on collapsed area (but not the expand button)
           const target = e.target as HTMLElement;
           if (onCommentClick && !target.closest('button')) {
+            e.stopPropagation(); // Prevent event from bubbling to parent comments
             onCommentClick(comment.id);
           }
         }}
@@ -159,7 +160,10 @@ export function Comment({
           <div className="threadkit-vote-column">
             <button
               className={`threadkit-vote-btn threadkit-vote-up ${hasUpvoted ? 'active' : ''}`}
-              onClick={() => onVote(comment.id, 'up')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onVote(comment.id, 'up');
+              }}
               aria-label={t('upvote')}
               title={!currentUser || needsUsername ? t('signInToVote') : undefined}
               disabled={!currentUser || needsUsername}
@@ -168,7 +172,10 @@ export function Comment({
             </button>
             <button
               className={`threadkit-vote-btn threadkit-vote-down ${hasDownvoted ? 'active' : ''}`}
-              onClick={() => onVote(comment.id, 'down')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onVote(comment.id, 'down');
+              }}
               aria-label={t('downvote')}
               title={!currentUser || needsUsername ? t('signInToVote') : undefined}
               disabled={!currentUser || needsUsername}
@@ -187,6 +194,7 @@ export function Comment({
               // Select comment when clicking on its content (but not buttons)
               const target = e.target as HTMLElement;
               if (onCommentClick && !target.closest('button, a, textarea, input')) {
+                e.stopPropagation(); // Prevent event from bubbling to parent comments
                 onCommentClick(comment.id);
               }
             }}
@@ -314,7 +322,10 @@ export function Comment({
                   {onEdit && (
                     <button
                       className="threadkit-action-btn"
-                      onClick={() => setIsEditing(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditing(true);
+                      }}
                       disabled={needsUsername}
                     >
                       {t('edit')}
@@ -324,7 +335,10 @@ export function Comment({
                   {depth < maxDepth && (
                     <button
                       className="threadkit-action-btn"
-                      onClick={() => setShowReplyForm(!showReplyForm)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowReplyForm(!showReplyForm);
+                      }}
                     >
                       {t('reply')}
                     </button>
@@ -353,7 +367,10 @@ export function Comment({
                     ) : (
                       <button
                         className="threadkit-action-btn"
-                        onClick={() => setConfirmingAction('delete')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmingAction('delete');
+                        }}
                         disabled={needsUsername}
                       >
                         {t('delete')}
@@ -387,7 +404,10 @@ export function Comment({
                     ) : (
                       <button
                         className="threadkit-action-btn"
-                        onClick={() => setConfirmingAction('block')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmingAction('block');
+                        }}
                         disabled={needsUsername}
                       >
                         {t('block')}
@@ -447,7 +467,10 @@ export function Comment({
                   {depth < maxDepth && (
                     <button
                       className="threadkit-action-btn"
-                      onClick={() => setShowReplyForm(!showReplyForm)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowReplyForm(!showReplyForm);
+                      }}
                     >
                       {t('reply')}
                     </button>
