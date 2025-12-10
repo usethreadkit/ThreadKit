@@ -12,6 +12,13 @@ const preview: Preview = {
       ],
     },
   },
+  decorators: [
+    (Story) => (
+      <div className="threadkit-root">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default preview;

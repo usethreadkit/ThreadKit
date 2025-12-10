@@ -17,21 +17,27 @@ export const WithImage: Story = {
   args: {
     src: 'https://avatars.githubusercontent.com/u/1?v=4',
     alt: 'User avatar',
-    className: 'w-10 h-10 rounded-full',
   },
+  render: (args) => (
+    <Avatar {...args} className="threadkit-avatar" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+  ),
 };
 
 export const WithoutImage: Story = {
   args: {
     alt: 'User avatar',
-    className: 'w-10 h-10 rounded-full',
   },
+  render: (args) => (
+    <Avatar {...args} className="threadkit-avatar" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+  ),
 };
 
 export const LargeAvatar: Story = {
   args: {
     src: 'https://avatars.githubusercontent.com/u/1?v=4',
     alt: 'User avatar',
-    className: 'w-20 h-20 rounded-full',
   },
+  render: (args) => (
+    <Avatar {...args} className="threadkit-avatar" style={{ width: '80px', height: '80px', borderRadius: '50%' }} />
+  ),
 };
