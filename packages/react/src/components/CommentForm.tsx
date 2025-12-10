@@ -84,7 +84,7 @@ export function CommentForm({
           </button>
         )}
         <div className="threadkit-form-actions-spacer" />
-        {pendingCount && pendingCount > 0 && onLoadPending && (
+        {pendingCount !== undefined && pendingCount > 0 && onLoadPending && (
           <NewCommentsBanner count={pendingCount} onClick={onLoadPending} />
         )}
         <button

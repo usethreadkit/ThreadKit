@@ -109,23 +109,32 @@ export function CommentsView({
   // Wrap onPost to select the newly created comment
   const handlePost = useCallback(
     async (text: string, parentId?: string) => {
+      // Get existing comment IDs before posting
+      const existingIds = new Set(
+        Array.from(document.querySelectorAll('.threadkit-comment'))
+          .map(el => el.getAttribute('data-comment-id'))
+          .filter(Boolean)
+      );
+
       await onPost(text, parentId);
 
-      // After posting, find and select the newest comment
-      // Use a timeout to allow React to re-render with the new comment
+      // After posting, find the new comment by comparing IDs
       setTimeout(() => {
-        const allComments = getAllVisibleComments();
-        if (allComments.length > 0) {
-          // Select the last comment (newest one)
-          const newestCommentId = allComments[allComments.length - 1].getAttribute('data-comment-id');
-          if (newestCommentId) {
-            setFocusedCommentId(newestCommentId);
-            allComments[allComments.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const allComments = Array.from(document.querySelectorAll('.threadkit-comment'));
+
+        // Find the comment that wasn't in the existing set
+        for (const commentEl of allComments) {
+          const commentId = commentEl.getAttribute('data-comment-id');
+          if (commentId && !existingIds.has(commentId)) {
+            // Found the new comment!
+            setFocusedCommentId(commentId);
+            commentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
           }
         }
       }, 300);
     },
-    [onPost, getAllVisibleComments]
+    [onPost]
   );
 
   const handleCommentClick = useCallback((commentId: string) => {
@@ -133,17 +142,17 @@ export function CommentsView({
   }, []);
 
   const collapseComment = useCallback(() => {
-    if (!focusedCommentId) return;
-    if (onCollapse) {
+    if (!focusedCommentId || !onCollapse) return;
+    // Only collapse if not already collapsed
+    if (!collapsedThreads?.has(focusedCommentId)) {
       onCollapse(focusedCommentId);
     }
-  }, [focusedCommentId, onCollapse]);
+  }, [focusedCommentId, onCollapse, collapsedThreads]);
 
   const expandComment = useCallback(() => {
-    if (!focusedCommentId) return;
-    // Check if this comment is collapsed
-    if (collapsedThreads?.has(focusedCommentId) && onCollapse) {
-      // Toggle it to expand
+    if (!focusedCommentId || !onCollapse) return;
+    // Only expand if currently collapsed
+    if (collapsedThreads?.has(focusedCommentId)) {
       onCollapse(focusedCommentId);
     }
   }, [focusedCommentId, collapsedThreads, onCollapse]);
@@ -304,17 +313,11 @@ export function CommentsView({
   }, []);
 
   const cancelAction = useCallback(() => {
-    // First check for confirmation dialogs
+    // Only handle confirmation dialogs with ESC
+    // Don't cancel edit/reply forms to preserve user's text
     const noBtn = document.querySelector('.threadkit-confirm-no') as HTMLButtonElement;
     if (noBtn) {
       noBtn.click();
-      return;
-    }
-
-    // Then check for cancel buttons in edit/reply forms
-    const cancelBtn = document.querySelector('.threadkit-cancel-btn') as HTMLButtonElement;
-    if (cancelBtn) {
-      cancelBtn.click();
       return;
     }
   }, []);
