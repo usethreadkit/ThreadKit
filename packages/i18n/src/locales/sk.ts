@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Slovak translations
  */
-export const sk: TranslationStrings = {
+export const sk: LocaleMetadata = {
+  code: 'sk',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Odoslať',
   cancel: 'Zrušiť',
@@ -205,4 +208,5 @@ export const sk: TranslationStrings = {
   loadNewComments: 'Načítať nové komentáre',
   loadNewReplies: 'Načítať nové odpovede',
   isTyping: 'píše...',
+  },
 };

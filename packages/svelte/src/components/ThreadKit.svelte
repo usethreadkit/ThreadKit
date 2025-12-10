@@ -3,8 +3,8 @@
   import { createCommentsStore, type CommentsStore } from '../stores/comments';
   import { createWebSocketStore, type WebSocketStore } from '../stores/websocket';
   import { createAuthStore, type AuthStore } from '../stores/auth';
-  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile, PartialTranslations } from '@threadkit/core';
-  import { setTranslationContext } from '../i18n';
+  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile, PartialTranslations, LocaleMetadata } from '@threadkit/core';
+  import { setTranslationContext, getRTL } from '../i18n';
   import CommentsView from './CommentsView.svelte';
   import ChatView from './ChatView.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
@@ -25,7 +25,8 @@
     showPresence?: boolean;
     showTyping?: boolean;
     plugins?: ThreadKitPlugin[];
-    translations?: PartialTranslations;
+    translations?: PartialTranslations | LocaleMetadata;
+    rtl?: boolean;
     initialComments?: Comment[];
     onSignIn?: (user: User) => void;
     onSignOut?: () => void;
@@ -53,6 +54,7 @@
     showTyping = false,
     plugins = [],
     translations,
+    rtl: rtlProp,
     initialComments,
     onSignIn,
     onSignOut,
@@ -63,8 +65,9 @@
     onError,
   }: Props = $props();
 
-  // Set up translations context
-  const t = setTranslationContext(translations);
+  // Set up translations context with RTL support
+  const t = setTranslationContext(translations, rtlProp);
+  const isRTL = getRTL();
 
   // Create stores
   let commentsStore: CommentsStore;
@@ -370,6 +373,7 @@
 <div
   class="threadkit-root"
   data-theme={currentTheme}
+  dir={isRTL ? 'rtl' : 'ltr'}
 >
   {#if loading}
     <div class="threadkit-loading">{t('loadingComments')}</div>

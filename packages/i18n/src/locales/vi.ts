@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Vietnamese translations
  */
-export const vi: TranslationStrings = {
+export const vi: LocaleMetadata = {
+  code: 'vi',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Đăng',
   cancel: 'Hủy',
@@ -203,4 +206,5 @@ poweredByThreadKit: 'Được cung cấp bởi ThreadKit',
   loadNewComments: 'Tải bình luận mới',
   loadNewReplies: 'Tải câu trả lời mới',
   isTyping: 'đang nhập...',
+  },
 };

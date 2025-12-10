@@ -179,6 +179,8 @@ export interface ThreadKitProps {
    * <ThreadKit translations={{ post: 'Submit', cancel: 'Nevermind' }} ... />
    */
   translations?: PartialTranslations;
+  /** Override RTL direction (defaults to auto-detect from translations) */
+  rtl?: boolean;
   /** Callback to get users for @mention autocomplete */
   getMentionSuggestions?: (query: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
 

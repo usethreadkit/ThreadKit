@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Danish translations
  */
-export const da: TranslationStrings = {
+export const da: LocaleMetadata = {
+  code: 'da',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Send',
   cancel: 'Annuller',
@@ -205,4 +208,5 @@ export const da: TranslationStrings = {
   loadNewComments: 'Indlæs nye kommentarer',
   loadNewReplies: 'Indlæs nye svar',
   isTyping: 'skriver...',
+  },
 };

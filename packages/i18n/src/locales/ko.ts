@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Korean translations
  */
-export const ko: TranslationStrings = {
+export const ko: LocaleMetadata = {
+  code: 'ko',
+  rtl: false,
+  translations: {
   // Common actions
   post: '게시',
   cancel: '취소',
@@ -205,4 +208,5 @@ export const ko: TranslationStrings = {
   loadNewComments: '새 댓글 불러오기',
   loadNewReplies: '새 답글 불러오기',
   isTyping: '입력 중...',
+  },
 };

@@ -133,6 +133,7 @@ export type {
   TranslationStrings,
   PartialTranslations,
   LocaleCode,
+  LocaleMetadata,
 } from './i18n/types';
 
 export { defaultTranslations } from './i18n/defaults';

@@ -9,7 +9,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { NotificationsPanel, type Notification } from './components/NotificationsPanel';
 import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
 import type { User as AuthUser } from './auth/types';
-import { TranslationProvider, useTranslation } from './i18n';
+import { TranslationProvider, useTranslation, useRTL } from './i18n';
 import { DebugProvider } from './debug';
 
 const DEFAULT_API_URL = 'https://api.usethreadkit.com/v1';
@@ -140,6 +140,7 @@ function ThreadKitInner({
 }: ThreadKitInnerProps) {
   const { state: authState, login, logout, registerPlugin } = useAuth();
   const t = useTranslation();
+  const isRTL = useRTL();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Register auth plugins on mount
@@ -760,7 +761,7 @@ function ThreadKitInner({
 
   if (loading) {
     return (
-      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} dir={isRTL ? 'rtl' : 'ltr'} style={rootStyle}>
         <div className="threadkit-loading">{t('loadingComments')}</div>
       </div>
     );
@@ -835,7 +836,7 @@ function ThreadKitInner({
     }
 
     return (
-      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+      <div ref={rootRef} className={rootClassName} data-theme={currentTheme} dir={isRTL ? 'rtl' : 'ltr'} style={rootStyle}>
         <div className="threadkit-error">
           {errorContent}
         </div>
@@ -869,7 +870,7 @@ function ThreadKitInner({
   ) : null;
 
   return (
-    <div ref={rootRef} className={rootClassName} data-theme={currentTheme} style={rootStyle}>
+    <div ref={rootRef} className={rootClassName} data-theme={currentTheme} dir={isRTL ? 'rtl' : 'ltr'} style={rootStyle}>
       {mode === 'chat' ? (
         <ChatView
           comments={chatComments}
@@ -964,7 +965,7 @@ function ThreadKitInner({
 
 // Main exported component that wraps with AuthProvider and TranslationProvider
 export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function ThreadKit(props, ref) {
-  const { apiUrl = DEFAULT_API_URL, projectId, onSignIn, onSignOut, translations, debug = false, sentry } = props;
+  const { apiUrl = DEFAULT_API_URL, projectId, onSignIn, onSignOut, translations, rtl, debug = false, sentry } = props;
 
   // Inject auth styles on mount
   useEffect(() => {
@@ -989,7 +990,7 @@ export const ThreadKit = forwardRef<ThreadKitRef, ThreadKitProps>(function Threa
   return (
     <ThreadKitErrorBoundary sentry={sentry}>
       <DebugProvider value={debug}>
-        <TranslationProvider translations={translations}>
+        <TranslationProvider translations={translations} rtl={rtl}>
           <AuthProvider apiUrl={apiUrl} projectId={projectId} onUserChange={handleUserChange}>
             <ThreadKitInner {...props} innerRef={ref} />
           </AuthProvider>

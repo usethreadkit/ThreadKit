@@ -1,4 +1,4 @@
-import type { TranslationStrings, PartialTranslations } from './types';
+import type { TranslationStrings, PartialTranslations, LocaleMetadata } from './types';
 import { defaultTranslations } from './defaults';
 
 /**
@@ -21,6 +21,7 @@ export function interpolate(
 
 /**
  * Translator function type - looks up a translation key and returns the string.
+ * Also exposes rtl property to check if the current locale is right-to-left.
  */
 export type TranslatorFunction = {
   /**
@@ -31,36 +32,57 @@ export type TranslatorFunction = {
    * t('minutesAgo', { n: 5 }) // '5m ago' or translated value
    */
   (key: keyof TranslationStrings, vars?: Record<string, string | number>): string;
+
+  /**
+   * Whether the current locale uses right-to-left text direction
+   */
+  rtl: boolean;
 };
 
 /**
- * Create a translator function with the given translations merged with defaults.
+ * Create a translator function with the given translations or locale metadata.
  * Returns a function that looks up translation keys and returns the translated string.
+ * The function also exposes an rtl property to check text direction.
  *
  * @example
  * // Default English
  * const t = createTranslator();
  * t('post') // 'Post'
+ * t.rtl // false
  *
- * // With Spanish translations
+ * // With Spanish locale metadata
  * import { es } from '@threadkit/i18n';
  * const t = createTranslator(es);
  * t('post') // 'Publicar'
+ * t.rtl // false
+ *
+ * // With Arabic locale metadata (RTL)
+ * import { ar } from '@threadkit/i18n';
+ * const t = createTranslator(ar);
+ * t('post') // 'نشر'
+ * t.rtl // true
  *
  * // Partial overrides
  * const t = createTranslator({ post: 'Submit' });
  * t('post') // 'Submit'
  * t('cancel') // 'Cancel' (falls back to default)
+ * t.rtl // false
  */
 export function createTranslator(
-  translations?: PartialTranslations
+  localeOrTranslations?: LocaleMetadata | PartialTranslations
 ): TranslatorFunction {
-  // Merge provided translations with defaults (defaults as fallback)
-  const merged: TranslationStrings = translations
-    ? { ...defaultTranslations, ...translations }
+  // Check if input is LocaleMetadata or just translations
+  const isLocaleMetadata = localeOrTranslations && 'translations' in localeOrTranslations && 'rtl' in localeOrTranslations;
+
+  const merged: TranslationStrings = isLocaleMetadata
+    ? { ...defaultTranslations, ...(localeOrTranslations as LocaleMetadata).translations }
+    : localeOrTranslations
+    ? { ...defaultTranslations, ...(localeOrTranslations as PartialTranslations) }
     : defaultTranslations;
 
-  return (
+  const rtl = isLocaleMetadata ? (localeOrTranslations as LocaleMetadata).rtl : false;
+
+  const translatorFn = (
     key: keyof TranslationStrings,
     vars?: Record<string, string | number>
   ): string => {
@@ -70,4 +92,9 @@ export function createTranslator(
     }
     return value;
   };
+
+  // Add rtl property to the function
+  translatorFn.rtl = rtl;
+
+  return translatorFn as TranslatorFunction;
 }

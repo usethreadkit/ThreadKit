@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Bulgarian translations
  */
-export const bg: TranslationStrings = {
+export const bg: LocaleMetadata = {
+  code: 'bg',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Публикувай',
   cancel: 'Отказ',
@@ -205,4 +208,5 @@ export const bg: TranslationStrings = {
   loadNewComments: 'Зареди нови коментари',
   loadNewReplies: 'Зареди нови отговори',
   isTyping: 'пише...',
+  },
 };

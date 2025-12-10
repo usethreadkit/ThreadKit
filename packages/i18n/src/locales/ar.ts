@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
- * Arabic translations
+ * Arabic translations (RTL)
  */
-export const ar: TranslationStrings = {
+export const ar: LocaleMetadata = {
+  code: 'ar',
+  rtl: true,
+  translations: {
   // Common actions
   post: 'نشر',
   cancel: 'إلغاء',
@@ -205,4 +208,5 @@ export const ar: TranslationStrings = {
   loadNewComments: 'تحميل التعليقات الجديدة',
   loadNewReplies: 'تحميل الردود الجديدة',
   isTyping: 'يكتب...',
+  },
 };

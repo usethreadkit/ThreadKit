@@ -427,8 +427,8 @@ importers:
   packages/i18n:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.13
-        version: 0.0.13
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       typescript:
         specifier: ^5.3.3
@@ -440,8 +440,8 @@ importers:
         specifier: ^5.59.0
         version: 5.90.12(react@18.3.1)
       '@threadkit/react':
-        specifier: '>=0.0.1'
-        version: 0.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: workspace:*
+        version: link:../react
       viem:
         specifier: ^2.21.0
         version: 2.41.2(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13)
@@ -498,8 +498,8 @@ importers:
         specifier: ^1.98.0
         version: 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@threadkit/react':
-        specifier: '>=0.0.1'
-        version: 0.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: workspace:*
+        version: link:../react
     devDependencies:
       '@testing-library/react':
         specifier: ^16.0.0
@@ -535,8 +535,8 @@ importers:
   packages/plugin-latex:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.11
-        version: 0.0.11
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^2.1.9
@@ -554,8 +554,8 @@ importers:
   packages/plugin-media-preview:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.11
-        version: 0.0.11
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^2.1.9
@@ -573,8 +573,8 @@ importers:
   packages/plugin-syntax-highlight:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.11
-        version: 0.0.11
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^2.1.9
@@ -625,18 +625,18 @@ importers:
   packages/react:
     dependencies:
       '@threadkit/core':
-        specifier: ^0.0.13
-        version: 0.0.13
+        specifier: workspace:*
+        version: link:../core
     optionalDependencies:
       '@threadkit/plugin-latex':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: workspace:*
+        version: link:../plugin-latex
       '@threadkit/plugin-media-preview':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: workspace:*
+        version: link:../plugin-media-preview
       '@threadkit/plugin-syntax-highlight':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: workspace:*
+        version: link:../plugin-syntax-highlight
       dompurify:
         specifier: ^3.3.0
         version: 3.3.0
@@ -3300,27 +3300,6 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
-
-  '@threadkit/core@0.0.11':
-    resolution: {integrity: sha512-J/op3KmaXgYR9hLlQOQu7BKBRpNgGVYoXqJYLU9yr392/W2dR/BSAyOr9uKcgku1xzGhehQPPRo0j8nLDIN92Q==}
-
-  '@threadkit/core@0.0.13':
-    resolution: {integrity: sha512-G19cX+zBCaOul6c0BMTaLbllkUwBVlRSwHVY8I+bVCoud76FneD8cRi/JraOkOgHxlIVeoTfjYB7DlrAs3F95A==}
-
-  '@threadkit/plugin-latex@0.0.7':
-    resolution: {integrity: sha512-ttjX63Wy5JwuvkIb5tt9eNlElhn6S4W1fIM7yrl2gFHp5/g+ylxhKf4hywGSo7b+HqECxL28lur4Z23zTh/RVA==}
-
-  '@threadkit/plugin-media-preview@0.0.7':
-    resolution: {integrity: sha512-vnSmqNkSJJCpAqvlSBrqPmjh3Qo9ayruFTz22jhRd10EThlXYDq29tNzvX/TuMTMOQ8V9iWTOKiS1yduORCsfw==}
-
-  '@threadkit/plugin-syntax-highlight@0.0.7':
-    resolution: {integrity: sha512-euCPglvGR/ggYyXenxX471ou6KB+ulITouHXQFxBKMJl+Gto5+xqLP94npBs+2wolm8Mqar0Cj7uwmP6JO5h3A==}
-
-  '@threadkit/react@0.0.2':
-    resolution: {integrity: sha512-zLddHJg7o55fZj/FfbjSlZz6eNCaS1NR/H5pIrZnRAjUQZpks1S/9ZZfU5lmDb5jDWX5oh7SgC0GuKf0qkjDLg==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
 
   '@toruslabs/base-controllers@5.11.0':
     resolution: {integrity: sha512-5AsGOlpf3DRIsd6PzEemBoRq+o2OhgSFXj5LZD6gXcBlfe0OpF+ydJb7Q8rIt5wwpQLNJCs8psBUbqIv7ukD2w==}
@@ -10976,30 +10955,6 @@ snapshots:
   '@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1)':
     dependencies:
       '@testing-library/dom': 10.4.1
-
-  '@threadkit/core@0.0.11': {}
-
-  '@threadkit/core@0.0.13': {}
-
-  '@threadkit/plugin-latex@0.0.7':
-    dependencies:
-      '@threadkit/core': 0.0.11
-    optional: true
-
-  '@threadkit/plugin-media-preview@0.0.7':
-    dependencies:
-      '@threadkit/core': 0.0.11
-    optional: true
-
-  '@threadkit/plugin-syntax-highlight@0.0.7':
-    dependencies:
-      '@threadkit/core': 0.0.11
-    optional: true
-
-  '@threadkit/react@0.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
 
   '@toruslabs/base-controllers@5.11.0(@babel/runtime@7.28.4)(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:

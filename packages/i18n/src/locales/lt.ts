@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Lithuanian translations
  */
-export const lt: TranslationStrings = {
+export const lt: LocaleMetadata = {
+  code: 'lt',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Paskelbti',
   cancel: 'Atšaukti',
@@ -205,4 +208,5 @@ export const lt: TranslationStrings = {
   loadNewComments: 'Įkelti naujus komentarus',
   loadNewReplies: 'Įkelti naujus atsakymus',
   isTyping: 'rašo...',
+  },
 };

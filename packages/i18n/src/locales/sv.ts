@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Swedish translations
  */
-export const sv: TranslationStrings = {
+export const sv: LocaleMetadata = {
+  code: 'sv',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Publicera',
   cancel: 'Avbryt',
@@ -205,4 +208,5 @@ export const sv: TranslationStrings = {
   loadNewComments: 'Ladda nya kommentarer',
   loadNewReplies: 'Ladda nya svar',
   isTyping: 'skriver...',
+  },
 };

@@ -1,5 +1,5 @@
 // Re-export types from core for convenience
-export type { TranslationStrings, PartialTranslations, LocaleCode } from './types';
+export type { TranslationStrings, PartialTranslations, LocaleCode, LocaleMetadata } from '@threadkit/core';
 
 // Language files - individually exported for tree-shaking
 export { en } from './locales/en';

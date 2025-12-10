@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Greek translations
  */
-export const el: TranslationStrings = {
+export const el: LocaleMetadata = {
+  code: 'el',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Δημοσίευση',
   cancel: 'Ακύρωση',
@@ -205,4 +208,5 @@ export const el: TranslationStrings = {
   loadNewComments: 'Φόρτωση νέων σχολίων',
   loadNewReplies: 'Φόρτωση νέων απαντήσεων',
   isTyping: 'γράφει...',
+  },
 };

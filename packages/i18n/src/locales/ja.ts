@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Japanese translations
  */
-export const ja: TranslationStrings = {
+export const ja: LocaleMetadata = {
+  code: 'ja',
+  rtl: false,
+  translations: {
   // Common actions
   post: '投稿',
   cancel: 'キャンセル',
@@ -205,4 +208,5 @@ export const ja: TranslationStrings = {
   loadNewComments: '新しいコメントを読み込む',
   loadNewReplies: '新しい返信を読み込む',
   isTyping: '入力中...',
+  },
 };

@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
- * Hebrew translations
+ * Hebrew translations (RTL)
  */
-export const he: TranslationStrings = {
+export const he: LocaleMetadata = {
+  code: 'he',
+  rtl: true,
+  translations: {
   // Common actions
   post: 'פרסם',
   cancel: 'ביטול',
@@ -205,4 +208,5 @@ export const he: TranslationStrings = {
   loadNewComments: 'טען תגובות חדשות',
   loadNewReplies: 'טען תשובות חדשות',
   isTyping: 'כותב...',
+  },
 };

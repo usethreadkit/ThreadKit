@@ -250,3 +250,15 @@ export type LocaleCode =
   | 'uk'
   | 'vi'
   | 'zh';
+
+/**
+ * Locale metadata including RTL direction and other locale-specific info
+ */
+export interface LocaleMetadata {
+  code: LocaleCode;
+  /**
+   * Text direction - true for right-to-left languages (Arabic, Hebrew, etc.)
+   */
+  rtl: boolean;
+  translations: TranslationStrings;
+}

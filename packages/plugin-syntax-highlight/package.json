@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/plugin-syntax-highlight",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "description": "Syntax highlighting plugin for ThreadKit using Shiki",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,7 +23,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@threadkit/core": "^0.0.11"
+    "@threadkit/core": "workspace:*"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.9",

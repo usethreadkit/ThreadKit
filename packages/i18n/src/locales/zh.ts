@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Chinese (Simplified) translations
  */
-export const zh: TranslationStrings = {
+export const zh: LocaleMetadata = {
+  code: 'zh',
+  rtl: false,
+  translations: {
   // Common actions
   post: '发布',
   cancel: '取消',
@@ -205,4 +208,5 @@ export const zh: TranslationStrings = {
   loadNewComments: '加载新评论',
   loadNewReplies: '加载新回复',
   isTyping: '正在输入...',
+  },
 };

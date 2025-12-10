@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Hungarian translations
  */
-export const hu: TranslationStrings = {
+export const hu: LocaleMetadata = {
+  code: 'hu',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Közzététel',
   cancel: 'Mégse',
@@ -205,4 +208,5 @@ export const hu: TranslationStrings = {
   loadNewComments: 'Új hozzászólások betöltése',
   loadNewReplies: 'Új válaszok betöltése',
   isTyping: 'gépel...',
+  },
 };

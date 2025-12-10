@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Catalan translations
  */
-export const ca: TranslationStrings = {
+export const ca: LocaleMetadata = {
+  code: 'ca',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Publicar',
   cancel: 'Cancel·lar',
@@ -205,4 +208,5 @@ export const ca: TranslationStrings = {
   loadNewComments: 'Carrega nous comentaris',
   loadNewReplies: 'Carrega noves respostes',
   isTyping: 'està escrivint...',
+  },
 };

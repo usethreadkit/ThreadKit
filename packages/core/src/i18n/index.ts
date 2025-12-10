@@ -2,6 +2,7 @@ export type {
   TranslationStrings,
   PartialTranslations,
   LocaleCode,
+  LocaleMetadata,
 } from './types';
 
 export { defaultTranslations } from './defaults';

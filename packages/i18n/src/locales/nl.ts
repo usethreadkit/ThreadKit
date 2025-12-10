@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Dutch translations
  */
-export const nl: TranslationStrings = {
+export const nl: LocaleMetadata = {
+  code: 'nl',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Plaatsen',
   cancel: 'Annuleren',
@@ -205,4 +208,5 @@ export const nl: TranslationStrings = {
   loadNewComments: 'Laad nieuwe reacties',
   loadNewReplies: 'Laad nieuwe antwoorden',
   isTyping: 'typt...',
+  },
 };

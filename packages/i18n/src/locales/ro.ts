@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Romanian translations
  */
-export const ro: TranslationStrings = {
+export const ro: LocaleMetadata = {
+  code: 'ro',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Postează',
   cancel: 'Anulează',
@@ -205,4 +208,5 @@ export const ro: TranslationStrings = {
   loadNewComments: 'Încarcă comentarii noi',
   loadNewReplies: 'Încarcă răspunsuri noi',
   isTyping: 'scrie...',
+  },
 };

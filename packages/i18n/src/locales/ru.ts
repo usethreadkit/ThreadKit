@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Russian translations
  */
-export const ru: TranslationStrings = {
+export const ru: LocaleMetadata = {
+  code: 'ru',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Опубликовать',
   cancel: 'Отмена',
@@ -205,4 +208,5 @@ export const ru: TranslationStrings = {
   loadNewComments: 'Загрузить новые комментарии',
   loadNewReplies: 'Загрузить новые ответы',
   isTyping: 'печатает...',
+  },
 };

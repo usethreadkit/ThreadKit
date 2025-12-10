@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Finnish translations
  */
-export const fi: TranslationStrings = {
+export const fi: LocaleMetadata = {
+  code: 'fi',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Lähetä',
   cancel: 'Peruuta',
@@ -205,4 +208,5 @@ export const fi: TranslationStrings = {
   loadNewComments: 'Lataa uudet kommentit',
   loadNewReplies: 'Lataa uudet vastaukset',
   isTyping: 'kirjoittaa...',
+  },
 };

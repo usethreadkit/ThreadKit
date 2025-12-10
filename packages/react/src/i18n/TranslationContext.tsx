@@ -9,9 +9,14 @@ import {
 } from '@threadkit/core';
 
 /**
- * Context for translations
+ * Context for translations with RTL support
  */
-const TranslationContext = createContext<TranslatorFunction | null>(null);
+interface TranslationContextValue {
+  t: TranslatorFunction;
+  rtl: boolean;
+}
+
+const TranslationContext = createContext<TranslationContextValue | null>(null);
 
 /**
  * Props for the TranslationProvider
@@ -19,14 +24,18 @@ const TranslationContext = createContext<TranslatorFunction | null>(null);
 export interface TranslationProviderProps {
   /**
    * Custom translations to merge with defaults.
-   * Can be a full TranslationStrings object or partial overrides.
+   * Can be a full TranslationStrings object, partial overrides, or LocaleMetadata.
    */
   translations?: PartialTranslations;
+  /**
+   * Override RTL direction. If not provided, will be inferred from the translations locale metadata.
+   */
+  rtl?: boolean;
   children: ReactNode;
 }
 
 /**
- * Provider component for translations.
+ * Provider component for translations with RTL support.
  * Wrap your ThreadKit component with this to enable translations.
  *
  * @example
@@ -41,19 +50,36 @@ export interface TranslationProviderProps {
  *   <ThreadKit ... />
  * </TranslationProvider>
  *
+ * // With Arabic (RTL automatically detected)
+ * import { ar } from '@threadkit/i18n';
+ * <TranslationProvider translations={ar}>
+ *   <ThreadKit ... />
+ * </TranslationProvider>
+ *
  * // Partial overrides
  * <TranslationProvider translations={{ post: 'Submit' }}>
+ *   <ThreadKit ... />
+ * </TranslationProvider>
+ *
+ * // Manual RTL override
+ * <TranslationProvider rtl={true}>
  *   <ThreadKit ... />
  * </TranslationProvider>
  */
 export function TranslationProvider({
   translations,
+  rtl: rtlProp,
   children,
 }: TranslationProviderProps) {
-  const t = useMemo(() => createTranslator(translations), [translations]);
+  const value = useMemo(() => {
+    const t = createTranslator(translations);
+    // Use explicit rtl prop if provided, otherwise use the translator's rtl property
+    const rtl = rtlProp !== undefined ? rtlProp : t.rtl;
+    return { t, rtl };
+  }, [translations, rtlProp]);
 
   return (
-    <TranslationContext.Provider value={t}>
+    <TranslationContext.Provider value={value}>
       {children}
     </TranslationContext.Provider>
   );
@@ -73,6 +99,12 @@ export function TranslationProvider({
  *   const t = useTranslation();
  *   return <span>{t('minutesAgo', { n: minutes })}</span>;
  * }
+ *
+ * // Checking RTL
+ * function MyComponent() {
+ *   const t = useTranslation();
+ *   return <div dir={t.rtl ? 'rtl' : 'ltr'}>{t('post')}</div>;
+ * }
  */
 export function useTranslation(): TranslatorFunction {
   const context = useContext(TranslationContext);
@@ -82,7 +114,27 @@ export function useTranslation(): TranslatorFunction {
     return createTranslator();
   }
 
-  return context;
+  return context.t;
+}
+
+/**
+ * Hook to check if the current locale is right-to-left.
+ *
+ * @example
+ * function MyComponent() {
+ *   const isRTL = useRTL();
+ *   return <div style={{ textAlign: isRTL ? 'right' : 'left' }}>Content</div>;
+ * }
+ */
+export function useRTL(): boolean {
+  const context = useContext(TranslationContext);
+
+  // If no provider, default to LTR
+  if (!context) {
+    return false;
+  }
+
+  return context.rtl;
 }
 
 // Re-export types for convenience

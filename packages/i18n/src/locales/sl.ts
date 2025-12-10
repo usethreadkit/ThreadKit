@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Slovenian translations
  */
-export const sl: TranslationStrings = {
+export const sl: LocaleMetadata = {
+  code: 'sl',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Objavi',
   cancel: 'Prekliči',
@@ -205,4 +208,5 @@ export const sl: TranslationStrings = {
   loadNewComments: 'Naloži nove komentarje',
   loadNewReplies: 'Naloži nove odgovore',
   isTyping: 'piše...',
+  },
 };

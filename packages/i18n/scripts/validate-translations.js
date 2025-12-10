@@ -91,13 +91,16 @@ async function validateTranslations() {
     try {
       // Dynamic import the built locale file
       const localeModule = await import(`file://${localePath}`);
-      const translations = localeModule[localeName];
+      const localeMetadata = localeModule[localeName];
 
-      if (!translations) {
+      if (!localeMetadata) {
         console.error(`❌ ${localeName}: Could not find export '${localeName}'`);
         hasErrors = true;
         continue;
       }
+
+      // Extract translations from LocaleMetadata structure
+      const translations = localeMetadata.translations || localeMetadata;
 
       const missingKeys = REQUIRED_KEYS.filter(key => !(key in translations));
       const extraKeys = Object.keys(translations).filter(key => !REQUIRED_KEYS.includes(key));

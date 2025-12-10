@@ -9,7 +9,11 @@
     "test": "pnpm -r --filter '@threadkit/*' test:run",
     "test:coverage": "pnpm -r --filter '@threadkit/*' test:run -- --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "version": "node scripts/version.js",
+    "version:minor": "node scripts/version.js minor",
+    "version:patch": "node scripts/version.js patch",
+    "version:major": "node scripts/version.js major"
   },
   "devDependencies": {
     "@storybook/addon-links": "10.1.6",

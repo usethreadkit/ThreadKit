@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Indonesian translations
  */
-export const id: TranslationStrings = {
+export const id: LocaleMetadata = {
+  code: 'id',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Kirim',
   cancel: 'Batal',
@@ -205,4 +208,5 @@ export const id: TranslationStrings = {
   loadNewComments: 'Muat komentar baru',
   loadNewReplies: 'Muat balasan baru',
   isTyping: 'sedang mengetik...',
+  },
 };

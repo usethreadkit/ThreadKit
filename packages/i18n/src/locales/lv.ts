@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Latvian translations
  */
-export const lv: TranslationStrings = {
+export const lv: LocaleMetadata = {
+  code: 'lv',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Publicēt',
   cancel: 'Atcelt',
@@ -205,4 +208,5 @@ export const lv: TranslationStrings = {
   loadNewComments: 'Ielādēt jaunus komentārus',
   loadNewReplies: 'Ielādēt jaunas atbildes',
   isTyping: 'raksta...',
+  },
 };

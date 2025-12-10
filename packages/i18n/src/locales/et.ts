@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Estonian translations
  */
-export const et: TranslationStrings = {
+export const et: LocaleMetadata = {
+  code: 'et',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Postita',
   cancel: 'Tühista',
@@ -205,4 +208,5 @@ export const et: TranslationStrings = {
   loadNewComments: 'Laadi uued kommentaarid',
   loadNewReplies: 'Laadi uued vastused',
   isTyping: 'kirjutab...',
+  },
 };

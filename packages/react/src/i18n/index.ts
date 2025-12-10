@@ -1,6 +1,7 @@
 export {
   TranslationProvider,
   useTranslation,
+  useRTL,
   defaultTranslations,
 } from './TranslationContext';
 

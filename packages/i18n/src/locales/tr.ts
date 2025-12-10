@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Turkish translations
  */
-export const tr: TranslationStrings = {
+export const tr: LocaleMetadata = {
+  code: 'tr',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Yayınla',
   cancel: 'İptal',
@@ -205,4 +208,5 @@ export const tr: TranslationStrings = {
   loadNewComments: 'Yeni yorumları yükle',
   loadNewReplies: 'Yeni yanıtları yükle',
   isTyping: 'yazıyor...',
+  },
 };

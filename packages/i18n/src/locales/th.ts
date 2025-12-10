@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Thai translations
  */
-export const th: TranslationStrings = {
+export const th: LocaleMetadata = {
+  code: 'th',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'โพสต์',
   cancel: 'ยกเลิก',
@@ -205,4 +208,5 @@ export const th: TranslationStrings = {
   loadNewComments: 'โหลดความคิดเห็นใหม่',
   loadNewReplies: 'โหลดการตอบกลับใหม่',
   isTyping: 'กำลังพิมพ์...',
+  },
 };

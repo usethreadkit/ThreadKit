@@ -1,4 +1,4 @@
-import type { TranslationStrings, LocaleCode } from '@threadkit/core';
+import type { LocaleMetadata, LocaleCode } from '@threadkit/core';
 
 import { en } from './locales/en';
 import { es } from './locales/es';
@@ -40,9 +40,9 @@ import { lv } from './locales/lv';
 import { my } from './locales/my';
 
 /**
- * Map of locale codes to translation objects
+ * Map of locale codes to locale metadata objects (includes translations and RTL info)
  */
-export type LocaleMap = Record<LocaleCode, TranslationStrings>;
+export type LocaleMap = Record<LocaleCode, LocaleMetadata>;
 
 /**
  * All available locales bundled together.
@@ -105,22 +105,24 @@ export const locales: LocaleMap = {
 export const supportedLocales: LocaleCode[] = Object.keys(locales) as LocaleCode[];
 
 /**
- * Get translations for a specific locale code.
+ * Get locale metadata for a specific locale code.
  * Returns undefined if the locale is not supported.
  *
  * @example
  * import { getLocale } from '@threadkit/i18n';
  *
- * // Get Spanish translations
+ * // Get Spanish locale metadata
  * const spanish = getLocale('es');
+ * console.log(spanish.rtl); // false
+ * console.log(spanish.translations.post); // 'Publicar'
  *
  * // Auto-detect from browser
  * const browserLocale = navigator.language.split('-')[0];
- * const translations = getLocale(browserLocale as LocaleCode);
+ * const locale = getLocale(browserLocale as LocaleCode);
  *
  * // With fallback
- * const t = getLocale(userPreference) ?? getLocale('en')!;
+ * const locale = getLocale(userPreference) ?? getLocale('en')!;
  */
-export function getLocale(code: LocaleCode): TranslationStrings | undefined {
+export function getLocale(code: LocaleCode): LocaleMetadata | undefined {
   return locales[code];
 }

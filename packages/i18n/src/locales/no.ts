@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Norwegian translations
  */
-export const no: TranslationStrings = {
+export const no: LocaleMetadata = {
+  code: 'no',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Publiser',
   cancel: 'Avbryt',
@@ -205,4 +208,5 @@ export const no: TranslationStrings = {
   loadNewComments: 'Last inn nye kommentarer',
   loadNewReplies: 'Last inn nye svar',
   isTyping: 'skriver...',
+  },
 };

@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Ukrainian translations
  */
-export const uk: TranslationStrings = {
+export const uk: LocaleMetadata = {
+  code: 'uk',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'Опублікувати',
   cancel: 'Скасувати',
@@ -205,4 +208,5 @@ export const uk: TranslationStrings = {
   loadNewComments: 'Завантажити нові коментарі',
   loadNewReplies: 'Завантажити нові відповіді',
   isTyping: 'друкує...',
+  },
 };

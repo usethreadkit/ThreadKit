@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
  * Burmese translations
  */
-export const my: TranslationStrings = {
+export const my: LocaleMetadata = {
+  code: 'my',
+  rtl: false,
+  translations: {
   // Common actions
   post: 'တင်ရန်',
   cancel: 'မလုပ်တော့ပါ',
@@ -205,4 +208,5 @@ export const my: TranslationStrings = {
   loadNewComments: 'မှတ်ချက်အသစ်များ ဖွင့်ပါ',
   loadNewReplies: 'အကြောင်းပြန်အသစ်များ ဖွင့်ပါ',
   isTyping: 'ရိုက်နေသည်...',
+  },
 };

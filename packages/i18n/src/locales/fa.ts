@@ -1,9 +1,12 @@
-import type { TranslationStrings } from '@threadkit/core';
+import type { LocaleMetadata } from '@threadkit/core';
 
 /**
- * Persian translations (Farsi)
+ * Persian translations (Farsi) (RTL)
  */
-export const fa: TranslationStrings = {
+export const fa: LocaleMetadata = {
+  code: 'fa',
+  rtl: true,
+  translations: {
   // Common actions
   post: 'ارسال',
   cancel: 'لغو',
@@ -205,4 +208,5 @@ export const fa: TranslationStrings = {
   loadNewComments: 'بارگذاری نظرات جدید',
   loadNewReplies: 'بارگذاری پاسخ‌های جدید',
   isTyping: 'در حال نوشتن...',
+  },
 };
