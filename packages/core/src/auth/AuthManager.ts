@@ -315,6 +315,15 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
       }
 
       this.setStep('otp-verify');
+
+      // Broadcast OTP request to other instances
+      if (this.authSyncChannel) {
+        this.log('[ThreadKit AuthManager] Broadcasting OTP request');
+        this.authSyncChannel.postMessage({
+          type: 'threadkit:otp-requested',
+          otpTarget: target
+        });
+      }
     } catch (err) {
       this.setState({
         step: 'otp-input',
@@ -579,6 +588,14 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
           this.log('[ThreadKit AuthManager] Login sync received');
           // Re-initialize to pick up the new tokens from storage
           this.initialize();
+        } else if (event.data?.type === 'threadkit:otp-requested') {
+          this.log('[ThreadKit AuthManager] OTP request sync received');
+          // Update local state to show OTP input with the same target
+          this.setState({
+            step: 'otp-verify',
+            otpTarget: event.data.otpTarget,
+            error: null,
+          });
         }
       });
     } catch {

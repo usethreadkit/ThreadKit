@@ -714,11 +714,18 @@ export function ChatView({
     [username, isUsernameAvailable, usernameError, isSubmittingUsername, authState.step, otpCode, verifyOtp, updateUsername]
   );
 
-  // Reset hasInitialized when user logs out
+  // Reset hasInitialized and local state when user logs out
   useEffect(() => {
     if (!isLoggedIn) {
       hasInitialized.current = false;
       hasShownUsernameSuggestion.current = false;
+    } else {
+      // User logged in - clear any OTP/auth related local state
+      setOtpEmail('');
+      setOtpCode('');
+      setUsername('');
+      setUsernameError(null);
+      setIsUsernameAvailable(null);
     }
   }, [isLoggedIn]);
 
