@@ -12,14 +12,12 @@
     "build-storybook": "storybook build"
   },
   "devDependencies": {
-    "@storybook/addon-essentials": "8.6.14",
-    "@storybook/addon-interactions": "8.6.14",
-    "@storybook/addon-links": "8.6.14",
-    "@storybook/addon-themes": "8.6.14",
-    "@storybook/react": "8.6.14",
-    "@storybook/react-vite": "8.6.14",
+    "@storybook/addon-links": "10.1.6",
+    "@storybook/addon-themes": "10.1.6",
+    "@storybook/react": "10.1.6",
+    "@storybook/react-vite": "10.1.6",
     "openapi-typescript": "^7.10.1",
-    "storybook": "8.6.14",
+    "storybook": "10.1.6",
     "typescript": "^5.3.3",
     "vite": "^6.4.1"
   },
