@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/i18n",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "Translation files for ThreadKit commenting system",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
     "validate": "node scripts/validate-translations.js"
   },
   "dependencies": {
-    "@threadkit/core": "workspace:*"
+    "@threadkit/core": "^0.0.12"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
