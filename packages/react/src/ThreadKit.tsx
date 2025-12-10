@@ -156,6 +156,7 @@ function ThreadKitInner({
         avatar: authState.user.avatar_url,
         isModerator: false, // TODO: Get from server
         isAdmin: false,
+        socialLinks: authState.user.social_links,
       }
     : undefined;
 
@@ -697,19 +698,10 @@ function ThreadKitInner({
       if (!response.ok) {
         throw new Error('Failed to update social links');
       }
-
-      // Broadcast update to other instances (same as auth system)
-      try {
-        const authSyncChannel = new BroadcastChannel('threadkit-auth-sync');
-        authSyncChannel.postMessage({ type: 'threadkit:login' });
-        authSyncChannel.close();
-      } catch {
-        // BroadcastChannel not supported, ignore
-      }
     } catch (err) {
       onError?.(err instanceof Error ? err : new Error('Failed to update social links'));
     }
-  }, [apiUrl, projectId, onError]);
+  }, [apiUrl, projectId, currentUser, onError]);
 
   const handleDeleteAccount = useCallback(async () => {
     try {

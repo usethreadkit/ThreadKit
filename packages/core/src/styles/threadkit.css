@@ -472,7 +472,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 12px;
   min-width: 240px;
-  max-width: 300px;
+  max-width: max-content;
 }
 
 .threadkit-hover-card-content {
@@ -573,10 +573,104 @@
 /* Social Links in User Hover Card */
 .threadkit-hover-card-social-links {
   display: flex;
-  gap: 8px; /* Spacing between icons */
+  gap: 12px; /* Spacing between icons */
   margin-top: 8px; /* More vertical spacing below username */
   margin-bottom: 8px; /* Spacing before stats */
   padding-left: 4px; /* Align with other content */
+}
+
+.threadkit-hover-card-social-links .threadkit-social-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Username trigger - clickable on mobile */
+.threadkit-username-trigger.clickable {
+  cursor: pointer;
+}
+
+/* Centered hover card (click mode) */
+.threadkit-hover-card-centered {
+  position: static !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 auto;
+}
+
+/* Mobile user profile modal */
+.threadkit-user-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Skeleton Loading Animation */
+@keyframes threadkit-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.threadkit-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--threadkit-bg-secondary) 0%,
+    var(--threadkit-bg-hover) 50%,
+    var(--threadkit-bg-secondary) 100%
+  );
+  background-size: 200px 100%;
+  animation: threadkit-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.threadkit-skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.threadkit-skeleton-text {
+  border-radius: 4px;
+}
+
+.threadkit-user-modal {
+  background: var(--threadkit-bg);
+  border-radius: 12px;
+  max-width: 400px;
+  width: 100%;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.threadkit-user-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--threadkit-text-muted);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.threadkit-user-modal-close:hover {
+  color: var(--threadkit-text);
 }
 
 .threadkit-social-icon {
@@ -585,16 +679,9 @@
   justify-content: center;
   width: 20px; /* Tiny icons */
   height: 20px;
-  background: var(--threadkit-bg-secondary);
-  border-radius: 50%;
   font-size: 10px; /* Placeholder text size */
   color: var(--threadkit-text);
   text-decoration: none;
-  transition: background 0.15s;
-}
-
-.threadkit-social-icon:hover {
-  background: var(--threadkit-bg-hover);
 }
 
 /* ===== Comment Form ===== */
@@ -804,6 +891,7 @@
   display: flex;
   flex-direction: column;
   height: 400px;
+  position: relative;
 }
 
 .threadkit-chat-messages {
@@ -888,10 +976,24 @@
   margin-top: 4px;
 }
 
+/* Tap area above input box for easier focus on mobile */
+.threadkit-chat-tap-area {
+  position: absolute;
+  top: 0px;
+  left: -4px;
+  height: 75px;
+  cursor: text;
+  width: calc(100% - 80px);
+  z-index: 0;
+  pointer-events: auto;
+}
+
 .threadkit-chat-input {
   display: flex;
   gap: 8px;
   padding: 8px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .threadkit-chat-input input {
@@ -1309,8 +1411,8 @@ button.threadkit-new-comments-banner:hover {
 .threadkit-settings-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 6px;
+  padding: 6px;
   border-bottom: 1px solid var(--threadkit-border-light);
 }
 
@@ -1358,15 +1460,21 @@ button.threadkit-new-comments-banner:hover {
 
 .threadkit-settings-name-input {
   flex: 1;
-  padding: 4px 8px;
+  padding: 4px 0;
   font-size: 13px;
-  border: 1px solid var(--threadkit-border);
-  border-radius: var(--threadkit-radius);
-  background: var(--threadkit-bg);
+  border: none;
+  border-bottom: 1px solid var(--threadkit-border-light);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+
+.threadkit-settings-name-input:focus {
+  border-bottom-color: var(--threadkit-primary);
 }
 
 .threadkit-settings-name-input.error {
-  border-color: var(--threadkit-danger);
+  border-bottom-color: var(--threadkit-danger);
 }
 
 .threadkit-username-taken {
@@ -2110,7 +2218,7 @@ button.threadkit-new-comments-banner:hover {
 
 /* ===== Mobile Styles ===== */
 
-@media (max-width: 640px) {
+@media (max-width: 480px) {
   /* Show mobile header */
   .threadkit-mobile-header {
     display: flex;
@@ -2178,6 +2286,11 @@ button.threadkit-new-comments-banner:hover {
     border: none;
   }
 
+  /* Hide desktop notifications header on mobile */
+  .threadkit-notifications-header {
+    display: none;
+  }
+
   .threadkit-notifications-list {
     flex: 1;
     overflow-y: auto;
@@ -2190,5 +2303,25 @@ button.threadkit-new-comments-banner:hover {
 
   .threadkit-notification-item {
     padding: 14px 12px;
+  }
+
+  /* Full-width user hover card on mobile */
+  .threadkit-hover-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Positioning for hover mode only (not centered click mode) */
+  .threadkit-hover-card:not(.threadkit-hover-card-centered) {
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Wrap social links on mobile */
+  .threadkit-hover-card-social-links {
+    flex-wrap: wrap;
   }
 }

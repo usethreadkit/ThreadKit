@@ -29,6 +29,17 @@ export interface User {
   phone_verified: boolean;
   /** Whether the user has explicitly chosen their username */
   username_set: boolean;
+  social_links?: {
+    twitter?: string;
+    github?: string;
+    facebook?: string;
+    whatsapp?: string;
+    telegram?: string;
+    instagram?: string;
+    tiktok?: string;
+    snapchat?: string;
+    discord?: string;
+  };
 }
 
 // ============================================================================

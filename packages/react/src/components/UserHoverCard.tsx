@@ -13,6 +13,10 @@ interface UserHoverCardProps {
   children: React.ReactNode;
 }
 
+// Global pending requests tracker
+let pendingProfileRequests = 0;
+const MAX_CONCURRENT_PROFILE_REQUESTS = 10;
+
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleDateString('en-US', {
@@ -36,6 +40,7 @@ export function UserHoverCard({
 }: UserHoverCardProps) {
   const t = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
+  const [isClickMode, setIsClickMode] = useState(false); // Track if opened by click
   const [position, setPosition] = useState<{ bottom: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -52,13 +57,16 @@ export function UserHoverCard({
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Trigger fetch on hover
-    if (fetchUserProfile && !profile) {
-      fetchUserProfile(userId);
+    // Limit concurrent requests to prevent excessive fetching when scrolling over many usernames
+    if (fetchUserProfile && !profile && pendingProfileRequests < MAX_CONCURRENT_PROFILE_REQUESTS) {
+      pendingProfileRequests++;
+      fetchUserProfile(userId).finally(() => {
+        pendingProfileRequests--;
+      });
     }
 
     timeoutRef.current = setTimeout(() => {
-      if (triggerRef.current && profile) {
+      if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect();
         // Position above the trigger using fixed positioning
         // Calculate bottom to avoid needing the card's height
@@ -72,6 +80,9 @@ export function UserHoverCard({
   };
 
   const hideCard = () => {
+    // Don't hide if opened by click
+    if (isClickMode) return;
+
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setIsVisible(false);
@@ -84,10 +95,161 @@ export function UserHoverCard({
     };
   }, []);
 
+  // Prevent body scroll when in click mode
+  useEffect(() => {
+    if (isClickMode && isVisible) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isClickMode, isVisible]);
+
+  // Click outside to close in click mode
+  useEffect(() => {
+    if (!isClickMode || !isVisible) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        cardRef.current && !cardRef.current.contains(e.target as Node)
+      ) {
+        setIsVisible(false);
+        setIsClickMode(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isClickMode, isVisible]);
+
   // Don't add hover triggers for anonymous users
   if (isAnonymous) {
     return <>{children}</>;
   }
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent expanding parent elements
+
+    if (isAnonymous) return;
+
+    // Clear any pending hover timeouts to prevent both modes from showing
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    // Limit concurrent requests to prevent excessive fetching when scrolling over many usernames
+    if (fetchUserProfile && !profile && pendingProfileRequests < MAX_CONCURRENT_PROFILE_REQUESTS) {
+      pendingProfileRequests++;
+      fetchUserProfile(userId).finally(() => {
+        pendingProfileRequests--;
+      });
+    }
+
+    // Toggle click mode
+    if (isClickMode && isVisible) {
+      setIsVisible(false);
+      setIsClickMode(false);
+    } else {
+      setIsVisible(true);
+      setIsClickMode(true);
+    }
+  };
+
+  const skeletonCard = (
+    <div className="threadkit-hover-card-content">
+      <div className="threadkit-hover-card-avatar">
+        <div className="threadkit-skeleton threadkit-skeleton-avatar" />
+      </div>
+      <div className="threadkit-hover-card-info">
+        <div className="threadkit-hover-card-name">
+          <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '120px', height: '16px' }} />
+        </div>
+        <div className="threadkit-hover-card-stats">
+          <div className="threadkit-hover-card-stat">
+            <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '40px', height: '20px', marginBottom: '4px' }} />
+            <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '50px', height: '12px' }} />
+          </div>
+          <div className="threadkit-hover-card-stat">
+            <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '40px', height: '20px', marginBottom: '4px' }} />
+            <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '60px', height: '12px' }} />
+          </div>
+        </div>
+        <div className="threadkit-hover-card-joined">
+          <div className="threadkit-skeleton threadkit-skeleton-text" style={{ width: '100px', height: '12px' }} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const profileCard = profile && (
+    <div className="threadkit-hover-card-content">
+      <div className="threadkit-hover-card-avatar">
+        <Avatar
+          src={profile.avatar}
+          alt={profile.name}
+          seed={profile.name}
+        />
+      </div>
+      <div className="threadkit-hover-card-info">
+        <div className="threadkit-hover-card-name">
+          <GuestAwareUsername userName={profile.name} t={t} />
+        </div>
+        {profile.socialLinks && Object.values(profile.socialLinks).some(v => v) && (
+          <div className="threadkit-hover-card-social-links">
+            {Object.entries(profile.socialLinks).map(([platform, handle]) => {
+              if (!handle) return null;
+              const Icon = SOCIAL_ICONS[platform];
+              if (!Icon) return null;
+
+              const urlMap: Record<string, string> = {
+                twitter: `https://twitter.com/${handle}`,
+                github: `https://github.com/${handle}`,
+                facebook: `https://facebook.com/${handle}`,
+                whatsapp: `https://wa.me/${handle}`,
+                telegram: `https://t.me/${handle}`,
+                instagram: `https://instagram.com/${handle}`,
+                tiktok: `https://tiktok.com/@${handle}`,
+                snapchat: `https://snapchat.com/add/${handle}`,
+                discord: `https://discordapp.com/users/${handle}`,
+              };
+
+              const url = urlMap[platform];
+              const title = platform.charAt(0).toUpperCase() + platform.slice(1);
+
+              return (
+                <a
+                  key={platform}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={title}
+                  className="threadkit-social-link"
+                >
+                  <Icon className="threadkit-social-icon" />
+                </a>
+              );
+            })}
+          </div>
+        )}
+        <div className="threadkit-hover-card-stats">
+          <div className="threadkit-hover-card-stat">
+            <span className="threadkit-hover-card-stat-value">
+              {formatNumber(profile.karma)}
+            </span>
+            <span className="threadkit-hover-card-stat-label">{t('karma')}</span>
+          </div>
+          <div className="threadkit-hover-card-stat">
+            <span className="threadkit-hover-card-stat-value">
+              {formatNumber(profile.totalComments)}
+            </span>
+            <span className="threadkit-hover-card-stat-label">{t('comments')}</span>
+          </div>
+        </div>
+        <div className="threadkit-hover-card-joined">
+          {t('joined')} {formatDate(profile.joinDate)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -95,11 +257,14 @@ export function UserHoverCard({
         ref={triggerRef}
         onMouseEnter={showCard}
         onMouseLeave={hideCard}
+        onClick={handleClick}
         className="threadkit-username-trigger"
       >
         {children}
       </span>
-      {isVisible && position && profile && createPortal(
+
+      {/* Hover mode - positioned above username */}
+      {isVisible && !isClickMode && position && createPortal(
         <div
           ref={cardRef}
           className="threadkit-root threadkit-hover-card"
@@ -114,73 +279,20 @@ export function UserHoverCard({
           }}
           onMouseLeave={hideCard}
         >
-          <div className="threadkit-hover-card-content">
-            <div className="threadkit-hover-card-avatar">
-              <Avatar
-                src={profile.avatar}
-                alt={profile.name}
-                seed={profile.name}
-              />
-            </div>
-            <div className="threadkit-hover-card-info">
-              <div className="threadkit-hover-card-name">
-                <GuestAwareUsername userName={profile.name} t={t} />
-              </div>
-              {profile.socialLinks && Object.values(profile.socialLinks).some(v => v) && (
-                <div className="threadkit-hover-card-social-links">
-                  {Object.entries(profile.socialLinks).map(([platform, handle]) => {
-                    if (!handle) return null;
-                    const Icon = SOCIAL_ICONS[platform];
-                    if (!Icon) return null;
+          {profile ? profileCard : skeletonCard}
+        </div>,
+        document.body
+      )}
 
-                    const urlMap: Record<string, string> = {
-                      twitter: `https://twitter.com/${handle}`,
-                      github: `https://github.com/${handle}`,
-                      facebook: `https://facebook.com/${handle}`,
-                      whatsapp: `https://wa.me/${handle}`,
-                      telegram: `https://t.me/${handle}`,
-                      instagram: `https://instagram.com/${handle}`,
-                      tiktok: `https://tiktok.com/@${handle}`,
-                      snapchat: `https://snapchat.com/add/${handle}`,
-                      discord: `https://discordapp.com/users/${handle}`,
-                    };
-
-                    const url = urlMap[platform];
-                    const title = platform.charAt(0).toUpperCase() + platform.slice(1);
-
-                    return (
-                      <a
-                        key={platform}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={title}
-                        className="threadkit-social-link"
-                      >
-                        <Icon className="threadkit-social-icon" />
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="threadkit-hover-card-stats">
-                <div className="threadkit-hover-card-stat">
-                  <span className="threadkit-hover-card-stat-value">
-                    {formatNumber(profile.karma)}
-                  </span>
-                  <span className="threadkit-hover-card-stat-label">{t('karma')}</span>
-                </div>
-                <div className="threadkit-hover-card-stat">
-                  <span className="threadkit-hover-card-stat-value">
-                    {formatNumber(profile.totalComments)}
-                  </span>
-                  <span className="threadkit-hover-card-stat-label">{t('comments')}</span>
-                </div>
-              </div>
-              <div className="threadkit-hover-card-joined">
-                {t('joined')} {formatDate(profile.joinDate)}
-              </div>
-            </div>
+      {/* Click mode - centered with overlay */}
+      {isVisible && isClickMode && createPortal(
+        <div className="threadkit-root threadkit-user-modal-overlay" onClick={() => { setIsVisible(false); setIsClickMode(false); }}>
+          <div
+            ref={cardRef}
+            className="threadkit-root threadkit-hover-card threadkit-hover-card-centered"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {profile ? profileCard : skeletonCard}
           </div>
         </div>,
         document.body

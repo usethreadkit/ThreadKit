@@ -91,11 +91,58 @@ export function SettingsPanel({
   const [tiktok, setTiktok] = useState(currentUser?.socialLinks?.tiktok || '');
   const [snapchat, setSnapchat] = useState(currentUser?.socialLinks?.snapchat || '');
   const [discord, setDiscord] = useState(currentUser?.socialLinks?.discord || '');
+  const [savingSocialLinksMap, setSavingSocialLinksMap] = useState<Record<string, boolean>>({});
+  const [savedSocialLinksMap, setSavedSocialLinksMap] = useState<Record<string, boolean>>({});
   const holdIntervalRef = useRef<number | null>(null);
   const hideDeleteModeRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const checkUsernameRef = useRef<number | null>(null);
-  const saveSocialLinksRef = useRef<number | null>(null);
+  const saveSocialLinksRefs = useRef<Record<string, number>>({});
+  const savedSocialLinksTimeoutRefs = useRef<Record<string, number>>({});
+  const prevIsOpenRef = useRef(false);
+
+  // Helper to save a specific social link field
+  const saveSocialLinkField = useCallback((platform: string, value: string) => {
+    if (!currentUser) return;
+
+    // Clear existing timeouts for this field
+    if (saveSocialLinksRefs.current[platform]) {
+      clearTimeout(saveSocialLinksRefs.current[platform]);
+    }
+    if (savedSocialLinksTimeoutRefs.current[platform]) {
+      clearTimeout(savedSocialLinksTimeoutRefs.current[platform]);
+    }
+
+    // Set saving state for this field
+    setSavingSocialLinksMap(prev => ({ ...prev, [platform]: true }));
+    setSavedSocialLinksMap(prev => ({ ...prev, [platform]: false }));
+
+    // Debounce save
+    saveSocialLinksRefs.current[platform] = window.setTimeout(async () => {
+      // Build the full social links object with the updated field
+      const socialLinks = {
+        twitter: platform === 'twitter' ? value || undefined : twitter || undefined,
+        github: platform === 'github' ? value || undefined : github || undefined,
+        facebook: platform === 'facebook' ? value || undefined : facebook || undefined,
+        whatsapp: platform === 'whatsapp' ? value || undefined : whatsapp || undefined,
+        telegram: platform === 'telegram' ? value || undefined : telegram || undefined,
+        instagram: platform === 'instagram' ? value || undefined : instagram || undefined,
+        tiktok: platform === 'tiktok' ? value || undefined : tiktok || undefined,
+        snapchat: platform === 'snapchat' ? value || undefined : snapchat || undefined,
+        discord: platform === 'discord' ? value || undefined : discord || undefined,
+      };
+
+      await onUpdateSocialLinks(socialLinks);
+
+      setSavingSocialLinksMap(prev => ({ ...prev, [platform]: false }));
+      setSavedSocialLinksMap(prev => ({ ...prev, [platform]: true }));
+
+      // Hide checkmark after 2 seconds
+      savedSocialLinksTimeoutRefs.current[platform] = window.setTimeout(() => {
+        setSavedSocialLinksMap(prev => ({ ...prev, [platform]: false }));
+      }, 2000);
+    }, 1000);
+  }, [currentUser, onUpdateSocialLinks, twitter, github, facebook, whatsapp, telegram, instagram, tiktok, snapchat, discord]);
 
   // Debounced username availability check
   useEffect(() => {
@@ -155,48 +202,22 @@ export function SettingsPanel({
     };
   }, [newName, editingName, currentUser?.name, apiUrl]);
 
-  // Auto-save social links with debounce
+  // Sync social links state with currentUser only when panel first opens
   useEffect(() => {
-    if (!currentUser) return;
-
-    // Check if any social link has changed
-    const hasChanges =
-      twitter !== (currentUser.socialLinks?.twitter || '') ||
-      github !== (currentUser.socialLinks?.github || '') ||
-      facebook !== (currentUser.socialLinks?.facebook || '') ||
-      whatsapp !== (currentUser.socialLinks?.whatsapp || '') ||
-      telegram !== (currentUser.socialLinks?.telegram || '') ||
-      instagram !== (currentUser.socialLinks?.instagram || '') ||
-      tiktok !== (currentUser.socialLinks?.tiktok || '') ||
-      snapchat !== (currentUser.socialLinks?.snapchat || '') ||
-      discord !== (currentUser.socialLinks?.discord || '');
-
-    if (!hasChanges) return;
-
-    if (saveSocialLinksRef.current) {
-      clearTimeout(saveSocialLinksRef.current);
+    // Only sync when transitioning from closed to open
+    if (isOpen && !prevIsOpenRef.current && currentUser) {
+      setTwitter(currentUser.socialLinks?.twitter || '');
+      setGithub(currentUser.socialLinks?.github || '');
+      setFacebook(currentUser.socialLinks?.facebook || '');
+      setWhatsapp(currentUser.socialLinks?.whatsapp || '');
+      setTelegram(currentUser.socialLinks?.telegram || '');
+      setInstagram(currentUser.socialLinks?.instagram || '');
+      setTiktok(currentUser.socialLinks?.tiktok || '');
+      setSnapchat(currentUser.socialLinks?.snapchat || '');
+      setDiscord(currentUser.socialLinks?.discord || '');
     }
-
-    saveSocialLinksRef.current = window.setTimeout(() => {
-      onUpdateSocialLinks({
-        twitter: twitter || undefined,
-        github: github || undefined,
-        facebook: facebook || undefined,
-        whatsapp: whatsapp || undefined,
-        telegram: telegram || undefined,
-        instagram: instagram || undefined,
-        tiktok: tiktok || undefined,
-        snapchat: snapchat || undefined,
-        discord: discord || undefined,
-      });
-    }, 1000);
-
-    return () => {
-      if (saveSocialLinksRef.current) {
-        clearTimeout(saveSocialLinksRef.current);
-      }
-    };
-  }, [twitter, github, facebook, whatsapp, telegram, instagram, tiktok, snapchat, discord, currentUser, onUpdateSocialLinks]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, currentUser]);
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -235,6 +256,16 @@ export function SettingsPanel({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Prevent body scroll when open on mobile
+  useEffect(() => {
+    if (isOpen && window.innerWidth <= 640) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
   }, [isOpen]);
 
   const handleSaveName = useCallback(() => {
@@ -304,6 +335,9 @@ export function SettingsPanel({
     const Icon = SOCIAL_ICONS[platform];
     if (!Icon) return null;
 
+    const isSaving = savingSocialLinksMap[platform] || false;
+    const isSaved = savedSocialLinksMap[platform] || false;
+
     return (
       <div className="threadkit-social-link-input-group">
         <label>
@@ -312,11 +346,35 @@ export function SettingsPanel({
         <input
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setValue(newValue);
+            saveSocialLinkField(platform, newValue);
+          }}
           maxLength={30}
           className="threadkit-settings-name-input"
           placeholder={`https://${platform}.com/your-profile`}
         />
+        {isSaving && (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+            <path d="M12 2 A10 10 0 0 1 22 12" strokeLinecap="round">
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 12 12"
+                to="360 12 12"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </svg>
+        )}
+        {isSaved && (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--threadkit-success)" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
       </div>
     );
   };
@@ -381,7 +439,7 @@ export function SettingsPanel({
                         autoFocus
                         maxLength={MAX_USERNAME_LENGTH}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && usernameAvailable !== false && !usernameError) handleSaveName();
+                          if (e.key === 'Enter' && usernameAvailable !== false && !usernameError && !checkingUsername) handleSaveName();
                           if (e.key === 'Escape') setEditingName(false);
                         }}
                       />
@@ -515,7 +573,7 @@ export function SettingsPanel({
                   className="threadkit-settings-item"
                   onClick={() => setActiveSection(activeSection === 'social' ? null : 'social')}
                 >
-                  {t('socialLinks')}
+                  <span>{t('socialLinks')}</span>
                   <span className="threadkit-settings-arrow">{activeSection === 'social' ? '▲' : '▼'}</span>
                 </button>
                 {activeSection === 'social' && (

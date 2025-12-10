@@ -61,6 +61,16 @@ export function NotificationsPanel({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  // Prevent body scroll when open on mobile
+  useEffect(() => {
+    if (isOpen && window.innerWidth <= 640) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
+
   const handleNotificationClick = useCallback(
     (notification: Notification) => {
       if (!notification.read) {

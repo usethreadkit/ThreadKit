@@ -575,13 +575,20 @@ export function ChatView({
       if (!text || isSubmitting) return;
 
       setIsSubmitting(true);
+      setInputValue('');
+
+      // Refocus input for mobile - blur first to ensure focus change is detected
+      requestAnimationFrame(() => {
+        inputRef.current?.blur();
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      });
+
       try {
         await onSend(text);
-        setInputValue('');
       } finally {
         setIsSubmitting(false);
-        // Refocus input after sending
-        inputRef.current?.focus();
       }
     },
     [inputValue, isSubmitting, onSend]
@@ -1056,6 +1063,10 @@ export function ChatView({
           />
         ))}
       </div>
+      <div
+        className="threadkit-chat-tap-area"
+        onClick={() => inputRef.current?.focus()}
+      />
     </div>
   );
 }

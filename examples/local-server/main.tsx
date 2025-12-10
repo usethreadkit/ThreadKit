@@ -15,7 +15,21 @@ function App() {
   const [pageUrl, setPageUrl] = useState('/demo');
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+    <>
+      <style>{`
+        .demo-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+          .demo-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       <header style={{ marginBottom: 32 }}>
         <h1 style={{ marginBottom: 8 }}>ThreadKit - Local Server (Two Instances)</h1>
         <p style={{ color: '#666', marginBottom: 16 }}>
@@ -78,7 +92,7 @@ function App() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="demo-grid">
         <main
           style={{
             background: theme === 'dark' ? '#1a1a1a' : '#fff',
@@ -143,6 +157,7 @@ function App() {
         </p>
       </footer>
     </div>
+    </>
   );
 }
 
