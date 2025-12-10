@@ -99,15 +99,54 @@ export function CommentsView({
     [onReplyStart]
   );
 
+  // Helper to get all visible comments in DOM order
+  const getAllVisibleComments = useCallback(() => {
+    // Get all comment elements in DOM order (visual order)
+    // Include both expanded and collapsed comments for navigation
+    return Array.from(document.querySelectorAll('.threadkit-comment'));
+  }, []);
+
+  // Wrap onPost to select the newly created comment
+  const handlePost = useCallback(
+    async (text: string, parentId?: string) => {
+      await onPost(text, parentId);
+
+      // After posting, find and select the newest comment
+      // Use a timeout to allow React to re-render with the new comment
+      setTimeout(() => {
+        const allComments = getAllVisibleComments();
+        if (allComments.length > 0) {
+          // Select the last comment (newest one)
+          const newestCommentId = allComments[allComments.length - 1].getAttribute('data-comment-id');
+          if (newestCommentId) {
+            setFocusedCommentId(newestCommentId);
+            allComments[allComments.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 300);
+    },
+    [onPost, getAllVisibleComments]
+  );
+
   const handleCommentClick = useCallback((commentId: string) => {
     setFocusedCommentId(commentId);
   }, []);
 
-  // Keyboard navigation helpers
-  const getAllVisibleComments = useCallback(() => {
-    // Get all comment elements in DOM order (visual order)
-    return Array.from(document.querySelectorAll('.threadkit-comment:not(.threadkit-comment-collapsed)'));
-  }, []);
+  const collapseComment = useCallback(() => {
+    if (!focusedCommentId) return;
+    if (onCollapse) {
+      onCollapse(focusedCommentId);
+    }
+  }, [focusedCommentId, onCollapse]);
+
+  const expandComment = useCallback(() => {
+    if (!focusedCommentId) return;
+    // Check if this comment is collapsed
+    if (collapsedThreads?.has(focusedCommentId) && onCollapse) {
+      // Toggle it to expand
+      onCollapse(focusedCommentId);
+    }
+  }, [focusedCommentId, collapsedThreads, onCollapse]);
 
   // Keyboard navigation handlers
   const focusInput = useCallback(() => {
@@ -239,12 +278,16 @@ export function CommentsView({
       yesBtn.click();
 
       // After deletion, set focus to the next comment
+      // Use longer timeout to ensure React has re-rendered and DOM is updated
       if (nextFocusId) {
         setTimeout(() => {
           setFocusedCommentId(nextFocusId);
-          const nextEl = document.querySelector(`[data-comment-id="${nextFocusId}"]`);
-          nextEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+          // Wait a bit more for the focused class to be applied
+          setTimeout(() => {
+            const nextEl = document.querySelector(`[data-comment-id="${nextFocusId}"]`);
+            nextEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 50);
+        }, 300);
       } else {
         // No comments left, clear focus
         setFocusedCommentId(null);
@@ -260,6 +303,22 @@ export function CommentsView({
     noBtn?.click();
   }, []);
 
+  const cancelAction = useCallback(() => {
+    // First check for confirmation dialogs
+    const noBtn = document.querySelector('.threadkit-confirm-no') as HTMLButtonElement;
+    if (noBtn) {
+      noBtn.click();
+      return;
+    }
+
+    // Then check for cancel buttons in edit/reply forms
+    const cancelBtn = document.querySelector('.threadkit-cancel-btn') as HTMLButtonElement;
+    if (cancelBtn) {
+      cancelBtn.click();
+      return;
+    }
+  }, []);
+
   // Setup keyboard shortcuts
   const shortcuts = useMemo(() => getDefaultShortcuts({
     focusInput,
@@ -270,7 +329,10 @@ export function CommentsView({
     deleteComment,
     confirmYes,
     confirmNo,
-  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo]);
+    cancelAction,
+    collapseAll: collapseComment,
+    expandAll: expandComment,
+  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo, cancelAction, collapseComment, expandComment]);
 
   useKeyboardShortcuts({ shortcuts });
 
@@ -329,7 +391,7 @@ export function CommentsView({
                 pendingRepliesCount={pendingReplies?.get(comment.id)?.length ?? 0}
                 onLoadPendingReplies={onLoadPendingReplies}
                 typingByComment={typingByComment}
-                onPost={onPost}
+                onPost={handlePost}
                 onReply={handleReply}
                 onVote={allowVoting ? onVote : undefined}
                 onDelete={onDelete}

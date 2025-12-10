@@ -70,6 +70,7 @@ export function getDefaultShortcuts(actions: {
   deleteComment?: () => void;
   confirmYes?: () => void;
   confirmNo?: () => void;
+  cancelAction?: () => void;
 }): KeyboardShortcut[] {
   const shortcuts: KeyboardShortcut[] = [];
 
@@ -83,17 +84,17 @@ export function getDefaultShortcuts(actions: {
 
   if (actions.collapseAll) {
     shortcuts.push({
-      key: '[',
+      key: '-',
       handler: actions.collapseAll,
-      description: 'Collapse all comments',
+      description: 'Collapse focused comment',
     });
   }
 
   if (actions.expandAll) {
     shortcuts.push({
-      key: ']',
+      key: '+',
       handler: actions.expandAll,
-      description: 'Expand all comments',
+      description: 'Expand focused comment',
     });
   }
 
@@ -150,6 +151,14 @@ export function getDefaultShortcuts(actions: {
       key: 'n',
       handler: actions.confirmNo,
       description: 'Confirm no',
+    });
+  }
+
+  if (actions.cancelAction) {
+    shortcuts.push({
+      key: 'Escape',
+      handler: actions.cancelAction,
+      description: 'Cancel/close',
     });
   }
 
