@@ -619,8 +619,8 @@ importers:
   packages/react:
     dependencies:
       '@threadkit/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.0.13
+        version: 0.0.13
     optionalDependencies:
       '@threadkit/plugin-latex':
         specifier: ^0.0.7
