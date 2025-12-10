@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/i18n",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Translation files for ThreadKit commenting system",
   "type": "module",
   "main": "./dist/index.js",
