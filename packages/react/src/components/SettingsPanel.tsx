@@ -644,7 +644,7 @@ export function SettingsPanel({
                             <td>{t('confirmYesNo')}</td>
                           </tr>
                           <tr>
-                            <td><kbd>Esc</kbd></td>
+                            <td><kbd>esc</kbd></td>
                             <td>{t('cancelClose')}</td>
                           </tr>
                         </tbody>
