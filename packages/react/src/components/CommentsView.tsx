@@ -162,8 +162,9 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the edit button
-    const editBtn = commentEl.querySelector('[title*="dit"]') as HTMLButtonElement;
+    // Find and click the edit button by text content
+    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const editBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('edit'));
     if (editBtn) {
       editBtn.click();
       // Auto-focus the edit textarea after a short delay
@@ -179,8 +180,9 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the reply button
-    const replyBtn = commentEl.querySelector('[title*="eply"]') as HTMLButtonElement;
+    // Find and click the reply button by text content
+    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const replyBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('reply'));
     if (replyBtn) {
       replyBtn.click();
       // Auto-focus the reply textarea after a short delay
@@ -196,8 +198,9 @@ export function CommentsView({
     const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
     if (!commentEl) return;
 
-    // Find and click the delete button
-    const deleteBtn = commentEl.querySelector('[title*="elete"]') as HTMLButtonElement;
+    // Find and click the delete button by text content
+    const buttons = Array.from(commentEl.querySelectorAll('.threadkit-action-btn')) as HTMLButtonElement[];
+    const deleteBtn = buttons.find(btn => btn.textContent?.toLowerCase().includes('delete'));
     deleteBtn?.click();
   }, [focusedCommentId]);
 

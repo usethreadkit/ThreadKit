@@ -160,6 +160,8 @@ export function Comment({
 
         {/* Content column */}
         <div className="threadkit-comment-content">
+          {/* Main content (excluding replies) */}
+          <div className="threadkit-comment-main">
           {/* Header line */}
           <div className="threadkit-comment-header">
             <button
@@ -525,6 +527,8 @@ export function Comment({
               onClick={() => onLoadPendingReplies(comment.id)}
             />
           )}
+          </div>
+          {/* End of comment main content */}
 
           {/* Child comments */}
           {comment.children.length > 0 && (
