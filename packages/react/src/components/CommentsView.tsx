@@ -232,7 +232,8 @@ export function CommentsView({
 
   const editComment = useCallback(() => {
     if (!focusedCommentId) return;
-    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    // Use ID selector to get the exact comment (not collapsed duplicates)
+    const commentEl = document.getElementById(`threadkit-${focusedCommentId}`);
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
@@ -254,7 +255,8 @@ export function CommentsView({
 
   const replyToComment = useCallback(() => {
     if (!focusedCommentId) return;
-    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    // Use ID selector to get the exact comment (not collapsed duplicates)
+    const commentEl = document.getElementById(`threadkit-${focusedCommentId}`);
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
@@ -276,7 +278,8 @@ export function CommentsView({
 
   const deleteComment = useCallback(() => {
     if (!focusedCommentId) return;
-    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    // Use ID selector to get the exact comment (not collapsed duplicates)
+    const commentEl = document.getElementById(`threadkit-${focusedCommentId}`);
     if (!commentEl) return;
 
     // Find the comment's own action buttons (not from nested comments)
