@@ -10,10 +10,26 @@ interface ScoreDisplayContextValue {
 const ScoreDisplayContext = createContext<ScoreDisplayContextValue | null>(null);
 
 export function ScoreDisplayProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ScoreDisplayMode>('score');
+  const [mode, setMode] = useState<ScoreDisplayMode>(() => {
+    // Initialize from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('threadkit_score_display');
+      if (saved === 'score' || saved === 'breakdown') {
+        return saved;
+      }
+    }
+    return 'score';
+  });
 
   const toggleMode = useCallback(() => {
-    setMode((prev) => (prev === 'score' ? 'breakdown' : 'score'));
+    setMode((prev) => {
+      const next = prev === 'score' ? 'breakdown' : 'score';
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('threadkit_score_display', next);
+      }
+      return next;
+    });
   }, []);
 
   return (
