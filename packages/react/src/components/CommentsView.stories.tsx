@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommentsView } from './CommentsView';
 import { TranslationProvider } from '../i18n';
+import { AuthProvider } from '../auth';
 import type { Comment, User } from '../types';
 
 const meta = {
@@ -12,11 +13,13 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <TranslationProvider>
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-          <Story />
-        </div>
-      </TranslationProvider>
+      <AuthProvider apiUrl="https://api.usethreadkit.com/v1" projectId="test-project">
+        <TranslationProvider>
+          <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+            <Story />
+          </div>
+        </TranslationProvider>
+      </AuthProvider>
     ),
   ],
 } satisfies Meta<typeof CommentsView>;
