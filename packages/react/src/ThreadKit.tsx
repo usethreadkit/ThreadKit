@@ -792,11 +792,11 @@ function ThreadKitInner({
           <>
             <strong>{t('invalidApiKey')}</strong>
             <p>
-              {t('invalidApiKeyMessage').split('sites')[0]}
+              {t('invalidApiKeyMessage').split('https://usethreadkit.com/sites')[0]}
               <a href="https://usethreadkit.com/sites" target="_blank" rel="noopener noreferrer">
-                sites
+                https://usethreadkit.com/sites
               </a>
-              {t('invalidApiKeyMessage').split('sites')[1]}
+              {t('invalidApiKeyMessage').split('https://usethreadkit.com/sites')[1]}
             </p>
           </>
         );

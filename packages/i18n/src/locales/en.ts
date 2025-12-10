@@ -192,7 +192,7 @@ export const en: TranslationStrings = {
     'This API key is not associated with a configured site. Visit usethreadkit.com/sites to complete your setup.',
   invalidApiKey: 'Invalid API key',
   invalidApiKeyMessage:
-    'The API key provided is invalid or has been revoked. Check your dashboard for the correct key.',
+    'The API key provided is invalid or has been revoked. Check your dashboard at https://usethreadkit.com/sites for the correct key.',
   rateLimited: 'Rate limited',
   rateLimitedMessage: 'Too many requests. Please wait a moment and try again.',
   failedToLoadComments: 'Failed to load comments',
