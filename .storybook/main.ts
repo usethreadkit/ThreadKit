@@ -16,6 +16,9 @@ const config: StorybookConfig = {
           '@threadkit/react': '/packages/react/src',
         },
       },
+      esbuild: {
+        jsx: 'automatic',
+      },
     });
   },
 };
