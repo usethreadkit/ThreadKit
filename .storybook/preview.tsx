@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/react';
-import '../packages/react/src/styles.css';
+import '../packages/core/src/styles/threadkit.css';
 
 const preview: Preview = {
   parameters: {
