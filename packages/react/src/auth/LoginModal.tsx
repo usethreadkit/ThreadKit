@@ -155,11 +155,10 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
         );
 
       case 'otp-input':
-        const isEmail = state.selectedMethod?.id === 'email';
         return (
           <form className="tk-auth-form" onSubmit={handleOtpSubmit}>
             <h2 className="tk-auth-title">
-              {isEmail ? t('enterEmail') : t('enterPhone')}
+              {t('enterEmail')}
             </h2>
             <p className="tk-auth-subtitle">
               {t('weWillSendCode')}
@@ -167,12 +166,12 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
 
             <input
               ref={inputRef}
-              type={isEmail ? 'email' : 'tel'}
+              type="email"
               className="tk-auth-input"
-              placeholder={isEmail ? t('emailPlaceholder') : t('phonePlaceholder')}
+              placeholder={t('emailPlaceholder')}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              autoComplete={isEmail ? 'email' : 'tel'}
+              autoComplete="email"
             />
 
             {state.error && (
@@ -192,7 +191,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'otp-verify':
         return (
           <form className="tk-auth-form" onSubmit={handleVerifySubmit}>
-            <h2 className="tk-auth-title">{state.selectedMethod?.id === 'email' ? t('checkEmail') : t('checkPhone')}</h2>
+            <h2 className="tk-auth-title">{t('checkEmail')}</h2>
             <p className="tk-auth-subtitle">
               {t('enterCode')} {state.otpTarget}
             </p>

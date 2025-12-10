@@ -143,17 +143,14 @@ export const sk: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Zadajte svoj e-mail',
-  enterPhone: 'Zadajte svoje telefónne číslo',
   sendCode: 'Odoslať kód',
   checkEmail: 'Skontrolujte svoj e-mail',
-  checkPhone: 'Skontrolujte svoj telefón',
   enterCode: 'Zadajte 6-miestny kód, ktorý bol odoslaný na',
   codeSentTo: 'Kód bol odoslaný na',
   invalidCode: 'Neplatný kód',
   verificationFailed: 'Overenie zlyhalo',
   weWillSendCode: 'Pošleme vám kód pre prihlásenie',
   emailPlaceholder: 'vy@example.com',
-  phonePlaceholder: '+421 9xx xxx xxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

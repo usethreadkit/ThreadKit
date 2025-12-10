@@ -143,17 +143,14 @@ export const ar: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'أدخل بريدك الإلكتروني',
-  enterPhone: 'أدخل رقم هاتفك',
   sendCode: 'إرسال الرمز',
   checkEmail: 'تفقد بريدك الإلكتروني',
-  checkPhone: 'تفقد هاتفك',
   enterCode: 'أدخل الرمز المكون من 6 أرقام المرسل إلى',
   codeSentTo: 'تم إرسال الرمز إلى',
   invalidCode: 'رمز غير صالح',
   verificationFailed: 'فشل التحقق',
   weWillSendCode: 'سنرسل لك رمزاً لتسجيل الدخول',
   emailPlaceholder: 'you@example.com',
-  phonePlaceholder: '+966 5x xxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

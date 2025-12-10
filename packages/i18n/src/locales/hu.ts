@@ -143,17 +143,14 @@ export const hu: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Add meg az e-mail címed',
-  enterPhone: 'Add meg a telefonszámod',
   sendCode: 'Kód küldése',
   checkEmail: 'Ellenőrizd az e-mail fiókod',
-  checkPhone: 'Ellenőrizd a telefonod',
   enterCode: 'Írd be a 6 jegyű kódot, amit ide küldtünk:',
   codeSentTo: 'Kód elküldve ide:',
   invalidCode: 'Érvénytelen kód',
   verificationFailed: 'Sikertelen ellenőrzés',
   weWillSendCode: 'Küldünk egy kódot a bejelentkezéshez',
   emailPlaceholder: 'te@pelda.hu',
-  phonePlaceholder: '+36 30 123 4567',
   otpPlaceholder: '000000',
 
   // Auth - name input

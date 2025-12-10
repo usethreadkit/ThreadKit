@@ -68,7 +68,7 @@ struct Args {
     #[arg(long, value_names = ["SITE_ID", "KEY", "VALUE"], num_args = 3)]
     edit_site: Option<Vec<String>>,
 
-    /// Enable auth methods (comma-separated): google,github,email,phone,anonymous,ethereum,solana
+    /// Enable auth methods (comma-separated): google,github,email,anonymous,ethereum,solana
     /// Example: --enable-auth email,anonymous
     #[arg(long, value_delimiter = ',')]
     enable_auth: Option<Vec<String>>,
@@ -512,7 +512,6 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
         google: auth_methods.iter().any(|m| m == "google"),
         github: auth_methods.iter().any(|m| m == "github"),
         email: auth_methods.iter().any(|m| m == "email"),
-        phone: auth_methods.iter().any(|m| m == "phone"),
         anonymous: auth_methods.iter().any(|m| m == "anonymous" || m == "anon"),
         ethereum: auth_methods.iter().any(|m| m == "ethereum" || m == "eth"),
         solana: auth_methods.iter().any(|m| m == "solana" || m == "sol"),
@@ -557,7 +556,6 @@ async fn create_site(args: &Args, site_args: &[String]) -> Result<()> {
     if auth.email { enabled_methods.push("email"); }
     if auth.google { enabled_methods.push("google"); }
     if auth.github { enabled_methods.push("github"); }
-    if auth.phone { enabled_methods.push("phone"); }
     if auth.anonymous { enabled_methods.push("anonymous"); }
     if auth.ethereum { enabled_methods.push("ethereum"); }
     if auth.solana { enabled_methods.push("solana"); }
@@ -651,7 +649,6 @@ async fn edit_site(args: &Args, edit_args: &[String]) -> Result<()> {
             config.settings.auth.google = methods.iter().any(|m| *m == "google");
             config.settings.auth.github = methods.iter().any(|m| *m == "github");
             config.settings.auth.email = methods.iter().any(|m| *m == "email");
-            config.settings.auth.phone = methods.iter().any(|m| *m == "phone");
             config.settings.auth.anonymous = methods.iter().any(|m| *m == "anonymous" || *m == "anon");
             config.settings.auth.ethereum = methods.iter().any(|m| *m == "ethereum" || *m == "eth");
             config.settings.auth.solana = methods.iter().any(|m| *m == "solana" || *m == "sol");

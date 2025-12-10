@@ -143,17 +143,14 @@ export const zh: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: '输入邮箱',
-  enterPhone: '输入手机号',
   sendCode: '发送验证码',
   checkEmail: '查看邮箱',
-  checkPhone: '查看手机',
   enterCode: '输入发送到以下地址的6位验证码',
   codeSentTo: '验证码已发送至',
   invalidCode: '验证码无效',
   verificationFailed: '验证失败',
   weWillSendCode: '我们将发送验证码以完成登录',
   emailPlaceholder: 'example@example.com',
-  phonePlaceholder: '+86 138 0000 0000',
   otpPlaceholder: '000000',
 
   // Auth - name input

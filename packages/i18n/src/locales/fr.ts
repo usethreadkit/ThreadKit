@@ -143,17 +143,14 @@ export const fr: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Entrez votre email',
-  enterPhone: 'Entrez votre numéro de téléphone',
   sendCode: 'Envoyer le code',
   checkEmail: 'Vérifiez votre email',
-  checkPhone: 'Vérifiez votre téléphone',
   enterCode: 'Entrez le code à 6 chiffres envoyé à',
   codeSentTo: 'Code envoyé à',
   invalidCode: 'Code invalide',
   verificationFailed: 'Échec de la vérification',
   weWillSendCode: 'Nous vous enverrons un code pour vous connecter',
   emailPlaceholder: 'vous@exemple.com',
-  phonePlaceholder: '+33 6 12 34 56 78',
   otpPlaceholder: '000000',
 
   // Auth - name input

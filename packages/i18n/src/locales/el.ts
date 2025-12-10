@@ -143,17 +143,14 @@ export const el: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Εισάγετε το email σας',
-  enterPhone: 'Εισάγετε το τηλέφωνό σας',
   sendCode: 'Αποστολή κωδικού',
   checkEmail: 'Ελέγξτε το email σας',
-  checkPhone: 'Ελέγξτε το τηλέφωνό σας',
   enterCode: 'Εισάγετε τον 6ψήφιο κωδικό που στάλθηκε στο',
   codeSentTo: 'Ο κωδικός στάλθηκε στο',
   invalidCode: 'Μη έγκυρος κωδικός',
   verificationFailed: 'Η επαλήθευση απέτυχε',
   weWillSendCode: 'Θα σας στείλουμε έναν κωδικό για σύνδεση',
   emailPlaceholder: 'you@example.com',
-  phonePlaceholder: '+30 69x xxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

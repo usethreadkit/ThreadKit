@@ -143,17 +143,14 @@ export const he: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'הכנס את כתובת האימייל שלך',
-  enterPhone: 'הכנס את מספר הטלפון שלך',
   sendCode: 'שלח קוד',
   checkEmail: 'בדוק את האימייל שלך',
-  checkPhone: 'בדוק את הטלפון שלך',
   enterCode: 'הכנס את הקוד בן 6 הספרות שנשלח אל',
   codeSentTo: 'הקוד נשלח אל',
   invalidCode: 'קוד לא חוקי',
   verificationFailed: 'אימות נכשל',
   weWillSendCode: 'נשלח לך קוד להתחברות',
   emailPlaceholder: 'אתה@example.com',
-  phonePlaceholder: '+972 5x-xxx-xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

@@ -143,17 +143,14 @@ export const no: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Skriv inn e-postadressen din',
-  enterPhone: 'Skriv inn telefonnummeret ditt',
   sendCode: 'Send kode',
   checkEmail: 'Sjekk e-posten din',
-  checkPhone: 'Sjekk telefonen din',
   enterCode: 'Skriv inn den 6-sifrede koden vi sendte til',
   codeSentTo: 'Kode sendt til',
   invalidCode: 'Ugyldig kode',
   verificationFailed: 'Verifisering mislyktes',
   weWillSendCode: 'Vi sender deg en kode for å logge inn',
   emailPlaceholder: 'deg@eksempel.no',
-  phonePlaceholder: '+47 4xx xxx xx',
   otpPlaceholder: '000000',
 
   // Auth - name input

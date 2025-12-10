@@ -143,17 +143,14 @@ export const ko: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: '이메일을 입력하세요',
-  enterPhone: '전화번호를 입력하세요',
   sendCode: '코드 보내기',
   checkEmail: '이메일을 확인하세요',
-  checkPhone: '전화를 확인하세요',
   enterCode: '전송된 6자리 코드를 입력하세요',
   codeSentTo: '코드가 전송되었습니다',
   invalidCode: '잘못된 코드',
   verificationFailed: '확인 실패',
   weWillSendCode: '로그인을 위한 코드를 보내드립니다',
   emailPlaceholder: 'example@example.com',
-  phonePlaceholder: '+82 10 1234 5678',
   otpPlaceholder: '000000',
 
   // Auth - name input

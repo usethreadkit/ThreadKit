@@ -143,17 +143,14 @@ export const hr: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Unesite svoju e-poštu',
-  enterPhone: 'Unesite svoj telefonski broj',
   sendCode: 'Pošalji kod',
   checkEmail: 'Provjerite svoju e-poštu',
-  checkPhone: 'Provjerite svoj telefon',
   enterCode: 'Unesite 6-znamenkasti kod koji smo poslali na',
   codeSentTo: 'Kod poslan na',
   invalidCode: 'Nevažeći kod',
   verificationFailed: 'Provjera nije uspjela',
   weWillSendCode: 'Poslat ćemo vam kod za prijavu',
   emailPlaceholder: 'vi@example.com',
-  phonePlaceholder: '+385 9x xxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

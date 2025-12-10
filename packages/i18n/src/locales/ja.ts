@@ -143,17 +143,14 @@ export const ja: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'メールアドレスを入力',
-  enterPhone: '電話番号を入力',
   sendCode: 'コードを送信',
   checkEmail: 'メールを確認',
-  checkPhone: '電話を確認',
   enterCode: '送信した6桁のコードを入力:',
   codeSentTo: 'コードを送信しました:',
   invalidCode: '無効なコード',
   verificationFailed: '確認に失敗しました',
   weWillSendCode: 'ログイン用のコードを送信します',
   emailPlaceholder: 'example@example.com',
-  phonePlaceholder: '+81 90 1234 5678',
   otpPlaceholder: '000000',
 
   // Auth - name input

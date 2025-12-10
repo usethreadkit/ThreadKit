@@ -143,17 +143,14 @@ export const ro: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Introdu email-ul tău',
-  enterPhone: 'Introdu numărul tău de telefon',
   sendCode: 'Trimite codul',
   checkEmail: 'Verifică email-ul',
-  checkPhone: 'Verifică telefonul',
   enterCode: 'Introdu codul din 6 cifre trimis la',
   codeSentTo: 'Cod trimis la',
   invalidCode: 'Cod invalid',
   verificationFailed: 'Verificare eșuată',
   weWillSendCode: 'Îți vom trimite un cod pentru conectare',
   emailPlaceholder: 'tu@exemplu.ro',
-  phonePlaceholder: '+40 7xx xxx xxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

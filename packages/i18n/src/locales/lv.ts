@@ -143,17 +143,14 @@ export const lv: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Ievadiet savu e-pastu',
-  enterPhone: 'Ievadiet savu tālruņa numuru',
   sendCode: 'Sūtīt kodu',
   checkEmail: 'Pārbaudiet savu e-pastu',
-  checkPhone: 'Pārbaudiet savu tālruni',
   enterCode: 'Ievadiet 6 ciparu kodu, ko nosūtījām uz',
   codeSentTo: 'Kods nosūtīts uz',
   invalidCode: 'Nederīgs kods',
   verificationFailed: 'Verifikācija neizdevās',
   weWillSendCode: 'Mēs nosūtīsim jums kodu, lai pieteiktos',
   emailPlaceholder: 'jums@example.com',
-  phonePlaceholder: '+371 2xx xxxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

@@ -143,17 +143,14 @@ export const fi: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Anna sähköpostiosoitteesi',
-  enterPhone: 'Anna puhelinnumerosi',
   sendCode: 'Lähetä koodi',
   checkEmail: 'Tarkista sähköpostisi',
-  checkPhone: 'Tarkista puhelimesi',
   enterCode: 'Syötä 6-numeroinen koodi, joka lähetettiin osoitteeseen',
   codeSentTo: 'Koodi lähetetty osoitteeseen',
   invalidCode: 'Virheellinen koodi',
   verificationFailed: 'Vahvistus epäonnistui',
   weWillSendCode: 'Lähetämme sinulle koodin kirjautumista varten',
   emailPlaceholder: 'sinä@esimerkki.fi',
-  phonePlaceholder: '+358 40 123 4567',
   otpPlaceholder: '000000',
 
   // Auth - name input

@@ -143,17 +143,14 @@ export const id: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Masukkan email Anda',
-  enterPhone: 'Masukkan nomor telepon Anda',
   sendCode: 'Kirim kode',
   checkEmail: 'Periksa email Anda',
-  checkPhone: 'Periksa telepon Anda',
   enterCode: 'Masukkan 6 digit kode yang kami kirim ke',
   codeSentTo: 'Kode dikirim ke',
   invalidCode: 'Kode tidak valid',
   verificationFailed: 'Verifikasi gagal',
   weWillSendCode: 'Kami akan mengirimkan kode untuk masuk',
   emailPlaceholder: 'anda@contoh.com',
-  phonePlaceholder: '+62 8xx xxxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

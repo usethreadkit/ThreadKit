@@ -143,17 +143,14 @@ export const ca: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Introdueix el teu correu electrònic',
-  enterPhone: 'Introdueix el teu número de telèfon',
   sendCode: 'Envia codi',
   checkEmail: 'Revisa el teu correu electrònic',
-  checkPhone: 'Revisa el teu telèfon',
   enterCode: 'Introdueix el codi de 6 dígits que hem enviat a',
   codeSentTo: 'Codi enviat a',
   invalidCode: 'Codi invàlid',
   verificationFailed: 'La verificació ha fallat',
   weWillSendCode: 'T\'enviarem un codi per iniciar sessió',
   emailPlaceholder: 'tu@exemple.com',
-  phonePlaceholder: '+34 6xx xxx xxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

@@ -143,17 +143,14 @@ export const bg: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Въведете вашия имейл',
-  enterPhone: 'Въведете вашия телефонен номер',
   sendCode: 'Изпрати код',
   checkEmail: 'Проверете имейла си',
-  checkPhone: 'Проверете телефона си',
   enterCode: 'Въведете 6-цифрения код, който изпратихме на',
   codeSentTo: 'Кодът е изпратен на',
   invalidCode: 'Невалиден код',
   verificationFailed: 'Потвърждението не бе успешно',
   weWillSendCode: 'Ще ви изпратим код за вход',
   emailPlaceholder: 'you@example.com',
-  phonePlaceholder: '+359 8xx xxx xxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

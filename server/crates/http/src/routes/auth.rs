@@ -54,10 +54,8 @@ pub fn oauth_router() -> Router<AppState> {
 pub struct RegisterRequest {
     /// Username (must be unique)
     pub name: String,
-    /// Email address (required if no phone)
-    pub email: Option<String>,
-    /// Phone number (required if no email)
-    pub phone: Option<String>,
+    /// Email address
+    pub email: String,
     /// Password
     pub password: String,
 }
@@ -65,9 +63,7 @@ pub struct RegisterRequest {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct LoginRequest {
     /// Email address
-    pub email: Option<String>,
-    /// Phone number
-    pub phone: Option<String>,
+    pub email: String,
     /// Password
     pub password: String,
 }
@@ -87,10 +83,8 @@ pub struct UserResponse {
     pub id: Uuid,
     pub name: String,
     pub email: Option<String>,
-    pub phone: Option<String>,
     pub avatar_url: Option<String>,
     pub email_verified: bool,
-    pub phone_verified: bool,
     /// Whether the user has explicitly chosen their username.
     /// If false, the user should be prompted to set their username.
     pub username_set: bool,
@@ -104,10 +98,8 @@ impl From<User> for UserResponse {
             id: u.id,
             name: u.name,
             email: u.email,
-            phone: u.phone,
             avatar_url: u.avatar_url,
             email_verified: u.email_verified,
-            phone_verified: u.phone_verified,
             username_set: u.username_set,
             social_links: u.social_links,
         }
@@ -117,9 +109,7 @@ impl From<User> for UserResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct VerifyRequest {
     /// Email to verify
-    pub email: Option<String>,
-    /// Phone to verify
-    pub phone: Option<String>,
+    pub email: String,
     /// Verification code
     pub code: String,
 }
@@ -127,18 +117,14 @@ pub struct VerifyRequest {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ForgotPasswordRequest {
     /// Email address
-    pub email: Option<String>,
-    /// Phone number
-    pub phone: Option<String>,
+    pub email: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ResetPasswordRequest {
     /// Email address
-    pub email: Option<String>,
-    /// Phone number
-    pub phone: Option<String>,
-    /// Reset code from email/SMS
+    pub email: String,
+    /// Reset code from email
     pub code: String,
     /// New password
     pub new_password: String,
@@ -172,7 +158,7 @@ pub struct AuthMethodsResponse {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AuthMethod {
-    /// Method identifier (email, phone, google, github, ethereum, solana)
+    /// Method identifier (email, google, github, ethereum, solana)
     pub id: String,
     /// Human-readable name
     pub name: String,
@@ -183,18 +169,14 @@ pub struct AuthMethod {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct SendOtpRequest {
-    /// Email address (required if no phone)
-    pub email: Option<String>,
-    /// Phone number (required if no email)
-    pub phone: Option<String>,
+    /// Email address
+    pub email: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct VerifyOtpRequest {
-    /// Email address (required if no phone)
-    pub email: Option<String>,
-    /// Phone number (required if no email)
-    pub phone: Option<String>,
+    /// Email address
+    pub email: String,
     /// OTP code
     pub code: String,
     /// Username (required for new accounts)
@@ -268,14 +250,6 @@ pub async fn auth_methods(
         });
     }
 
-    if settings.phone {
-        methods.push(AuthMethod {
-            id: "phone".to_string(),
-            name: "Phone".to_string(),
-            method_type: "otp".to_string(),
-        });
-    }
-
     if settings.google && state.config.oauth.google.is_some() {
         methods.push(AuthMethod {
             id: "google".to_string(),
@@ -338,11 +312,10 @@ pub async fn send_otp(
     headers: axum::http::HeaderMap,
     Json(req): Json<SendOtpRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let target = req.email.as_ref().or(req.phone.as_ref())
-        .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+    let target = &req.email;
 
     // OTP-specific rate limiting (more strict since it costs money)
-    // 1. Rate limit per target (email/phone)
+    // 1. Rate limit per target (email)
     let target_key = format!("ratelimit:otp:target:{}", target);
     let target_result = state.redis
         .check_rate_limit(&target_key, state.config.rate_limit.otp_per_target_per_hour, 3600)
@@ -351,8 +324,7 @@ pub async fn send_otp(
 
     if !target_result.allowed {
         return Err((StatusCode::TOO_MANY_REQUESTS, format!(
-            "Too many OTP requests for this {}. Try again in {} seconds.",
-            if req.email.is_some() { "email" } else { "phone" },
+            "Too many OTP requests for this email. Try again in {} seconds.",
             target_result.reset_at - chrono::Utc::now().timestamp()
         )));
     }
@@ -377,11 +349,7 @@ pub async fn send_otp(
         )));
     }
 
-    let verification_type = if req.email.is_some() {
-        VerificationType::Email
-    } else {
-        VerificationType::Phone
-    };
+    let verification_type = VerificationType::Email;
 
     let code = generate_verification_code();
     let verification = VerificationCode {
@@ -394,29 +362,16 @@ pub async fn send_otp(
     state.redis.set_verification_code(target, &verification).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Send OTP via email or SMS
-    if let Some(ref email) = req.email {
-        if let Some(ref provider) = state.config.email.provider {
-            match provider {
-                threadkit_common::config::EmailProvider::Resend(resend) => {
-                    send_otp_email_resend(resend, email, &code).await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-                }
+    // Send OTP via email
+    if let Some(ref provider) = state.config.email.provider {
+        match provider {
+            threadkit_common::config::EmailProvider::Resend(resend) => {
+                send_otp_email_resend(resend, &req.email, &code).await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
             }
-        } else {
-            tracing::info!("OTP for {}: {} (email provider not configured)", email, code);
         }
-    } else if let Some(ref phone) = req.phone {
-        if let Some(ref provider) = state.config.sms.provider {
-            match provider {
-                threadkit_common::config::SmsProvider::Twilio(twilio) => {
-                    send_otp_sms_twilio(twilio, phone, &code).await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-                }
-            }
-        } else {
-            tracing::info!("OTP for {}: {} (SMS provider not configured)", phone, code);
-        }
+    } else {
+        tracing::info!("OTP for {}: {} (email provider not configured)", req.email, code);
     }
 
     Ok(StatusCode::OK)
@@ -439,8 +394,7 @@ pub async fn verify_otp(
     project_id: ProjectId,
     Json(req): Json<VerifyOtpRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    let key = req.email.as_ref().or(req.phone.as_ref())
-        .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+    let key = &req.email;
 
     // Rate limit verification attempts (5 attempts per 10 minutes)
     let verify_key = format!("ratelimit:otp:verify:{}", key);
@@ -456,13 +410,8 @@ pub async fn verify_otp(
     }
 
     // Find or create user
-    let existing_user_id = if req.email.is_some() {
-        state.redis.get_user_by_email(key).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    } else {
-        state.redis.get_user_by_phone(key).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    };
+    let existing_user_id = state.redis.get_user_by_email(key).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     let user = if let Some(user_id) = existing_user_id {
         let mut user = state.redis.get_user(user_id).await
@@ -470,11 +419,7 @@ pub async fn verify_otp(
             .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "User not found".into()))?;
 
         // Mark as verified
-        if req.email.is_some() {
-            user.email_verified = true;
-        } else {
-            user.phone_verified = true;
-        }
+        user.email_verified = true;
         let _ = state.redis.set_user(&user).await;
         user
     } else {
@@ -493,22 +438,18 @@ pub async fn verify_otp(
         let user_id = Uuid::now_v7();
         let now = Utc::now();
 
-        let provider = if req.email.is_some() {
-            AuthProvider::Email
-        } else {
-            AuthProvider::Phone
-        };
+        let provider = AuthProvider::Email;
 
         let user = User {
             id: user_id,
             name: name.clone(),
-            email: req.email.clone(),
-            phone: req.phone.clone(),
+            email: Some(req.email.clone()),
+            phone: None,
             avatar_url: None,
             provider,
             provider_id: None,
-            email_verified: req.email.is_some(),
-            phone_verified: req.phone.is_some(),
+            email_verified: true,
+            phone_verified: false,
             karma: 0,
             global_banned: false,
             shadow_banned: false,
@@ -524,15 +465,8 @@ pub async fn verify_otp(
         state.redis.set_user_username_index(&name, user_id).await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        if let Some(ref email) = req.email {
-            state.redis.set_user_email_index(email, user_id).await
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        }
-
-        if let Some(ref phone) = req.phone {
-            state.redis.set_user_phone_index(phone, user_id).await
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        }
+        state.redis.set_user_email_index(&req.email, user_id).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         user
     };
@@ -748,37 +682,6 @@ async fn send_otp_email_resend(config: &threadkit_common::config::ResendConfig, 
     Ok(())
 }
 
-/// Helper to send OTP via Twilio
-async fn send_otp_sms_twilio(config: &threadkit_common::config::TwilioConfig, phone: &str, code: &str) -> Result<(), String> {
-    let client = reqwest::Client::new();
-
-    let url = format!(
-        "https://api.twilio.com/2010-04-01/Accounts/{}/Messages.json",
-        config.account_sid
-    );
-
-    let body = format!("Your login code is: {}", code);
-
-    let response = client
-        .post(&url)
-        .basic_auth(&config.account_sid, Some(&config.auth_token))
-        .form(&[
-            ("To", phone),
-            ("From", &config.from_number),
-            ("Body", &body),
-        ])
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !response.status().is_success() {
-        let error = response.text().await.unwrap_or_default();
-        tracing::error!("Twilio API error: {}", error);
-        return Err(error);
-    }
-
-    Ok(())
-}
 
 /// Register a new user
 #[utoipa::path(
@@ -789,7 +692,7 @@ async fn send_otp_sms_twilio(config: &threadkit_common::config::TwilioConfig, ph
     responses(
         (status = 200, description = "Registration successful", body = AuthResponse),
         (status = 400, description = "Invalid request"),
-        (status = 409, description = "Email/phone/username already taken")
+        (status = 409, description = "Email/username already taken")
     ),
     security(("project_id" = []))
 )]
@@ -798,10 +701,6 @@ pub async fn register(
     project_id: ProjectId,
     Json(req): Json<RegisterRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    if req.email.is_none() && req.phone.is_none() {
-        return Err((StatusCode::BAD_REQUEST, "Email or phone required".into()));
-    }
-
     // Validate username format
     threadkit_common::validate_username(&req.name)
         .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
@@ -811,16 +710,8 @@ pub async fn register(
         return Err((StatusCode::CONFLICT, "Username already taken".into()));
     }
 
-    if let Some(ref email) = req.email {
-        if state.redis.get_user_by_email(email).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?.is_some() {
-            return Err((StatusCode::CONFLICT, "Email already registered".into()));
-        }
-    }
-
-    if let Some(ref phone) = req.phone {
-        if state.redis.get_user_by_phone(phone).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?.is_some() {
-            return Err((StatusCode::CONFLICT, "Phone already registered".into()));
-        }
+    if state.redis.get_user_by_email(&req.email).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?.is_some() {
+        return Err((StatusCode::CONFLICT, "Email already registered".into()));
     }
 
     let password_hash = auth::hash_password(&req.password)
@@ -829,17 +720,13 @@ pub async fn register(
     let user_id = Uuid::now_v7();
     let now = Utc::now();
 
-    let provider = if req.email.is_some() {
-        AuthProvider::Email
-    } else {
-        AuthProvider::Phone
-    };
+    let provider = AuthProvider::Email;
 
     let user = User {
         id: user_id,
         name: req.name,
-        email: req.email.clone(),
-        phone: req.phone.clone(),
+        email: Some(req.email.clone()),
+        phone: None,
         avatar_url: None,
         provider,
         provider_id: None,
@@ -863,39 +750,20 @@ pub async fn register(
     state.redis.set_user_password(user_id, &password_hash).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    if let Some(ref email) = req.email {
-        state.redis.set_user_email_index(email, user_id).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    state.redis.set_user_email_index(&req.email, user_id).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        let code = generate_verification_code();
-        let verification = VerificationCode {
-            code: code.clone(),
-            user_id: Some(user_id),
-            verification_type: VerificationType::Email,
-            created_at: now,
-        };
-        state.redis.set_verification_code(email, &verification).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let code = generate_verification_code();
+    let verification = VerificationCode {
+        code: code.clone(),
+        user_id: Some(user_id),
+        verification_type: VerificationType::Email,
+        created_at: now,
+    };
+    state.redis.set_verification_code(&req.email, &verification).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        tracing::info!("Verification code for {}: {}", email, code);
-    }
-
-    if let Some(ref phone) = req.phone {
-        state.redis.set_user_phone_index(phone, user_id).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-        let code = generate_verification_code();
-        let verification = VerificationCode {
-            code: code.clone(),
-            user_id: Some(user_id),
-            verification_type: VerificationType::Phone,
-            created_at: now,
-        };
-        state.redis.set_verification_code(phone, &verification).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-        tracing::info!("Verification code for {}: {}", phone, code);
-    }
+    tracing::info!("Verification code for {}: {}", req.email, code);
 
     let session_id = Uuid::now_v7();
     state.redis.create_session(session_id, user_id, "", "").await
@@ -926,7 +794,7 @@ pub async fn register(
     }))
 }
 
-/// Login with email/phone and password
+/// Login with email and password
 #[utoipa::path(
     post,
     path = "/auth/login",
@@ -944,17 +812,9 @@ pub async fn login(
     project_id: ProjectId,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    let user_id = if let Some(ref email) = req.email {
-        state.redis.get_user_by_email(email).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    } else if let Some(ref phone) = req.phone {
-        state.redis.get_user_by_phone(phone).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    } else {
-        None
-    };
-
-    let user_id = user_id.ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".into()))?;
+    let user_id = state.redis.get_user_by_email(&req.email).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".into()))?;
 
     let user = state.redis.get_user(user_id).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
@@ -1003,7 +863,7 @@ pub async fn login(
     }))
 }
 
-/// Verify email or phone with code
+/// Verify email with code
 #[utoipa::path(
     post,
     path = "/auth/verify",
@@ -1020,8 +880,7 @@ pub async fn verify(
     _project_id: ProjectId,
     Json(req): Json<VerifyRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let key = req.email.as_ref().or(req.phone.as_ref())
-        .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+    let key = &req.email;
 
     // Rate limit verification attempts (5 attempts per 10 minutes)
     let verify_key = format!("ratelimit:verify:{}", key);
@@ -1038,12 +897,7 @@ pub async fn verify(
 
     if let Some(user_id) = verification.user_id {
         if let Ok(Some(mut user)) = state.redis.get_user(user_id).await {
-            if req.email.is_some() {
-                user.email_verified = true;
-            }
-            if req.phone.is_some() {
-                user.phone_verified = true;
-            }
+            user.email_verified = true;
             let _ = state.redis.set_user(&user).await;
         }
     }
@@ -1069,14 +923,9 @@ pub async fn forgot_password(
     _project_id: ProjectId,
     Json(req): Json<ForgotPasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let key = req.email.as_ref().or(req.phone.as_ref())
-        .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+    let key = &req.email;
 
-    let user_id = if req.email.is_some() {
-        state.redis.get_user_by_email(key).await.ok().flatten()
-    } else {
-        state.redis.get_user_by_phone(key).await.ok().flatten()
-    };
+    let user_id = state.redis.get_user_by_email(key).await.ok().flatten();
 
     if let Some(user_id) = user_id {
         let code = generate_verification_code();
@@ -1111,8 +960,7 @@ pub async fn reset_password(
     _project_id: ProjectId,
     Json(req): Json<ResetPasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let key = req.email.as_ref().or(req.phone.as_ref())
-        .ok_or((StatusCode::BAD_REQUEST, "Email or phone required".into()))?;
+    let key = &req.email;
 
     // Rate limit reset attempts (5 attempts per 10 minutes)
     let reset_key = format!("ratelimit:reset:{}", key);

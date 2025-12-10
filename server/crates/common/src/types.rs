@@ -65,7 +65,6 @@ fn default_username_set() -> bool {
 #[serde(rename_all = "lowercase")]
 pub enum AuthProvider {
     Email,
-    Phone,
     Google,
     Github,
     Anonymous,
@@ -108,6 +107,24 @@ impl From<User> for UserPublic {
             total_comments: user.total_comments,
         }
     }
+}
+
+// ============================================================================
+// Media Types
+// ============================================================================
+
+/// Metadata for uploaded media files
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MediaInfo {
+    pub id: Uuid,
+    pub url: String,
+    pub uploader_user_id: Uuid,
+    pub site_id: Uuid,
+    pub upload_date: DateTime<Utc>,
+    pub size_bytes: u64,
+    pub mime_type: String,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
 }
 
 // ============================================================================
@@ -572,7 +589,6 @@ pub struct AuthSettings {
     pub google: bool,
     pub github: bool,
     pub email: bool,
-    pub phone: bool,
     pub anonymous: bool,
     pub ethereum: bool,
     pub solana: bool,
@@ -657,7 +673,6 @@ pub struct VerificationCode {
 #[serde(rename_all = "snake_case")]
 pub enum VerificationType {
     Email,
-    Phone,
     PasswordReset,
 }
 

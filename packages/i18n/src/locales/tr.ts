@@ -143,17 +143,14 @@ export const tr: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'E-postanı gir',
-  enterPhone: 'Telefon numaranı gir',
   sendCode: 'Kod gönder',
   checkEmail: 'E-postanı kontrol et',
-  checkPhone: 'Telefonunu kontrol et',
   enterCode: 'Gönderdiğimiz 6 haneli kodu gir',
   codeSentTo: 'Kod şuraya gönderildi:',
   invalidCode: 'Geçersiz kod',
   verificationFailed: 'Doğrulama başarısız oldu',
   weWillSendCode: 'Oturum açmak için sana bir kod göndereceğiz',
   emailPlaceholder: 'sen@ornek.com',
-  phonePlaceholder: '+90 5xx xxx xx xx',
   otpPlaceholder: '000000',
 
   // Auth - name input

@@ -5,7 +5,7 @@
 export type AuthMethodType = 'otp' | 'oauth' | 'web3' | 'anonymous';
 
 export interface AuthMethod {
-  /** Method identifier (email, phone, google, github, ethereum, solana) */
+  /** Method identifier (email, google, github, ethereum, solana) */
   id: string;
   /** Human-readable name */
   name: string;
@@ -27,10 +27,8 @@ export interface AuthUser {
   id: string;
   name: string;
   email?: string;
-  phone?: string;
   avatar_url?: string;
   email_verified?: boolean;
-  phone_verified?: boolean;
   /** Whether the user has explicitly chosen their username */
   username_set?: boolean;
   social_links?: SocialLinks;

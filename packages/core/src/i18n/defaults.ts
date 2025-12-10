@@ -138,19 +138,16 @@ export const defaultTranslations: TranslationStrings = {
   continueWith: 'Continue with',
   chooseSignInMethod: 'Choose how you want to sign in',
 
-  // Auth - OTP (email/phone)
+  // Auth - OTP (email)
   enterEmail: 'Enter your email',
-  enterPhone: 'Enter your phone number',
   sendCode: 'Send code',
   checkEmail: 'Check your email',
-  checkPhone: 'Check your phone',
   enterCode: 'Enter the 6-digit code we sent to',
   codeSentTo: 'Code sent to',
   invalidCode: 'Invalid code',
   verificationFailed: 'Verification failed',
   weWillSendCode: "We'll send you a code to sign in",
   emailPlaceholder: 'you@example.com',
-  phonePlaceholder: '+1 234 567 8900',
   otpPlaceholder: '000000',
 
   // Auth - name input

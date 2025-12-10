@@ -143,17 +143,14 @@ export const nl: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Voer je e-mail in',
-  enterPhone: 'Voer je telefoonnummer in',
   sendCode: 'Code versturen',
   checkEmail: 'Controleer je e-mail',
-  checkPhone: 'Controleer je telefoon',
   enterCode: 'Voer de 6-cijferige code in die we hebben gestuurd naar',
   codeSentTo: 'Code verstuurd naar',
   invalidCode: 'Ongeldige code',
   verificationFailed: 'Verificatie mislukt',
   weWillSendCode: 'We sturen je een code om in te loggen',
   emailPlaceholder: 'jij@voorbeeld.nl',
-  phonePlaceholder: '+31 6 12345678',
   otpPlaceholder: '000000',
 
   // Auth - name input

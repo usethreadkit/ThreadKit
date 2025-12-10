@@ -143,17 +143,14 @@ export const fa: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'ایمیل خود را وارد کنید',
-  enterPhone: 'شماره تلفن خود را وارد کنید',
   sendCode: 'ارسال کد',
   checkEmail: 'ایمیل خود را بررسی کنید',
-  checkPhone: 'تلفن خود را بررسی کنید',
   enterCode: 'کد 6 رقمی ارسال شده به',
   codeSentTo: 'کد ارسال شد به',
   invalidCode: 'کد نامعتبر',
   verificationFailed: 'تایید ناموفق بود',
   weWillSendCode: 'ما یک کد برای ورود به شما ارسال خواهیم کرد',
   emailPlaceholder: 'شما@مثال.کام',
-  phonePlaceholder: '+98 9xx xxxxxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

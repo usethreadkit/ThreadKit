@@ -143,17 +143,14 @@ export const th: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'ป้อนอีเมลของคุณ',
-  enterPhone: 'ป้อนหมายเลขโทรศัพท์ของคุณ',
   sendCode: 'ส่งรหัส',
   checkEmail: 'ตรวจสอบอีเมลของคุณ',
-  checkPhone: 'ตรวจสอบโทรศัพท์ของคุณ',
   enterCode: 'ป้อนรหัส 6 หลักที่เราส่งไปที่',
   codeSentTo: 'รหัสถูกส่งไปยัง',
   invalidCode: 'รหัสไม่ถูกต้อง',
   verificationFailed: 'การยืนยันล้มเหลว',
   weWillSendCode: 'เราจะส่งรหัสให้คุณเพื่อเข้าสู่ระบบ',
   emailPlaceholder: 'คุณ@example.com',
-  phonePlaceholder: '+66 8x xxxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

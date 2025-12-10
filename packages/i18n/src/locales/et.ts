@@ -143,17 +143,14 @@ export const et: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Sisesta oma e-posti aadress',
-  enterPhone: 'Sisesta oma telefoninumber',
   sendCode: 'Saada kood',
   checkEmail: 'Kontrolli oma e-posti',
-  checkPhone: 'Kontrolli oma telefoni',
   enterCode: 'Sisesta 6-kohaline kood, mille saatsime',
   codeSentTo: 'Kood saadetud aadressile',
   invalidCode: 'Kehtetu kood',
   verificationFailed: 'Kontrollimine ebaõnnestus',
   weWillSendCode: 'Saadame sulle sisselogimiseks koodi',
   emailPlaceholder: 'sina@example.com',
-  phonePlaceholder: '+372 5xx xxx xxx',
   otpPlaceholder: '000000',
 
   // Auth - name input

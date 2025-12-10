@@ -143,17 +143,14 @@ export const uk: LocaleMetadata = {
 
   // Auth - OTP (email/phone)
   enterEmail: 'Введіть ваш email',
-  enterPhone: 'Введіть номер телефону',
   sendCode: 'Надіслати код',
   checkEmail: 'Перевірте ваш email',
-  checkPhone: 'Перевірте ваш телефон',
   enterCode: 'Введіть 6-значний код, надісланий на',
   codeSentTo: 'Код надіслано на',
   invalidCode: 'Невірний код',
   verificationFailed: 'Перевірка не вдалася',
   weWillSendCode: 'Ми надішлемо код для входу',
   emailPlaceholder: 'you@example.com',
-  phonePlaceholder: '+380 xx xxx xxxx',
   otpPlaceholder: '000000',
 
   // Auth - name input
