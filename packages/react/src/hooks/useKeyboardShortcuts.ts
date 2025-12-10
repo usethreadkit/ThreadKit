@@ -65,6 +65,11 @@ export function getDefaultShortcuts(actions: {
   expandAll?: () => void;
   nextComment?: () => void;
   prevComment?: () => void;
+  editComment?: () => void;
+  replyToComment?: () => void;
+  deleteComment?: () => void;
+  confirmYes?: () => void;
+  confirmNo?: () => void;
 }): KeyboardShortcut[] {
   const shortcuts: KeyboardShortcut[] = [];
 
@@ -105,6 +110,46 @@ export function getDefaultShortcuts(actions: {
       key: 'k',
       handler: actions.prevComment,
       description: 'Previous comment',
+    });
+  }
+
+  if (actions.editComment) {
+    shortcuts.push({
+      key: 'e',
+      handler: actions.editComment,
+      description: 'Edit focused comment',
+    });
+  }
+
+  if (actions.replyToComment) {
+    shortcuts.push({
+      key: 'r',
+      handler: actions.replyToComment,
+      description: 'Reply to focused comment',
+    });
+  }
+
+  if (actions.deleteComment) {
+    shortcuts.push({
+      key: 'd',
+      handler: actions.deleteComment,
+      description: 'Delete focused comment',
+    });
+  }
+
+  if (actions.confirmYes) {
+    shortcuts.push({
+      key: 'y',
+      handler: actions.confirmYes,
+      description: 'Confirm yes',
+    });
+  }
+
+  if (actions.confirmNo) {
+    shortcuts.push({
+      key: 'n',
+      handler: actions.confirmNo,
+      description: 'Confirm no',
     });
   }
 

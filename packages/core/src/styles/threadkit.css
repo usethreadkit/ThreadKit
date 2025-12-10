@@ -129,8 +129,8 @@
   border-radius: var(--threadkit-radius);
 }
 
-/* Keyboard focused comment - only outline the comment wrapper, not children */
-.threadkit-comment.threadkit-focused > .threadkit-comment-wrapper {
+/* Keyboard focused comment - only outline the comment content, not children */
+.threadkit-comment.threadkit-focused > .threadkit-comment-wrapper > .threadkit-comment-content {
   outline: 1px solid var(--threadkit-link);
   outline-offset: 2px;
   border-radius: var(--threadkit-radius);

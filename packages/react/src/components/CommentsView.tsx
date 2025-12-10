@@ -157,12 +157,73 @@ export function CommentsView({
     }
   }, [focusedCommentId, getAllVisibleComments, focusInput]);
 
+  const editComment = useCallback(() => {
+    if (!focusedCommentId) return;
+    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    if (!commentEl) return;
+
+    // Find and click the edit button
+    const editBtn = commentEl.querySelector('[title*="dit"]') as HTMLButtonElement;
+    if (editBtn) {
+      editBtn.click();
+      // Auto-focus the edit textarea after a short delay
+      setTimeout(() => {
+        const textarea = commentEl.querySelector('textarea') as HTMLTextAreaElement;
+        textarea?.focus();
+      }, 100);
+    }
+  }, [focusedCommentId]);
+
+  const replyToComment = useCallback(() => {
+    if (!focusedCommentId) return;
+    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    if (!commentEl) return;
+
+    // Find and click the reply button
+    const replyBtn = commentEl.querySelector('[title*="eply"]') as HTMLButtonElement;
+    if (replyBtn) {
+      replyBtn.click();
+      // Auto-focus the reply textarea after a short delay
+      setTimeout(() => {
+        const textarea = commentEl.querySelector('.threadkit-comment-form textarea') as HTMLTextAreaElement;
+        textarea?.focus();
+      }, 100);
+    }
+  }, [focusedCommentId]);
+
+  const deleteComment = useCallback(() => {
+    if (!focusedCommentId) return;
+    const commentEl = document.querySelector(`[data-comment-id="${focusedCommentId}"]`);
+    if (!commentEl) return;
+
+    // Find and click the delete button
+    const deleteBtn = commentEl.querySelector('[title*="elete"]') as HTMLButtonElement;
+    deleteBtn?.click();
+  }, [focusedCommentId]);
+
+  const confirmYes = useCallback(() => {
+    // Find any visible confirmation dialog and click "Yes"
+    const yesBtn = document.querySelector('.threadkit-confirm-yes') as HTMLButtonElement;
+    yesBtn?.click();
+  }, []);
+
+  const confirmNo = useCallback(() => {
+    // Find any visible confirmation dialog and click "No"
+    const noBtn = document.querySelector('.threadkit-confirm-no') as HTMLButtonElement;
+    noBtn?.click();
+  }, []);
+
   // Setup keyboard shortcuts
   const shortcuts = useMemo(() => getDefaultShortcuts({
     focusInput,
     nextComment,
     prevComment,
-  }), [focusInput, nextComment, prevComment]);
+    editComment,
+    replyToComment,
+    deleteComment,
+    confirmYes,
+    confirmNo,
+  }), [focusInput, nextComment, prevComment, editComment, replyToComment, deleteComment, confirmYes, confirmNo]);
 
   useKeyboardShortcuts({ shortcuts });
 
