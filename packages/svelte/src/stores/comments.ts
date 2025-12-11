@@ -9,7 +9,6 @@ import {
 } from '@threadkit/core';
 
 export interface CommentsStoreConfig {
-  siteId: string;
   url: string;
   apiUrl: string;
   projectId: string;
@@ -37,7 +36,7 @@ export interface CommentsStore extends Readable<CommentStoreState> {
 export function createCommentsStore(config: CommentsStoreConfig): CommentsStore {
   const core = new CommentStore({
     ...config,
-    sortBy: config.sortBy || 'votes',
+    sortBy: config.sortBy || 'top',
     getToken: () => {
       if (typeof localStorage !== 'undefined') {
         return localStorage.getItem('threadkit_token');

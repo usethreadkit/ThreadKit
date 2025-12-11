@@ -3,20 +3,21 @@
 import { ThreadKit, type CommentData } from '@threadkit/react';
 
 interface CommentsSectionProps {
-  siteId: string;
+  projectId: string;
   url: string;
   initialComments: CommentData[];
 }
 
-export function CommentsSection({ siteId, url, initialComments }: CommentsSectionProps) {
+export function CommentsSection({ projectId, url, initialComments }: CommentsSectionProps) {
   return (
     <ThreadKit
-      siteId={siteId}
+      projectId={projectId}
       url={url}
       initialComments={initialComments}
-      apiUrl={process.env.NEXT_PUBLIC_THREADKIT_API_URL || 'https://api.usethreadkit.com'}
+      apiUrl={process.env.NEXT_PUBLIC_THREADKIT_API_URL || 'http://localhost:8080/v1'}
+      wsUrl={process.env.NEXT_PUBLIC_THREADKIT_WS_URL || 'ws://localhost:8081'}
       theme="light"
-      sortBy="newest"
+      sortBy="new"
     />
   );
 }

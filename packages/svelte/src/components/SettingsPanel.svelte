@@ -135,7 +135,6 @@
           <Avatar
             src={currentUser.avatar}
             alt={currentUser.name}
-            seed={currentUser.name}
             className="threadkit-settings-avatar"
           />
           <div class="threadkit-settings-user-info">

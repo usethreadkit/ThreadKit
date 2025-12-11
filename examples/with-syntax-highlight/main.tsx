@@ -56,12 +56,13 @@ function greet(name: string) {
         }}
       >
         <ThreadKit
-          siteId="demo"
+          projectId="tk_pub_your_public_key"
           url="/syntax-highlight"
           theme={theme}
           sortBy="newest"
           plugins={[syntaxPlugin]}
-          apiUrl="/api"
+          apiUrl="http://localhost:8080/v1"
+          wsUrl="ws://localhost:8081"
         />
       </main>
     </div>

@@ -3,17 +3,17 @@
   import { createCommentsStore, type CommentsStore } from '../stores/comments';
   import { createWebSocketStore, type WebSocketStore } from '../stores/websocket';
   import { createAuthStore, type AuthStore } from '../stores/auth';
-  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile, PartialTranslations, LocaleMetadata } from '@threadkit/core';
+  import type { Comment, SortBy, ThreadKitPlugin, User, UserProfile, PartialTranslations, LocaleMetadata, SocialLinks } from '@threadkit/core';
   import { setTranslationContext, getRTL } from '../i18n';
   import CommentsView from './CommentsView.svelte';
   import ChatView from './ChatView.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
 
   interface Props {
-    siteId: string;
     url: string;
-    projectId?: string;
+    projectId: string;
     apiUrl?: string;
+    wsUrl?: string;
     mode?: 'comments' | 'chat';
     theme?: 'light' | 'dark';
     sortBy?: SortBy;
@@ -28,23 +28,25 @@
     translations?: PartialTranslations | LocaleMetadata;
     rtl?: boolean;
     initialComments?: Comment[];
+    debug?: boolean;
     onSignIn?: (user: User) => void;
     onSignOut?: () => void;
     onCommentPosted?: (comment: Comment) => void;
     onCommentReceived?: (comment: Comment) => void;
     onCommentDeleted?: (commentId: string) => void;
     onCommentEdited?: (commentId: string, newText: string) => void;
+    onVote?: (commentId: string, voteType: 'up' | 'down') => void;
     onError?: (error: Error) => void;
   }
 
   let {
-    siteId,
     url,
-    projectId = '',
-    apiUrl = 'https://api.usethreadkit.com',
+    projectId,
+    apiUrl = 'https://api.usethreadkit.com/v1',
+    wsUrl,
     mode = 'comments',
     theme = 'light',
-    sortBy = 'votes',
+    sortBy = 'top',
     maxDepth = 5,
     allowVoting = true,
     showLastN = 100,
@@ -56,12 +58,14 @@
     translations,
     rtl: rtlProp,
     initialComments,
+    debug = false,
     onSignIn,
     onSignOut,
     onCommentPosted,
     onCommentReceived,
     onCommentDeleted,
     onCommentEdited,
+    onVote,
     onError,
   }: Props = $props();
 
@@ -84,6 +88,7 @@
   let comments = $state<Comment[]>([]);
   let loading = $state(true);
   let error = $state<Error | null>(null);
+  let pageId = $state<string | null>(null);
   let currentUser = $state<User | null>(null);
   let connected = $state(false);
   let presenceCount = $state(0);
@@ -100,18 +105,11 @@
   // Initialize on mount
   onMount(() => {
     commentsStore = createCommentsStore({
-      siteId,
       url,
       apiUrl,
       projectId,
       sortBy: currentSort,
       initialComments,
-    });
-
-    wsStore = createWebSocketStore({
-      siteId,
-      url,
-      apiUrl,
     });
 
     authStore = createAuthStore({
@@ -125,6 +123,41 @@
       comments = state.comments;
       loading = state.loading;
       error = state.error;
+
+      // Initialize WebSocket when pageId becomes available
+      if (state.pageId && !pageId && wsUrl) {
+        pageId = state.pageId;
+        wsStore = createWebSocketStore({
+          wsUrl,
+          url,
+          projectId,
+          pageId: state.pageId,
+          enabled: true,
+        });
+
+        // Subscribe to websocket store
+        unsubWs = wsStore.subscribe((wsState) => {
+          connected = wsState.connected;
+          presenceCount = wsState.presenceCount;
+          typingUsers = wsState.typingUsers;
+        });
+
+        // Subscribe to WebSocket events
+        unsubWsAdded = wsStore.onCommentAdded((comment) => {
+          commentsStore.addComment(comment);
+          onCommentReceived?.(comment);
+        });
+
+        unsubWsDeleted = wsStore.onCommentDeleted((commentId) => {
+          commentsStore.removeComment(commentId);
+          onCommentDeleted?.(commentId);
+        });
+
+        unsubWsEdited = wsStore.onCommentEdited((commentId, text) => {
+          commentsStore.updateComment(commentId, { text, edited: true });
+          onCommentEdited?.(commentId, text);
+        });
+      }
 
       // Scroll to hash after comments finish loading
       if (wasLoading && !state.loading && state.comments.length > 0) {
@@ -149,7 +182,7 @@
           avatar: state.user.avatar_url,
           isModerator: false,
           isAdmin: false,
-          socialLinks: state.user.social_links, // Assuming social_links is returned by authStore
+          socialLinks: state.user.social_links,
         };
         onSignIn?.(currentUser);
       } else if (currentUser !== null) {
@@ -158,31 +191,8 @@
       }
     });
 
-    // Subscribe to websocket store
-    unsubWs = wsStore.subscribe((state) => {
-      connected = state.connected;
-      presenceCount = state.presenceCount;
-      typingUsers = state.typingUsers;
-    });
-
     // Initialize auth
     authStore.initialize();
-
-    // Subscribe to WebSocket events
-    unsubWsAdded = wsStore.onCommentAdded((comment) => {
-      commentsStore.addComment(comment);
-      onCommentReceived?.(comment);
-    });
-
-    unsubWsDeleted = wsStore.onCommentDeleted((commentId) => {
-      commentsStore.removeComment(commentId);
-      onCommentDeleted?.(commentId);
-    });
-
-    unsubWsEdited = wsStore.onCommentEdited((commentId, text) => {
-      commentsStore.updateComment(commentId, { text, edited: true });
-      onCommentEdited?.(commentId, text);
-    });
   });
 
   // Cleanup on destroy
@@ -248,6 +258,7 @@
         downvotes: result.downvotes,
         userVote: result.user_vote ?? undefined,
       });
+      onVote?.(commentId, voteType);
     } catch (e) {
       onError?.(e as Error);
     }
@@ -387,9 +398,9 @@
     </div>
   {:else}
     <SettingsPanel
-      {currentUser}
-      onLogin={() => authStore.signIn()}
-      onLogout={() => authStore.signOut()}
+      currentUser={currentUser ?? undefined}
+      onLogin={() => authStore.startLogin()}
+      onLogout={() => authStore.logout()}
       onUpdateSocialLinks={handleUpdateSocialLinks}
       onUpdateName={handleUpdateName}
       onThemeChange={handleThemeChange}
@@ -398,7 +409,7 @@
     {#if mode === 'chat'}
     <ChatView
       {comments}
-      currentUser={user ?? undefined}
+      currentUser={currentUser ?? undefined}
       {showLastN}
       {autoScroll}
       {showPresence}
@@ -416,7 +427,7 @@
   {:else}
     <CommentsView
       {comments}
-      currentUser={user ?? undefined}
+      currentUser={currentUser ?? undefined}
       {maxDepth}
       {allowVoting}
       sortBy={currentSort}

@@ -46,8 +46,10 @@ function Comments() {
 
   return (
     <ThreadKit
-      siteId="your-site-id"
+      projectId="tk_pub_your_public_key"
       url={window.location.pathname}
+      apiUrl="http://localhost:8080/v1"
+      wsUrl="ws://localhost:8081"
       translations={locales[locale]}
     />
   );
@@ -122,13 +124,14 @@ function App() {
         }}
       >
         <ThreadKit
-          siteId="demo"
+          projectId="tk_pub_your_public_key"
           url="/demo"
           mode="comments"
           theme={theme}
           sortBy="newest"
           translations={translations}
-          apiUrl="/api"
+          apiUrl="http://localhost:8080/v1"
+          wsUrl="ws://localhost:8081"
         />
       </main>
 

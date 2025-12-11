@@ -119,12 +119,13 @@ function App() {
           }}
         >
           <ThreadKit
-            siteId="demo"
+            projectId="tk_pub_your_public_key"
             url="/ethereum-auth"
             theme={theme}
             sortBy="newest"
             plugins={[plugin]}
-            apiUrl="/api"
+            apiUrl="http://localhost:8080/v1"
+          wsUrl="ws://localhost:8081"
           />
         </main>
       </div>

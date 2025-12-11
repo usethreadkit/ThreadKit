@@ -53,12 +53,13 @@ function App() {
         }}
       >
         <ThreadKit
-          siteId="demo"
+          projectId="tk_pub_your_public_key"
           url="/latex"
           theme={theme}
           sortBy="newest"
           plugins={[latexPlugin]}
-          apiUrl="/api"
+          apiUrl="http://localhost:8080/v1"
+          wsUrl="ws://localhost:8081"
         />
       </main>
     </div>

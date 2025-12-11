@@ -9,11 +9,17 @@ import {
 } from '@threadkit/core';
 import '@threadkit/core/styles';
 
+// Configuration for local development
+const LOCAL_PROJECT_ID = 'tk_pub_your_public_key';
+const API_URL = 'http://localhost:8080/v1';
+const WS_URL = 'ws://localhost:8081';
+
 let commentStore = null;
 let wsClient = null;
 let currentMode = 'comments';
 let currentTheme = 'light';
-let currentSort = 'newest';
+let currentSort = 'new';
+let currentPageId = null;
 let container = null;
 
 // Markdown rendering options
@@ -25,7 +31,7 @@ const markdownOptions = {
 
 // Render comment recursively
 function renderComment(comment, depth = 0) {
-  const score = comment.upvotes.length - comment.downvotes.length;
+  const score = comment.upvotes - comment.downvotes;
   const children = depth < 5 && comment.children.length > 0
     ? `<div class="threadkit-replies">${comment.children.map(c => renderComment(c, depth + 1)).join('')}</div>`
     : '';
@@ -87,116 +93,107 @@ function renderUI(state) {
       </div>
       <div class="threadkit-branding"><a href="https://usethreadkit.com" target="_blank">Powered by ThreadKit</a></div>`;
   } else {
-    const sorts = ['votes', 'newest', 'controversial', 'oldest'];
+    const sorts = ['top', 'new', 'controversial', 'old'];
     root.innerHTML = `
       <div class="threadkit-comments">
         <div class="threadkit-toolbar">
           <div class="threadkit-sort">
             <span class="threadkit-sort-label">sorted by:</span>
-            ${sorts.map(s => `<button class="threadkit-sort-option${currentSort === s ? ' active' : ''}" data-sort="${s}">${s === 'votes' ? 'top' : s === 'newest' ? 'new' : s === 'oldest' ? 'old' : s}</button>`).join('')}
+            ${sorts.map(s => `<button class="threadkit-sort-option${currentSort === s ? ' active' : ''}" data-sort="${s}">${s}</button>`).join('')}
           </div>
         </div>
         <div class="threadkit-comments-header">
           <form class="threadkit-form" id="comment-form">
-            <textarea class="threadkit-textarea" placeholder="Write a comment..." rows="3"></textarea>
-            <div class="threadkit-form-actions"><button type="submit" class="threadkit-submit-btn">Post</button></div>
+            <textarea placeholder="What are your thoughts?" rows="3"></textarea>
+            <button type="submit" class="threadkit-submit-btn">Post</button>
           </form>
         </div>
-        ${state.comments.length ? `<div class="threadkit-comment-list">${state.comments.map(c => renderComment(c)).join('')}</div>` : '<div class="threadkit-empty">No comments yet. Be the first!</div>'}
+        <div class="threadkit-comments-list">${state.comments.map(c => renderComment(c)).join('')}</div>
       </div>
       <div class="threadkit-branding"><a href="https://usethreadkit.com" target="_blank">Powered by ThreadKit</a></div>`;
   }
 
   container.innerHTML = '';
   container.appendChild(root);
-  attachListeners();
-}
-
-// Show error message in form
-function showFormError(form, message) {
-  // Remove existing error
-  const existing = form.querySelector('.threadkit-form-error');
-  if (existing) existing.remove();
-
-  const errorDiv = document.createElement('div');
-  errorDiv.className = 'threadkit-form-error';
-  errorDiv.style.cssText = 'color: var(--threadkit-danger); padding: 8px 0; font-size: 13px;';
-  errorDiv.textContent = message;
-  form.insertBefore(errorDiv, form.querySelector('.threadkit-form-actions') || form.lastChild);
-
-  // Auto-remove after 5 seconds
-  setTimeout(() => errorDiv.remove(), 5000);
+  attachEventListeners();
 }
 
 // Attach event listeners
-function attachListeners() {
-  document.getElementById('comment-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const textarea = form.querySelector('textarea');
-    const submitBtn = form.querySelector('button[type="submit"]');
-
-    if (textarea.value.trim()) {
+function attachEventListeners() {
+  // Comment form
+  const form = document.getElementById('comment-form');
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const textarea = form.querySelector('textarea');
+      const text = textarea.value.trim();
+      if (!text) return;
       try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Posting...';
-        const comment = await commentStore.post(textarea.value.trim());
+        const comment = await commentStore.post(text);
         commentStore.addComment(comment);
         textarea.value = '';
       } catch (err) {
-        showFormError(form, err.message || 'Failed to post comment');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Post';
+        alert('Failed to post comment: ' + err.message);
       }
-    }
-  });
+    };
+  }
 
-  document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const input = form.querySelector('input');
-    const submitBtn = form.querySelector('button[type="submit"]');
-
-    if (input.value.trim()) {
+  // Chat form
+  const chatForm = document.getElementById('chat-form');
+  if (chatForm) {
+    chatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const input = chatForm.querySelector('input');
+      const text = input.value.trim();
+      if (!text) return;
       try {
-        submitBtn.disabled = true;
-        const comment = await commentStore.post(input.value.trim());
+        const comment = await commentStore.post(text);
         commentStore.addComment(comment);
         input.value = '';
       } catch (err) {
-        showFormError(form, err.message || 'Failed to send message');
-      } finally {
-        submitBtn.disabled = false;
+        alert('Failed to post message: ' + err.message);
       }
-    }
-  });
+    };
+  }
 
-  document.querySelectorAll('[data-sort]').forEach(btn => {
-    btn.onclick = () => { currentSort = btn.dataset.sort; commentStore.setSortBy(currentSort); };
-  });
-
-  document.querySelectorAll('[data-vote]').forEach(btn => {
-    btn.onclick = () => commentStore.vote(btn.dataset.id, btn.dataset.vote);
-  });
-
-  document.querySelectorAll('[data-reply]').forEach(btn => {
-    btn.onclick = () => {
-      const text = prompt('Write your reply:');
-      if (text?.trim()) {
-        commentStore.post(text.trim(), btn.dataset.reply).then(c => commentStore.addComment(c));
+  // Votes
+  document.querySelectorAll('.threadkit-vote-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const type = btn.dataset.vote;
+      try {
+        const result = await commentStore.vote(id, type);
+        commentStore.updateComment(id, {
+          upvotes: result.upvotes,
+          downvotes: result.downvotes,
+          userVote: result.user_vote ?? null,
+        });
+      } catch (err) {
+        alert('Failed to vote: ' + err.message);
       }
     };
   });
 
+  // Sort
+  document.querySelectorAll('.threadkit-sort-option').forEach(btn => {
+    btn.onclick = () => {
+      currentSort = btn.dataset.sort;
+      commentStore.setSortBy(currentSort);
+    };
+  });
+
+  // Share
   document.querySelectorAll('[data-share]').forEach(btn => {
     btn.onclick = async () => {
-      const url = `${window.location.origin}${window.location.pathname}#threadkit-${btn.dataset.share}`;
+      const id = btn.dataset.share;
+      const url = `${window.location.origin}${window.location.pathname}#threadkit-${id}`;
       if (navigator.share) {
         try {
           await navigator.share({ url });
-        } catch {
-          // User cancelled or share failed
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            await navigator.clipboard.writeText(url);
+          }
         }
       } else {
         await navigator.clipboard.writeText(url);
@@ -215,23 +212,31 @@ function init() {
   wsClient?.destroy();
 
   commentStore = new CommentStore({
-    siteId: 'demo',
     url: '/vanilla',
-    apiUrl: '/api',
+    apiUrl: API_URL,
+    projectId: LOCAL_PROJECT_ID,
     sortBy: currentSort,
-    getToken: () => localStorage.getItem('threadkit_token'),
-  });
-
-  wsClient = new WebSocketClient({
-    siteId: 'demo',
-    url: '/vanilla',
-    apiUrl: '/api',
     getToken: () => localStorage.getItem('threadkit_token'),
   });
 
   let hasScrolledToHash = false;
   commentStore.on('stateChange', (state) => {
     renderUI(state);
+
+    // Initialize WebSocket when pageId becomes available
+    if (state.pageId && !currentPageId) {
+      currentPageId = state.pageId;
+      wsClient = new WebSocketClient({
+        wsUrl: WS_URL,
+        projectId: LOCAL_PROJECT_ID,
+        pageId: state.pageId,
+        getToken: () => localStorage.getItem('threadkit_token'),
+      });
+
+      wsClient.on('commentAdded', ({ comment }) => commentStore.addComment(comment));
+      wsClient.on('commentDeleted', ({ commentId }) => commentStore.removeComment(commentId));
+      wsClient.connect();
+    }
 
     // Scroll to hash after comments load
     if (!hasScrolledToHash && !state.loading && state.comments.length > 0) {
@@ -248,15 +253,26 @@ function init() {
       }
     }
   });
-  wsClient.on('commentAdded', c => commentStore.addComment(c));
-  wsClient.on('commentDeleted', ({ commentId }) => commentStore.removeComment(commentId));
 
   commentStore.fetch();
-  wsClient.connect();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   container = document.getElementById('threadkit-container');
+
+  // Add setup instructions
+  const setupInfo = document.createElement('div');
+  setupInfo.style.cssText = 'background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 16px; margin-bottom: 16px;';
+  setupInfo.innerHTML = `
+    <strong>Setup:</strong>
+    <ol style="margin: 8px 0 0; padding-left: 20px;">
+      <li>Start Redis: <code>redis-server</code></li>
+      <li>Create site (first time): <code>cargo run --release --bin threadkit-http -- --create-site "My Site" example.com --enable-auth email,google,github,anonymous</code></li>
+      <li>Start server: <code>cd server && cargo run --release --bin threadkit-http</code></li>
+    </ol>
+  `;
+  document.querySelector('.controls').insertAdjacentElement('beforebegin', setupInfo);
+
   init();
   document.getElementById('mode-select').onchange = init;
   document.getElementById('theme-select').onchange = init;

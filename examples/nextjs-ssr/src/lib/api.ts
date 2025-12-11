@@ -1,16 +1,20 @@
 import type { CommentData } from '@threadkit/react';
 
-const API_URL = process.env.THREADKIT_API_URL || 'https://api.usethreadkit.com';
+const API_URL = process.env.THREADKIT_API_URL || 'http://localhost:8080/v1';
+const PROJECT_ID = process.env.THREADKIT_PROJECT_ID || 'tk_pub_your_public_key';
 
 /**
  * Fetch comments server-side for SSR.
  * This function runs on the server during page rendering.
  */
-export async function fetchComments(siteId: string, pageUrl: string): Promise<CommentData[]> {
+export async function fetchComments(pageUrl: string): Promise<CommentData[]> {
   try {
     const response = await fetch(
-      `${API_URL}/sites/${siteId}/comments?url=${encodeURIComponent(pageUrl)}`,
+      `${API_URL}/comments?page_url=${encodeURIComponent(pageUrl)}`,
       {
+        headers: {
+          'X-API-Key': PROJECT_ID,
+        },
         // Revalidate every 60 seconds (ISR)
         next: { revalidate: 60 },
       }

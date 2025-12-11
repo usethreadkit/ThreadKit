@@ -6,9 +6,10 @@ import {
 } from '@threadkit/core';
 
 export interface WebSocketStoreConfig {
-  siteId: string;
+  wsUrl: string;
   url: string;
-  apiUrl: string;
+  projectId: string;
+  pageId: string;
   enabled?: boolean;
 }
 
@@ -60,15 +61,15 @@ export function createWebSocketStore(config: WebSocketStoreConfig): WebSocketSto
     connect: () => core.connect(),
     disconnect: () => core.disconnect(),
     destroy: () => core.destroy(),
-    onCommentAdded: (callback) => core.on('commentAdded', callback),
+    onCommentAdded: (callback) => core.on('commentAdded', ({ comment }) => callback(comment)),
     onCommentDeleted: (callback) =>
       core.on('commentDeleted', ({ commentId }) => callback(commentId)),
     onCommentEdited: (callback) =>
       core.on('commentEdited', ({ commentId, text }) => callback(commentId, text)),
     onCommentPinned: (callback) =>
-      core.on('commentPinned', ({ commentId, pinned }) => callback(commentId, pinned)),
+      core.on('pinUpdated', ({ commentId, pinned }) => callback(commentId, pinned)),
     onUserBanned: (callback) =>
-      core.on('userBanned', ({ userId }) => callback(userId)),
+      core.on('error', ({ code }) => { if (code === 'user_banned') callback(''); }),
   };
 }
 

@@ -73,7 +73,7 @@ function App() {
         }}
       >
         <ThreadKit
-          siteId="demo"
+          projectId="tk_pub_your_public_key"
           url="/turnstile-demo"
           projectId="tk_pub_demo_key"
           apiUrl={API_URL}
