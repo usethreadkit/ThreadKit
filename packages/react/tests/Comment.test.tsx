@@ -137,14 +137,14 @@ describe('Comment', () => {
 
     it('calls onVote with up when upvote clicked', () => {
       const onVote = vi.fn();
-      render(<Comment comment={mockComment} onVote={onVote} />);
+      render(<Comment comment={mockComment} currentUser={mockUser} onVote={onVote} />);
       fireEvent.click(screen.getByLabelText('Upvote'));
       expect(onVote).toHaveBeenCalledWith('comment-1', 'up');
     });
 
     it('calls onVote with down when downvote clicked', () => {
       const onVote = vi.fn();
-      render(<Comment comment={mockComment} onVote={onVote} />);
+      render(<Comment comment={mockComment} currentUser={mockUser} onVote={onVote} />);
       fireEvent.click(screen.getByLabelText('Downvote'));
       expect(onVote).toHaveBeenCalledWith('comment-1', 'down');
     });

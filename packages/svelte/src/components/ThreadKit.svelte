@@ -9,6 +9,7 @@
   import ChatView from './ChatView.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
   import NotificationsPanel from './NotificationsPanel.svelte';
+  import DebugPanel from './DebugPanel.svelte';
 
   interface Props {
     url: string;
@@ -571,3 +572,23 @@
     </div>
   {/if}
 </div>
+
+{#if debug}
+  <DebugPanel
+    {comments}
+    {loading}
+    {error}
+    {pageId}
+    {currentUser}
+    connected={connected}
+    {presenceCount}
+    config={{
+      apiUrl,
+      projectId,
+      url,
+      mode,
+      theme: currentTheme,
+      sortBy: currentSort,
+    }}
+  />
+{/if}

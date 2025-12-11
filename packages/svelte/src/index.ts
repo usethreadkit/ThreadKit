@@ -46,6 +46,7 @@ export { default as CommentsView } from './components/CommentsView.svelte';
 export { default as ChatView } from './components/ChatView.svelte';
 export { default as ChatMessage } from './components/ChatMessage.svelte';
 export { default as UserHoverCard } from './components/UserHoverCard.svelte';
+export { default as DebugPanel } from './components/DebugPanel.svelte';
 
 // Utilities
 export { renderMarkdown, formatTimestamp, formatTime } from './utils/markdown';

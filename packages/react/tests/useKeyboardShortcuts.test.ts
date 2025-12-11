@@ -329,24 +329,6 @@ describe('getDefaultShortcuts', () => {
     expect(focusInput).toHaveBeenCalled();
   });
 
-  it('creates collapseAll shortcut', () => {
-    const collapseAll = vi.fn();
-    const shortcuts = getDefaultShortcuts({ collapseAll });
-
-    expect(shortcuts).toHaveLength(1);
-    expect(shortcuts[0].key).toBe('[');
-    expect(shortcuts[0].description).toBe('Collapse all comments');
-  });
-
-  it('creates expandAll shortcut', () => {
-    const expandAll = vi.fn();
-    const shortcuts = getDefaultShortcuts({ expandAll });
-
-    expect(shortcuts).toHaveLength(1);
-    expect(shortcuts[0].key).toBe(']');
-    expect(shortcuts[0].description).toBe('Expand all comments');
-  });
-
   it('creates nextComment shortcut', () => {
     const nextComment = vi.fn();
     const shortcuts = getDefaultShortcuts({ nextComment });
@@ -368,12 +350,10 @@ describe('getDefaultShortcuts', () => {
   it('creates multiple shortcuts when multiple actions provided', () => {
     const shortcuts = getDefaultShortcuts({
       focusInput: vi.fn(),
-      collapseAll: vi.fn(),
-      expandAll: vi.fn(),
       nextComment: vi.fn(),
       prevComment: vi.fn(),
     });
 
-    expect(shortcuts).toHaveLength(5);
+    expect(shortcuts).toHaveLength(3);
   });
 });

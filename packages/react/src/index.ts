@@ -99,6 +99,9 @@ export {
   AudioPreviewRenderer,
 } from './renderers';
 
+// DevTools (development only)
+export { initDevTools, updateDevTools, logDevToolsEvent } from './devtools';
+
 /**
  * Render ThreadKit into a DOM element (for vanilla JS usage)
  * @param element - DOM element or selector string

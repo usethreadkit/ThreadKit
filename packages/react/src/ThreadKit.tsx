@@ -11,6 +11,7 @@ import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
 import type { User as AuthUser } from './auth/types';
 import { TranslationProvider, useTranslation, useRTL } from './i18n';
 import { DebugProvider } from './debug';
+import { initDevTools, updateDevTools, logDevToolsEvent } from './devtools';
 
 const DEFAULT_API_URL = 'https://api.usethreadkit.com/v1';
 
@@ -142,6 +143,72 @@ function ThreadKitInner({
   const t = useTranslation();
   const isRTL = useRTL();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'system'>(theme);
+  const [currentSort, setCurrentSort] = useState<SortBy>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('threadkit_sort');
+      if (saved === 'top' || saved === 'new' || saved === 'controversial' || saved === 'old') {
+        return saved;
+      }
+    }
+    return sortBy;
+  });
+
+  // Initialize DevTools in development
+  useEffect(() => {
+    if (debug) {
+      initDevTools({
+        config: {
+          apiUrl,
+          projectId,
+          url,
+          mode,
+          theme: currentTheme,
+          sortBy: currentSort,
+          wsEnabled: Boolean(wsUrl && effectivePageId),
+        },
+      });
+    }
+  }, [debug, apiUrl, projectId, url, mode, currentTheme, currentSort, wsUrl, effectivePageId]);
+
+  // Update DevTools state when comments change
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        state: {
+          comments,
+          loading,
+          error,
+          pageId: effectivePageId,
+        },
+      });
+    }
+  }, [debug, comments, loading, error, effectivePageId]);
+
+  // Update DevTools auth state
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        auth: {
+          user: currentUser ?? null,
+          token: authState.token ?? null,
+        },
+      });
+    }
+  }, [debug, currentUser, authState.token]);
+
+  // Update DevTools WebSocket state
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        webSocket: {
+          connected: _wsConnected,
+          presenceCount: _presenceCount,
+          typingUsers: _typingUsers,
+        },
+      });
+    }
+  }, [debug, _wsConnected, _presenceCount, _typingUsers]);
 
   // Register auth plugins on mount
   useEffect(() => {
@@ -162,17 +229,6 @@ function ThreadKitInner({
 
   const isModerator = currentUser?.isModerator || currentUser?.isAdmin || false;
 
-  // Initialize sort from localStorage or prop
-  const [currentSort, setCurrentSort] = useState<SortBy>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('threadkit_sort');
-      if (saved === 'top' || saved === 'new' || saved === 'controversial' || saved === 'old') {
-        return saved;
-      }
-    }
-    return sortBy;
-  });
-
   // Persist sort changes to localStorage
   const handleSortChange = useCallback((newSort: SortBy) => {
     setCurrentSort(newSort);
@@ -181,7 +237,6 @@ function ThreadKitInner({
     }
   }, []);
 
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'system'>(theme);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [userProfileCache, setUserProfileCache] = useState<Map<string, UserProfile>>(new Map());
 
@@ -333,6 +388,7 @@ function ThreadKitInner({
   // WebSocket handlers
   const handleWsCommentAdded = useCallback(
     (_pageId: string, comment: Comment) => {
+      logDevToolsEvent('ws.comment.added', { commentId: comment.id, parentId: comment.parentId });
       if (debug) {
         console.log('[ThreadKit] WS comment received:', {
           commentId: comment.id,
@@ -492,6 +548,7 @@ function ThreadKitInner({
   const handlePost = useCallback(
     async (text: string, parentId?: string) => {
       try {
+        logDevToolsEvent('comment.post', { text: text.substring(0, 50), parentId });
         const comment = await postComment(text, parentId);
 
         // Track this comment ID to skip the WebSocket echo
@@ -500,8 +557,10 @@ function ThreadKitInner({
 
         addComment(comment);
         onCommentPosted?.(comment);
+        logDevToolsEvent('comment.posted', { commentId: comment.id });
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to post');
+        logDevToolsEvent('comment.post.error', { error: error.message });
         onError?.(error);
         throw error;
       }
@@ -544,6 +603,7 @@ function ThreadKitInner({
   const handleVote = useCallback(
     async (commentId: string, voteType: 'up' | 'down') => {
       try {
+        logDevToolsEvent('vote', { commentId, voteType });
         const result = await vote(commentId, voteType);
         // Update with response from server
         updateComment(commentId, {
@@ -566,6 +626,7 @@ function ThreadKitInner({
 
         onVote?.(commentId, voteType);
       } catch (err) {
+        logDevToolsEvent('vote.error', { commentId, error: err instanceof Error ? err.message : 'Unknown' });
         onError?.(err instanceof Error ? err : new Error('Failed to vote'));
       }
     },
