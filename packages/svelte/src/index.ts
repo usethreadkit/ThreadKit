@@ -61,3 +61,13 @@ export {
   type TranslationStrings,
   type TranslatorFunction,
 } from './i18n';
+
+// Performance Monitoring
+export {
+  PerformanceMonitor,
+  enableGlobalPerformanceMonitoring,
+  getGlobalPerformanceMonitor,
+  iperf,
+  type PerformanceMetric,
+  type PerformanceMonitorOptions,
+} from '@threadkit/core';

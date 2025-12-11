@@ -1,4 +1,5 @@
 import type { Comment } from './types';
+import type { PerformanceMetric } from '@threadkit/core';
 
 interface ThreadKitDevTools {
   state: {
@@ -34,6 +35,10 @@ interface ThreadKitDevTools {
     timestamp: number;
     data: unknown;
   }>;
+  performance: {
+    metrics: PerformanceMetric[];
+    summary: Record<string, { count: number; avg: number; min: number; max: number }>;
+  };
 }
 
 declare global {
@@ -75,6 +80,10 @@ export function initDevTools(initialState: Partial<ThreadKitDevTools>) {
           typingUsers: [],
         },
         events: [],
+        performance: {
+          metrics: [],
+          summary: {},
+        },
       };
     }
 

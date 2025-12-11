@@ -122,6 +122,7 @@
       projectId,
       sortBy: currentSort,
       initialComments,
+      debug,
     });
 
     authStore = createAuthStore({

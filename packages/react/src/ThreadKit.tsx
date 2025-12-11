@@ -304,6 +304,7 @@ function ThreadKitInner({
     sortBy: currentSort,
     initialComments,
     getPostHeaders,
+    debug,
   });
 
   // Use pageId from API response for WebSocket subscription

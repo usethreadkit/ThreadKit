@@ -217,3 +217,19 @@ export { DELETED_USER_ID, ANONYMOUS_USER_ID } from './api.types';
 
 export { getUser } from './api/users';
 export { uploadAvatar, uploadImage, deleteMedia } from './api/media';
+
+// ============================================================================
+// Performance Monitoring
+// ============================================================================
+
+export {
+  PerformanceMonitor,
+  enableGlobalPerformanceMonitoring,
+  getGlobalPerformanceMonitor,
+  iperf,
+} from './performance';
+
+export type {
+  PerformanceMetric,
+  PerformanceMonitorOptions,
+} from './performance';

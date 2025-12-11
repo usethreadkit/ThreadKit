@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { CommentStore, type Comment, type SortBy, type CommentStoreState } from '@threadkit/core';
+import { CommentStore, type Comment, type SortBy, type CommentStoreState, iperf, PerformanceMonitor } from '@threadkit/core';
+import { updateDevTools } from '../devtools';
 
 // Re-export for backwards compatibility
 export { ThreadKitError, type ThreadKitErrorCode } from '@threadkit/core';
@@ -13,6 +14,8 @@ interface UseCommentsOptions {
   initialComments?: Comment[];
   /** Function to get additional headers before posting (e.g., Turnstile token) */
   getPostHeaders?: () => Promise<Record<string, string>>;
+  /** Enable performance monitoring */
+  debug?: boolean;
   /**
    * @deprecated siteId is no longer needed - site is derived from API key
    */
@@ -48,12 +51,14 @@ export function useComments({
   sortBy,
   initialComments,
   getPostHeaders,
+  debug = false,
 }: UseCommentsOptions): UseCommentsReturn {
   // Create store once using ref (not recreated on re-renders)
   const storeRef = useRef<CommentStore | null>(null);
+  const perfMonitorRef = useRef<PerformanceMonitor | null>(null);
 
   if (!storeRef.current) {
-    storeRef.current = new CommentStore({
+    const store = new CommentStore({
       apiUrl,
       url,
       projectId,
@@ -62,6 +67,32 @@ export function useComments({
       getToken: () => localStorage.getItem('threadkit_token'),
       getPostHeaders,
     });
+
+    // Auto-instrument store methods if debug is enabled
+    if (debug) {
+      perfMonitorRef.current = new PerformanceMonitor({
+        enabled: true,
+        onMetric: (metric) => {
+          // Update DevTools with performance metrics
+          if (perfMonitorRef.current) {
+            updateDevTools({
+              performance: {
+                metrics: perfMonitorRef.current.getMetrics(),
+                summary: perfMonitorRef.current.getSummary(),
+              },
+            });
+          }
+        },
+      });
+
+      storeRef.current = iperf(store, {
+        methods: ['fetch', 'post', 'delete', 'edit', 'vote'],
+        monitor: perfMonitorRef.current,
+        prefix: 'CommentStore',
+      });
+    } else {
+      storeRef.current = store;
+    }
   }
 
   const store = storeRef.current;

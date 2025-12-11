@@ -102,6 +102,16 @@ export {
 // DevTools (development only)
 export { initDevTools, updateDevTools, logDevToolsEvent } from './devtools';
 
+// Performance Monitoring
+export {
+  PerformanceMonitor,
+  enableGlobalPerformanceMonitoring,
+  getGlobalPerformanceMonitor,
+  iperf,
+  type PerformanceMetric,
+  type PerformanceMonitorOptions,
+} from '@threadkit/core';
+
 /**
  * Render ThreadKit into a DOM element (for vanilla JS usage)
  * @param element - DOM element or selector string

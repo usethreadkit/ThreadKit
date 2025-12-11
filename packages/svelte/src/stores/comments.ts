@@ -6,6 +6,8 @@ import {
   type CommentStoreState,
   type ThreadKitError,
   type VoteResponse,
+  iperf,
+  PerformanceMonitor,
 } from '@threadkit/core';
 
 export interface CommentsStoreConfig {
@@ -15,6 +17,10 @@ export interface CommentsStoreConfig {
   sortBy?: SortBy;
   /** Pre-fetched comments for SSR */
   initialComments?: Comment[];
+  /** Enable performance monitoring */
+  debug?: boolean;
+  /** Performance monitor instance (optional, creates one if not provided) */
+  perfMonitor?: PerformanceMonitor;
 }
 
 export interface CommentsStore extends Readable<CommentStoreState> {
@@ -34,7 +40,7 @@ export interface CommentsStore extends Readable<CommentStoreState> {
  * Thin wrapper around @threadkit/core CommentStore.
  */
 export function createCommentsStore(config: CommentsStoreConfig): CommentsStore {
-  const core = new CommentStore({
+  let core = new CommentStore({
     ...config,
     sortBy: config.sortBy || 'top',
     getToken: () => {
@@ -44,6 +50,31 @@ export function createCommentsStore(config: CommentsStoreConfig): CommentsStore 
       return null;
     },
   });
+
+  // Auto-instrument if debug mode is enabled
+  if (config.debug) {
+    const perfMonitor = config.perfMonitor || new PerformanceMonitor({
+      enabled: true,
+      onMetric: (metric) => {
+        // Expose to window for debugging
+        if (typeof window !== 'undefined') {
+          (window as any).__THREADKIT_DEVTOOLS__ = {
+            ...(window as any).__THREADKIT_DEVTOOLS__,
+            performance: {
+              metrics: perfMonitor.getMetrics(),
+              summary: perfMonitor.getSummary(),
+            },
+          };
+        }
+      },
+    });
+
+    core = iperf(core, {
+      methods: ['fetch', 'post', 'delete', 'edit', 'vote'],
+      monitor: perfMonitor,
+      prefix: 'CommentStore',
+    });
+  }
 
   const { subscribe, set } = writable<CommentStoreState>(core.getState());
 
