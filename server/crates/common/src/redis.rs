@@ -331,12 +331,20 @@ impl RedisClient {
     /// Get user's comments across all sites (for profile)
     /// Returns Vec<(page_id, comment_id)>
     pub async fn get_user_comment_index(&self, user_id: Uuid, offset: usize, limit: usize) -> Result<Vec<(Uuid, Uuid)>> {
+        // Calculate end index: -1 means "to the end" in Redis ZREVRANGE
+        // Use -1 if limit would overflow or is usize::MAX (meaning "get all")
+        let end_index = if limit == usize::MAX || offset.checked_add(limit).is_none() {
+            -1
+        } else {
+            (offset + limit - 1) as i64
+        };
+
         let items: Vec<String> = self
             .client
             .zrevrange(
                 format!("user:{}:comments", user_id),
                 offset as i64,
-                (offset + limit - 1) as i64,
+                end_index,
                 false,
             )
             .await?;
@@ -872,6 +880,15 @@ impl RedisClient {
         let downvotes: i64 = result.get(2).and_then(|v| v.as_i64()).unwrap_or(0);
         let upvote_delta: i64 = result.get(3).and_then(|v| v.as_i64()).unwrap_or(0);
         let downvote_delta: i64 = result.get(4).and_then(|v| v.as_i64()).unwrap_or(0);
+
+        // Track vote in user's vote set for account deletion
+        if final_vote.is_some() {
+            // User now has a vote on this comment
+            self.add_user_vote(user_id, comment_id).await?;
+        } else {
+            // User removed their vote
+            self.remove_user_vote(user_id, comment_id).await?;
+        }
 
         Ok((final_vote, upvotes, downvotes, upvote_delta, downvote_delta))
     }
@@ -1640,26 +1657,26 @@ impl RedisClient {
         // Anonymize all user's comments (GDPR-compliant: keep content, remove personal data)
         // Use get_user_comment_index which returns ALL comments (no pagination)
         let comment_refs = self.get_user_comment_index(user_id, 0, usize::MAX).await.unwrap_or_default();
-        let mut affected_pages = std::collections::HashSet::new();
 
-        for (page_id, comment_id) in &comment_refs {
-            affected_pages.insert(*page_id);
-
-            // Update author_id to DELETED_USER_ID constant
-            // This preserves the comment content and all relationships (votes, replies, etc.)
-            self.client
-                .hset::<(), _, _>(
-                    format!("comment:{}", comment_id),
-                    [("author_id", crate::types::DELETED_USER_ID.to_string())],
-                )
-                .await?;
-
-            stats.comments_deleted += 1;
+        // Group comments by page_id to minimize page tree loads
+        let mut comments_by_page: std::collections::HashMap<Uuid, Vec<Uuid>> = std::collections::HashMap::new();
+        for (page_id, comment_id) in comment_refs {
+            comments_by_page.entry(page_id).or_default().push(comment_id);
         }
 
-        // Invalidate page tree caches so they get rebuilt with anonymized data
-        for page_id in affected_pages {
-            self.client.del::<(), _>(format!("page:{}:tree", page_id)).await?;
+        // Anonymize comments in each affected page tree
+        for (page_id, comment_ids) in comments_by_page {
+            // Load the page tree
+            let mut tree = self.get_or_create_page_tree(page_id).await?;
+
+            // Anonymize each comment in this page
+            for comment_id in comment_ids {
+                tree.anonymize_comment(comment_id);
+                stats.comments_deleted += 1;
+            }
+
+            // Save the modified tree back to Redis
+            self.set_page_tree(page_id, &tree).await?;
         }
 
         // Keep user comments set - it maps to anonymized comments now

@@ -10,6 +10,9 @@ pub mod storage;
 pub mod image_processing;
 pub mod action_log;
 
+#[cfg(test)]
+mod web3_tests;
+
 pub use config::{Config, Mode, ModerationMode};
 pub use error::{Error, Result};
 pub use moderation::ModerationClient;
