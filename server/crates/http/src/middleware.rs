@@ -319,20 +319,31 @@ pub async fn security_headers(
     request: Request<Body>,
     next: Next,
 ) -> Response {
+    // Clone the path before moving request into next.run()
+    let path = request.uri().path().to_string();
     let mut response = next.run(request).await;
 
     let headers = response.headers_mut();
 
     // Content Security Policy
-    // This policy is designed for a REST API server:
-    // - default-src 'none': No resources loaded by default
-    // - frame-ancestors 'none': Prevent embedding in frames (clickjacking protection)
-    // - base-uri 'none': Prevent <base> tag manipulation
+    // Different CSP rules for different types of pages
+    let csp = if path.contains("/auth/") && path.contains("/callback") {
+        // OAuth callback needs inline scripts to communicate with parent window
+        "default-src 'none'; script-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
+    } else if path == "/docs" || path == "/docs/openapi.json" {
+        // API documentation page (Scalar UI) needs to load scripts, styles, fonts, and images
+        "default-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com data:; frame-ancestors 'none'; base-uri 'self'"
+    } else {
+        // Strict policy for REST API endpoints:
+        // - default-src 'none': No resources loaded by default
+        // - frame-ancestors 'none': Prevent embedding in frames (clickjacking protection)
+        // - base-uri 'none': Prevent <base> tag manipulation
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    };
+
     headers.insert(
         "Content-Security-Policy",
-        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-            .parse()
-            .unwrap(),
+        csp.parse().unwrap(),
     );
 
     // Prevent MIME type sniffing
@@ -348,14 +359,17 @@ pub async fn security_headers(
         "max-age=31536000; includeSubDomains".parse().unwrap(),
     );
 
-    // Disable client-side caching of sensitive data
-    headers.insert(
-        "Cache-Control",
-        "no-store, no-cache, must-revalidate, proxy-revalidate"
-            .parse()
-            .unwrap(),
-    );
-    headers.insert("Pragma", "no-cache".parse().unwrap());
+    // Disable client-side caching for sensitive endpoints
+    // Allow caching for public docs and static assets
+    if !path.starts_with("/docs") {
+        headers.insert(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate"
+                .parse()
+                .unwrap(),
+        );
+        headers.insert("Pragma", "no-cache".parse().unwrap());
+    }
 
     // Prevent DNS prefetching
     headers.insert("X-DNS-Prefetch-Control", "off".parse().unwrap());
