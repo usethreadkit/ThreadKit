@@ -231,3 +231,21 @@ export interface TokenStorage {
   setRefreshToken(token: string): void;
   clear(): void;
 }
+
+// ============================================================================
+// Media Upload Types
+// ============================================================================
+
+export interface MediaUpload {
+  mediaId: string;
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+export interface UploadProgress {
+  mediaId: string;
+  progress: number;
+  status: 'uploading' | 'processing' | 'complete' | 'error';
+  error?: string;
+}

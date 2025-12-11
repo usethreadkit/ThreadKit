@@ -150,6 +150,11 @@ export const defaultTranslations: TranslationStrings = {
   emailPlaceholder: 'you@example.com',
   otpPlaceholder: '000000',
 
+  // Auth - OTP (phone)
+  enterPhone: 'Enter your phone number',
+  checkPhone: 'Check your phone',
+  phonePlaceholder: '+1 (555) 000-0000',
+
   // Auth - name input
   welcome: 'Welcome!',
   chooseDisplayName: 'Choose a display name for your account',

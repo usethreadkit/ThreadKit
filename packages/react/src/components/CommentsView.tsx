@@ -9,6 +9,7 @@ import { SignInPrompt } from './SignInPrompt';
 import { useTranslation } from '../i18n';
 import { ScoreDisplayProvider } from '../contexts/ScoreDisplayContext';
 import { useKeyboardShortcuts, getDefaultShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useAuth } from '../auth';
 
 interface CommentsViewProps {
   comments: CommentType[];
@@ -96,6 +97,7 @@ export function CommentsView({
   plugins,
 }: CommentsViewProps) {
   const t = useTranslation();
+  const { state: authState } = useAuth();
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
 
   // Extract pinned comments
@@ -404,6 +406,9 @@ export function CommentsView({
               onSubmit={onPost}
               pendingCount={pendingRootCount}
               onLoadPending={onLoadPendingComments}
+              apiUrl={apiUrl}
+              projectId={projectId}
+              token={authState.token || undefined}
             />
           ) : (
             <SignInPrompt apiUrl={apiUrl} projectId={projectId} />

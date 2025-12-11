@@ -3,6 +3,7 @@ import type { User, SocialLinks } from '../types';
 import { useTranslation } from '../i18n';
 import { MAX_USERNAME_LENGTH, validateUsername } from '@threadkit/core';
 import { Avatar } from './Avatar';
+import { AvatarUploadModal } from './AvatarUploadModal';
 import { GuestAwareUsername } from '../utils/username';
 import { SOCIAL_ICONS } from '../auth/icons';
 import { SettingsIcon } from '../icons/ui';
@@ -42,6 +43,8 @@ interface SettingsPanelProps {
   theme: 'light' | 'dark' | 'system';
   blockedUsers: BlockedUser[];
   apiUrl?: string;
+  projectId?: string;
+  token?: string;
   keyboardNavigationEnabled?: boolean;
   onLogin: () => void;
   onLogout: () => void;
@@ -63,6 +66,8 @@ export function SettingsPanel({
   theme,
   blockedUsers,
   apiUrl = DEFAULT_API_URL,
+  projectId,
+  token,
   keyboardNavigationEnabled = true,
   onLogin,
   onLogout,
@@ -86,6 +91,7 @@ export function SettingsPanel({
   const [deleteCountdown, setDeleteCountdown] = useState(DELETE_HOLD_SECONDS);
   const [isHolding, setIsHolding] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [twitter, setTwitter] = useState(currentUser?.socialLinks?.twitter || '');
   const [github, setGithub] = useState(currentUser?.socialLinks?.github || '');
   const [facebook, setFacebook] = useState(currentUser?.socialLinks?.facebook || '');
@@ -279,6 +285,10 @@ export function SettingsPanel({
     setEditingName(false);
   }, [newName, currentUser?.name, onUpdateName]);
 
+  const handleAvatarUploadComplete = useCallback((url: string) => {
+    _onUpdateAvatar(url);
+  }, [_onUpdateAvatar]);
+
   const startHolding = useCallback(() => {
     if (deleted) return;
     // Clear any pending hide timeout
@@ -419,12 +429,18 @@ export function SettingsPanel({
             <>
               {/* User Info */}
               <div className="threadkit-settings-user">
-                <Avatar
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  seed={currentUser.name}
-                  className="threadkit-settings-avatar"
-                />
+                <div
+                  onClick={() => setShowAvatarModal(true)}
+                  style={{ cursor: 'pointer' }}
+                  title="Click to change avatar"
+                >
+                  <Avatar
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    seed={currentUser.name}
+                    className="threadkit-settings-avatar"
+                  />
+                </div>
                 <div className="threadkit-settings-user-info">
                   {editingName ? (
                     <div className="threadkit-settings-name-edit">
@@ -714,6 +730,17 @@ export function SettingsPanel({
             </>
           )}
         </div>
+      )}
+
+      {showAvatarModal && token && projectId && (
+        <AvatarUploadModal
+          apiUrl={apiUrl}
+          projectId={projectId}
+          token={token}
+          currentAvatar={currentUser?.avatar}
+          onClose={() => setShowAvatarModal(false)}
+          onUploadComplete={handleAvatarUploadComplete}
+        />
       )}
     </div>
   );

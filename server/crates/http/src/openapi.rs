@@ -1,6 +1,6 @@
 use utoipa::OpenApi;
 
-use crate::routes::{admin, auth, comments, moderation, turnstile, users};
+use crate::routes::{admin, auth, comments, media, moderation, turnstile, users};
 
 const API_DESCRIPTION: &str = r#"
 ThreadKit is an open-source, self-hostable comment system for websites and applications.
@@ -240,6 +240,7 @@ Single-letter keys for efficiency:
     tags(
         (name = "auth", description = "Authentication endpoints"),
         (name = "comments", description = "Comment CRUD and voting"),
+        (name = "media", description = "Media upload and management"),
         (name = "users", description = "User profile and settings"),
         (name = "notifications", description = "User notifications"),
         (name = "moderation", description = "Content moderation (moderator+)"),
@@ -276,6 +277,10 @@ Single-letter keys for efficiency:
         comments::vote_comment,
         comments::report_comment,
         comments::get_my_votes,
+        // Media
+        media::upload_avatar,
+        media::upload_image,
+        media::delete_media,
         // Users
         users::get_me,
         users::update_me,
@@ -353,6 +358,8 @@ Single-letter keys for efficiency:
             comments::VoteResponse,
             comments::ReportRequest,
             comments::GetVotesResponse,
+            // Media types
+            media::UploadResponse,
             // User types
             users::MeResponse,
             users::UpdateMeRequest,

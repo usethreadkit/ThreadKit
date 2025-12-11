@@ -21,6 +21,8 @@ export type {
   ThreadKitErrorCode,
   CommentStoreState,
   TokenStorage,
+  MediaUpload,
+  UploadProgress,
 } from './types';
 
 export { ThreadKitError } from './types';
@@ -214,3 +216,4 @@ export { DELETED_USER_ID, ANONYMOUS_USER_ID } from './api.types';
 // ============================================================================
 
 export { getUser } from './api/users';
+export { uploadAvatar, uploadImage, deleteMedia } from './api/media';

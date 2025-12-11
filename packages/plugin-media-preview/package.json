@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/plugin-media-preview",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Media preview plugin for ThreadKit (YouTube, Vimeo, images)",
   "type": "module",
   "main": "./dist/index.cjs",

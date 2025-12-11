@@ -63,6 +63,8 @@ export interface User {
   email?: string;
   avatar_url?: string;
   email_verified: boolean;
+  phone_verified: boolean;
+  username_set: boolean;
 }
 
 export interface SolanaWalletState {
@@ -527,12 +529,12 @@ export function createSolanaAuthPluginForThreadKit(
     name: 'Solana',
     type: 'web3',
     Icon: SolanaIcon,
-    render: ({ onSuccess, onError, onCancel, apiUrl, apiKey }: AuthPluginRenderProps) => {
+    render: ({ onSuccess, onError, onCancel, apiUrl, projectId }: AuthPluginRenderProps) => {
       // Render a modal/UI for wallet connection
       return (
         <SolanaAuthModal
           apiUrl={apiUrl}
-          apiKey={apiKey}
+          apiKey={projectId}
           onSuccess={onSuccess}
           onError={onError}
           onCancel={onCancel}
@@ -620,6 +622,7 @@ function SolanaAuthModal({
         avatar_url: user.avatar_url,
         email_verified: user.email_verified,
         phone_verified: false,
+        username_set: user.username_set ?? true,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Authentication failed';

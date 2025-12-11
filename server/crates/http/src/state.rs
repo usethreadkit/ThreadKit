@@ -2,7 +2,7 @@ use anyhow::Result;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
-use threadkit_common::{redis::RedisClient, Config, ModerationClient};
+use threadkit_common::{redis::RedisClient, Config, ModerationClient, StorageClient};
 use uuid::Uuid;
 
 /// In-memory cache for page ETags (updated_at timestamps)
@@ -15,6 +15,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub redis: Arc<RedisClient>,
     pub moderation: Arc<ModerationClient>,
+    pub storage: Option<Arc<StorageClient>>,
     /// In-memory cache for page ETags - avoids Redis reads for unchanged pages
     pub etag_cache: ETagCache,
 }
@@ -45,6 +46,23 @@ impl AppState {
         if moderation.is_enabled() {
             tracing::info!("Content moderation enabled");
         }
+
+        // Initialize S3 storage client if enabled
+        let storage = if let Some(s3_config) = &config.s3 {
+            match StorageClient::new(s3_config).await {
+                Ok(client) => {
+                    tracing::info!("S3 storage enabled: {}", s3_config.bucket);
+                    Some(Arc::new(client))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to initialize S3 storage: {}", e);
+                    None
+                }
+            }
+        } else {
+            tracing::info!("S3 storage not configured");
+            None
+        };
 
         // In standalone mode, look up site from API key
         if let Some(standalone) = config.standalone() {
@@ -111,6 +129,7 @@ impl AppState {
             config: Arc::new(config),
             redis: Arc::new(redis),
             moderation: Arc::new(moderation),
+            storage,
             etag_cache,
         })
     }

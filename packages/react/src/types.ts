@@ -253,6 +253,10 @@ export interface CommentFormProps {
   onCancel?: () => void;
   pendingCount?: number;
   onLoadPending?: () => void;
+  // Media upload props (optional)
+  apiUrl?: string;
+  projectId?: string;
+  token?: string;
 }
 
 export interface CommentProps {

@@ -70,6 +70,7 @@ export function Comment({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const upvotes = comment.upvotes;
   const downvotes = comment.downvotes;
@@ -289,6 +290,7 @@ export function Comment({
                 getUserProfile,
                 fetchUserProfile,
                 plugins,
+                onImageClick: setLightboxImage,
               })
             )}
           </div>
@@ -620,6 +622,31 @@ export function Comment({
           )}
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <div
+          className="threadkit-lightbox"
+          onClick={() => setLightboxImage(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setLightboxImage(null)}
+          role="button"
+          tabIndex={0}
+        >
+          <button
+            className="threadkit-lightbox-close"
+            onClick={() => setLightboxImage(null)}
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Full size"
+            className="threadkit-lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

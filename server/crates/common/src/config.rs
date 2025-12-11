@@ -17,6 +17,7 @@ pub struct Config {
     pub email: EmailConfig,
     pub sms: SmsConfig,
     pub turnstile: TurnstileConfig,
+    pub s3: Option<S3Config>,
     /// Maximum comment length in characters
     pub max_comment_length: usize,
     /// Allow localhost/127.0.0.1/::1 origins for API requests (development only)
@@ -28,6 +29,17 @@ pub struct Config {
 pub struct TurnstileConfig {
     /// Turnstile secret key (from Cloudflare dashboard)
     pub secret_key: Option<String>,
+}
+
+/// Configuration for S3-compatible storage (e.g., Backblaze B2)
+#[derive(Debug, Clone)]
+pub struct S3Config {
+    pub endpoint: String,
+    pub region: String,
+    pub bucket: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub public_url: String,
 }
 
 /// Configuration for email sending
@@ -302,6 +314,8 @@ impl Config {
             secret_key: env::var("TURNSTILE_SECRET_KEY").ok().filter(|s| !s.is_empty()),
         };
 
+        let s3 = Self::load_s3_config();
+
         Ok(Config {
             mode,
             redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string()),
@@ -337,6 +351,7 @@ impl Config {
             email,
             sms,
             turnstile,
+            s3,
             max_comment_length: env::var("MAX_COMMENT_LENGTH")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -393,6 +408,25 @@ impl Config {
             }
             _ => None,
         }
+    }
+
+    fn load_s3_config() -> Option<S3Config> {
+        let enabled = env::var("S3_ENABLED")
+            .map(|v| v == "true" || v == "1")
+            .unwrap_or(false);
+
+        if !enabled {
+            return None;
+        }
+
+        Some(S3Config {
+            endpoint: env::var("S3_ENDPOINT").ok()?,
+            region: env::var("S3_REGION").ok()?,
+            bucket: env::var("S3_BUCKET_NAME").ok()?,
+            access_key_id: env::var("S3_APPLICATION_KEY_ID").ok()?,
+            secret_access_key: env::var("S3_APPLICATION_KEY").ok()?,
+            public_url: env::var("S3_PUBLIC_URL").ok()?,
+        })
     }
 
     pub fn is_standalone(&self) -> bool {

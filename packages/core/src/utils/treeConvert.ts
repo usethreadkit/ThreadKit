@@ -34,15 +34,6 @@ export function treeCommentToComment(tc: TreeComment, parentId?: string, votes?:
   // Use 'q' field if present (WebSocket messages), otherwise use passed parentId (nested tree)
   const resolvedParentId = tc.q ?? parentId;
 
-  // Debug logging for WebSocket threading
-  if (tc.q) {
-    console.log('[treeConvert] WebSocket comment with parent_id:', {
-      commentId: tc.i,
-      parentId: tc.q,
-      text: tc.t.substring(0, 50)
-    });
-  }
-
   return {
     id: tc.i,
     userId: tc.a,

@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/plugin-auth-ethereum",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ethereum wallet authentication plugin for ThreadKit",
   "type": "module",
   "main": "dist/index.js",

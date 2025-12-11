@@ -9,12 +9,13 @@ export type TokenType =
   | 'strike'
   | 'code'
   | 'link'
+  | 'image'
   | 'mention';
 
 export interface Token {
   type: TokenType;
   content: string;
-  /** URL for link tokens */
+  /** URL for link/image tokens */
   url?: string;
   /** User ID for mention tokens */
   userId?: string;
@@ -78,6 +79,16 @@ export function tokenizeLine(text: string, options: TokenizerOptions = {}): Toke
       tokens.push({ type: 'code', content: codeMatch[1] });
       remaining = remaining.slice(codeMatch[0].length);
       continue;
+    }
+
+    // Images: ![alt](url) - must come before links
+    if (options.allowLinks) {
+      const imageMatch = remaining.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+      if (imageMatch) {
+        tokens.push({ type: 'image', content: imageMatch[1] || '', url: imageMatch[2] });
+        remaining = remaining.slice(imageMatch[0].length);
+        continue;
+      }
     }
 
     // Links: [text](url)

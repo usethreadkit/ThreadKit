@@ -15,6 +15,9 @@ export { UserHoverCard } from './components/UserHoverCard';
 export { SettingsPanel } from './components/SettingsPanel';
 export { NotificationsPanel } from './components/NotificationsPanel';
 export { MentionInput } from './components/MentionInput';
+export { MediaUploader } from './components/MediaUploader';
+export { AvatarUploadModal } from './components/AvatarUploadModal';
+export type { MediaUploaderProps } from './components/MediaUploader';
 export type { Notification } from './components/NotificationsPanel';
 
 // Hooks
