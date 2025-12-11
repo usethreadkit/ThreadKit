@@ -2,12 +2,12 @@ use axum::{http::HeaderName, http::HeaderValue, middleware, Router};
 use axum_test::TestServer;
 use serde_json::json;
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
-use testcontainers_modules::redis::Redis;
+use testcontainers_modules::{minio::MinIO, redis::Redis};
 use uuid::Uuid;
 
 use threadkit_common::{
     config::{
-        ContentModerationConfig, EmailConfig, RateLimitConfig, SmsConfig,
+        ContentModerationConfig, EmailConfig, RateLimitConfig, S3Config, SmsConfig,
         StandaloneConfig, TurnstileConfig,
     },
     Config,
@@ -20,23 +20,63 @@ pub struct TestContext {
     pub secret_key: String,
     pub site_id: Uuid,
     #[allow(dead_code)]
-    container: ContainerAsync<Redis>,
+    redis_container: ContainerAsync<Redis>,
+    #[allow(dead_code)]
+    pub minio_container: Option<ContainerAsync<MinIO>>,
+    pub s3_config: Option<S3Config>,
 }
 
 impl TestContext {
     pub async fn new() -> Self {
+        Self::new_with_s3(false).await
+    }
+
+    pub async fn new_with_s3(enable_s3: bool) -> Self {
         // Start Redis container
-        let container = Redis::default()
+        let redis_container = Redis::default()
             .with_tag("7-alpine")
             .start()
             .await
             .expect("Failed to start Redis container");
 
-        let host = container.get_host().await.expect("Failed to get host");
-        let port = container
+        let host = redis_container.get_host().await.expect("Failed to get host");
+        let port = redis_container
             .get_host_port_ipv4(6379)
             .await
             .expect("Failed to get port");
+
+        // Optionally start MinIO container
+        let (minio_container, s3_config) = if enable_s3 {
+            let minio = MinIO::default()
+                .start()
+                .await
+                .expect("Failed to start MinIO container");
+
+            let minio_host = minio.get_host().await.expect("Failed to get MinIO host");
+            let minio_port = minio
+                .get_host_port_ipv4(9000)
+                .await
+                .expect("Failed to get MinIO port");
+
+            let endpoint = format!("http://{}:{}", minio_host, minio_port);
+
+            // Create buckets
+            let access_key = "minioadmin";
+            let secret_key = "minioadmin";
+
+            let config = S3Config {
+                endpoint: endpoint.clone(),
+                region: "us-east-1".to_string(),
+                bucket: "threadkit-media".to_string(),
+                access_key_id: access_key.to_string(),
+                secret_access_key: secret_key.to_string(),
+                public_url: format!("{}/threadkit-media", endpoint),
+            };
+
+            (Some(minio), Some(config))
+        } else {
+            (None, None)
+        };
 
         // Create config
         let site_id = Uuid::now_v7();
@@ -100,6 +140,7 @@ impl TestContext {
             email: EmailConfig::default(),
             sms: SmsConfig::default(),
             turnstile: TurnstileConfig::default(),
+            s3: s3_config.clone(),
             max_comment_length: 10_000,
             allow_localhost_origin: true,
         };
@@ -124,18 +165,20 @@ impl TestContext {
             project_id,
             secret_key,
             site_id,
-            container,
+            redis_container,
+            minio_container,
+            s3_config,
         }
     }
 
-    fn project_id_header(&self) -> (HeaderName, HeaderValue) {
+    pub fn project_id_header(&self) -> (HeaderName, HeaderValue) {
         (
             HeaderName::from_static("projectid"),
             HeaderValue::from_str(&self.project_id).unwrap(),
         )
     }
 
-    fn auth_header(token: &str) -> (HeaderName, HeaderValue) {
+    pub fn auth_header(token: &str) -> (HeaderName, HeaderValue) {
         (
             HeaderName::from_static("authorization"),
             HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),

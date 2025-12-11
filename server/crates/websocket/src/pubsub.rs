@@ -13,11 +13,12 @@ use uuid::Uuid;
 use crate::messages::ServerMessage;
 
 /// Event payload from Redis Pub/Sub
+/// Note: page_id is extracted from the Redis channel name (threadkit:page:{page_id}:events)
+/// rather than from the event payload, so it's not included in this struct.
 #[derive(Debug, serde::Deserialize)]
 struct PubSubEvent {
     #[serde(rename = "type")]
     event_type: String,
-    page_id: Uuid,
     data: serde_json::Value,
 }
 
