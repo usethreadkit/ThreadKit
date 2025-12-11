@@ -228,6 +228,29 @@ jobs:
           parallel: true
         continue-on-error: true
 
+  cli:
+    name: CLI Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests with coverage
+        run: pnpm --filter @threadkit/cli test:run -- --coverage
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: packages/cli/coverage/lcov.info
+          flag-name: cli
+          parallel: true
+
   rust:
     name: Rust Coverage
     runs-on: ubuntu-latest
@@ -308,7 +331,7 @@ jobs:
 
   finish:
     name: Finish Coveralls
-    needs: [core, react, plugin-latex, plugin-syntax-highlight, plugin-media-preview, plugin-turnstile, plugin-auth-ethereum, plugin-auth-solana, svelte, rust, wordpress]
+    needs: [core, react, plugin-latex, plugin-syntax-highlight, plugin-media-preview, plugin-turnstile, plugin-auth-ethereum, plugin-auth-solana, svelte, cli, rust, wordpress]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -316,4 +339,4 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           parallel-finished: true
-          carryforward: core,react,plugin-latex,plugin-syntax-highlight,plugin-media-preview,plugin-turnstile,plugin-auth-ethereum,plugin-auth-solana,svelte,rust,wordpress
+          carryforward: core,react,plugin-latex,plugin-syntax-highlight,plugin-media-preview,plugin-turnstile,plugin-auth-ethereum,plugin-auth-solana,svelte,cli,rust,wordpress
