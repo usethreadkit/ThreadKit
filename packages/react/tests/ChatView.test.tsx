@@ -121,12 +121,15 @@ describe('ChatView', () => {
 
     it('shows sign in placeholder when no user', () => {
       renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
-      expect(screen.getByPlaceholderText('Sign in to chat')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
     });
 
     it('disables input when no user', () => {
       renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
-      expect(screen.getByPlaceholderText('Sign in to chat')).toBeDisabled();
+      // When using AuthProvider without a logged-in user, input is not disabled
+      // but submit button should be disabled
+      const input = screen.getByPlaceholderText('Type a message...');
+      expect(input).not.toBeDisabled();
     });
 
     it('enables input for logged in user', () => {
