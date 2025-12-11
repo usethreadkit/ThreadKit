@@ -305,11 +305,12 @@ export function CommentsView({
     // If we have a focused comment, find the next comment to select after deletion
     if (focusedCommentId) {
       // Helper to find comment in tree structure
-      const findCommentInTree = (comments: typeof comments, targetId: string): { comment: typeof comments[0], parent: typeof comments[0] | null, siblings: typeof comments, index: number } | null => {
-        for (let i = 0; i < comments.length; i++) {
-          const comment = comments[i];
+      type CommentNode = typeof comments[0];
+      const findCommentInTree = (commentList: CommentNode[], targetId: string): { comment: CommentNode, parent: CommentNode | null, siblings: CommentNode[], index: number } | null => {
+        for (let i = 0; i < commentList.length; i++) {
+          const comment = commentList[i];
           if (comment.id === targetId) {
-            return { comment, parent: null, siblings: comments, index: i };
+            return { comment, parent: null, siblings: commentList, index: i };
           }
           // Search in children
           const found = findCommentInChildren(comment.children, targetId, comment);
@@ -318,7 +319,7 @@ export function CommentsView({
         return null;
       };
 
-      const findCommentInChildren = (children: typeof comments, targetId: string, parent: typeof comments[0]): { comment: typeof comments[0], parent: typeof comments[0] | null, siblings: typeof comments, index: number } | null => {
+      const findCommentInChildren = (children: CommentNode[], targetId: string, parent: CommentNode): { comment: CommentNode, parent: CommentNode | null, siblings: CommentNode[], index: number } | null => {
         for (let i = 0; i < children.length; i++) {
           const comment = children[i];
           if (comment.id === targetId) {
