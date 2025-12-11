@@ -302,18 +302,51 @@ export function CommentsView({
     const yesBtn = document.querySelector('.threadkit-confirm-yes') as HTMLButtonElement;
     if (!yesBtn) return;
 
-    // If we have a focused comment, remember the previous one to select after deletion
+    // If we have a focused comment, find the next comment to select after deletion
     if (focusedCommentId) {
-      const allComments = getAllVisibleComments();
-      const currentIndex = allComments.findIndex(el => el.getAttribute('data-comment-id') === focusedCommentId);
+      // Helper to find comment in tree structure
+      const findCommentInTree = (comments: typeof comments, targetId: string): { comment: typeof comments[0], parent: typeof comments[0] | null, siblings: typeof comments, index: number } | null => {
+        for (let i = 0; i < comments.length; i++) {
+          const comment = comments[i];
+          if (comment.id === targetId) {
+            return { comment, parent: null, siblings: comments, index: i };
+          }
+          // Search in children
+          const found = findCommentInChildren(comment.children, targetId, comment);
+          if (found) return found;
+        }
+        return null;
+      };
 
-      // Find the previous comment to select after deletion
+      const findCommentInChildren = (children: typeof comments, targetId: string, parent: typeof comments[0]): { comment: typeof comments[0], parent: typeof comments[0] | null, siblings: typeof comments, index: number } | null => {
+        for (let i = 0; i < children.length; i++) {
+          const comment = children[i];
+          if (comment.id === targetId) {
+            return { comment, parent, siblings: children, index: i };
+          }
+          // Search deeper
+          const found = findCommentInChildren(comment.children, targetId, comment);
+          if (found) return found;
+        }
+        return null;
+      };
+
+      const result = findCommentInTree(comments, focusedCommentId);
       let nextFocusId: string | null = null;
-      if (currentIndex > 0) {
-        nextFocusId = allComments[currentIndex - 1].getAttribute('data-comment-id');
-      } else if (currentIndex === 0 && allComments.length > 1) {
-        // If deleting first comment, select the new first comment (what was second)
-        nextFocusId = allComments[1].getAttribute('data-comment-id');
+
+      if (result) {
+        // 1. Try to find previous sibling at same depth
+        if (result.index > 0) {
+          nextFocusId = result.siblings[result.index - 1].id;
+        }
+        // 2. Otherwise, go up to parent
+        else if (result.parent) {
+          nextFocusId = result.parent.id;
+        }
+        // 3. If no previous sibling and no parent, try next sibling
+        else if (result.index < result.siblings.length - 1) {
+          nextFocusId = result.siblings[result.index + 1].id;
+        }
       }
 
       yesBtn.click();
@@ -336,7 +369,7 @@ export function CommentsView({
     } else {
       yesBtn.click();
     }
-  }, [focusedCommentId, getAllVisibleComments]);
+  }, [focusedCommentId, comments]);
 
   const confirmNo = useCallback(() => {
     // Find any visible confirmation dialog and click "No"
