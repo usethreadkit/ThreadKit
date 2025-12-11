@@ -95,6 +95,8 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   private typingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private enabled = true;
   private connectionErrorLogged = false;
+  private hasConnectedOnce = false;
+  private consecutiveFailures = 0;
 
   constructor(config: WebSocketClientConfig) {
     super();
@@ -196,14 +198,17 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
 
       this.ws.onopen = () => {
         this.setState({ connected: true });
-        // Reset error flag on successful connection
+        // Reset error tracking on successful connection
         this.connectionErrorLogged = false;
+        this.hasConnectedOnce = true;
+        this.consecutiveFailures = 0;
         // Auto-subscribe to the configured page
         this.subscribe(this.config.pageId);
       };
 
       this.ws.onclose = () => {
         this.setState({ connected: false });
+        this.consecutiveFailures++;
         this.scheduleReconnect();
       };
 
@@ -323,6 +328,12 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
 
   private scheduleReconnect(): void {
     if (!this.enabled) return;
+
+    // If we've never connected and have failed 3 times, stop trying to avoid console spam
+    if (!this.hasConnectedOnce && this.consecutiveFailures >= 3) {
+      console.warn('[ThreadKit] WebSocket unavailable after 3 attempts. Stopped auto-reconnecting. Call connect() manually to retry.');
+      return;
+    }
 
     const delay = this.config.reconnectDelay ?? 3000;
     this.reconnectTimeout = setTimeout(() => {
