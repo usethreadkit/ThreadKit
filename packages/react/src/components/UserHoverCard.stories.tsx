@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { UserHoverCard } from './UserHoverCard';
 import { TranslationProvider } from '../i18n';
 import type { UserProfile } from '../types';

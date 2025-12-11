@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CommentForm } from './CommentForm';
 import { TranslationProvider } from '../i18n';
 

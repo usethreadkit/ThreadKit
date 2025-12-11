@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { NotificationsPanel } from './NotificationsPanel';
 import type { Notification } from './NotificationsPanel';
 import { TranslationProvider } from '../i18n';

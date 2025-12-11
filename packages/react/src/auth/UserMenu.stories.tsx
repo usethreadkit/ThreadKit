@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { UserMenu } from './UserMenu';
 import { AuthProvider } from './AuthContext';
 import { TranslationProvider } from '../i18n';

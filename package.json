@@ -28,15 +28,16 @@
     "example:solana": "pnpm --filter @threadkit/example-solana dev"
   },
   "devDependencies": {
-    "@storybook/addon-links": "10.1.6",
-    "@storybook/addon-themes": "10.1.6",
-    "@storybook/react": "10.1.6",
-    "@storybook/react-vite": "10.1.6",
+    "@storybook/addon-links": "10.1.7",
+    "@storybook/addon-themes": "10.1.7",
+    "@storybook/addon-vitest": "^10.1.7",
+    "@storybook/react-vite": "10.1.7",
+    "@vitest/browser": "^4.0.15",
     "openapi-typescript": "^7.10.1",
     "playwright": "^1.57.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "storybook": "10.1.6",
+    "storybook": "10.1.7",
     "typescript": "^5.3.3",
     "vite": "^6.4.1"
   },

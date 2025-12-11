@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MediaUploader } from './MediaUploader';
 import { useState } from 'react';
 import type { MediaUpload } from '@threadkit/core';

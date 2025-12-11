@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ThreadKit } from './ThreadKit';
 import type { Comment } from './types';
 

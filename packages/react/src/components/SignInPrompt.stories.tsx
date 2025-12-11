@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SignInPrompt } from './SignInPrompt';
 import { TranslationProvider } from '../i18n';
 import { AuthProvider } from '../auth/AuthContext';

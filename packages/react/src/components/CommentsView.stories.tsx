@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CommentsView } from './CommentsView';
 import { TranslationProvider } from '../i18n';
 import { AuthProvider } from '../auth';
