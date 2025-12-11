@@ -10,6 +10,12 @@
 
 import { chromium } from 'playwright';
 import { writeFileSync } from 'fs';
+import { spawn, ChildProcess } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Domain filters for each comment system - only count resources from these domains
 // IMPORTANT: We exclude tracking/analytics domains (Google Analytics, HubSpot, etc.)
@@ -18,8 +24,8 @@ const SYSTEM_DOMAINS = {
   'Disqus': ['c.disquscdn.com', 'disqus.com'], // Exclude media.disquscdn.com (user uploads)
   'Isso': ['isso-comments.de', 'posativ.org'],
   'Remark42': ['remark42.com'],
-  'Comentario': ['comentario.com', 'cdn.comentario.com', 'commento.io'],
-  'Hyvor Talk': ['talk.hyvor.com/talk/', 'hyvor.com/talk/'], // Only the embed script, not docs site
+  'Comentario': ['comentario.com', 'cdn.comentario.com', 'commento.io', 'demo.comentario.app'],
+  'Hyvor Talk': ['talk.hyvor.com'], // Includes embed.js and API calls
   'ThreadKit': ['usethreadkit.com', 'threadkit.com', 'cdn.jsdelivr.net/npm/@threadkit'],
 };
 
@@ -101,13 +107,70 @@ function formatBytes(bytes) {
   return `${(bytes / 1024).toFixed(2)}KB`;
 }
 
+async function startServer(): Promise<ChildProcess> {
+  return new Promise((resolve, reject) => {
+    const server = spawn('npx', ['http-server', 'test-pages', '-p', '8765', '--cors', '-s'], {
+      cwd: __dirname,
+      stdio: 'pipe',
+    });
+
+    let resolved = false;
+
+    server.stdout?.on('data', (data) => {
+      const output = data.toString();
+      if (!resolved && (output.includes('Available on:') || output.includes('Hit CTRL-C'))) {
+        resolved = true;
+        console.log('✅ Test server started on http://localhost:8765\n');
+        // Wait an extra second for server to be fully ready
+        setTimeout(() => resolve(server), 1000);
+      }
+    });
+
+    server.stderr?.on('data', (data) => {
+      const output = data.toString();
+      // http-server writes to stderr for npm warnings, ignore those
+      if (!output.includes('npm warn')) {
+        console.error('Server error:', output);
+      }
+    });
+
+    // Fallback timeout
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        console.log('✅ Test server started (timeout fallback)\n');
+        resolve(server);
+      }
+    }, 5000);
+  });
+}
+
 async function main() {
   console.log('🚀 Comment System Bundle Size Benchmark');
   console.log('=========================================\n');
-  console.log('Loading real pages and measuring actual network traffic...');
+  console.log('Starting local test server...');
+
+  const server = await startServer();
+
+  console.log('Loading pages and measuring actual network traffic...');
   console.log('⚖️  FAIR COMPARISON: Only counting resources from comment system domains\n');
 
   const tests = [
+    {
+      name: 'Disqus',
+      url: 'http://localhost:8765/disqus.html',
+      selector: '#disqus_thread iframe',
+    },
+    {
+      name: 'Hyvor Talk',
+      url: 'http://localhost:8765/hyvor-talk.html',
+      selector: 'hyvor-talk-comments',
+    },
+    {
+      name: 'Comentario',
+      url: 'https://demo.comentario.app/',
+      selector: '#commento',
+    },
     {
       name: 'Isso',
       url: 'https://isso-comments.de/',
@@ -118,12 +181,6 @@ async function main() {
       url: 'https://remark42.com/demo/',
       selector: '#remark42',
     },
-    // Note: Comentario test page doesn't actually use Comentario
-    // {
-    //   name: 'Comentario',
-    //   url: 'https://deployn.de/en/blog/self-hosted-comment-systems/',
-    //   selector: '#commento',
-    // },
   ];
 
   const results = [];
@@ -174,6 +231,13 @@ async function main() {
   );
 
   console.log('Results saved to results.json\n');
+
+  // Clean up server
+  server.kill();
+  process.exit(0);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
