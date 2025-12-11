@@ -245,4 +245,46 @@ impl TestContext {
             .json(&payload)
             .await
     }
+
+    /// Set moderation mode for the site
+    pub async fn set_moderation_mode(&self, mode: &str) {
+        // This would update the site config in Redis
+        // For now, this is a placeholder - actual implementation would update Redis
+        // TODO: Implement site config update in Redis
+    }
+
+    /// Set user role (Owner, Admin, Moderator, User)
+    pub async fn set_user_role(&self, token: &str, role: &str) {
+        let (key_name, key_value) = self.project_id_header();
+        let (auth_name, auth_value) = Self::auth_header(token);
+
+        // This would need an admin endpoint to set roles
+        // For now, directly update in Redis as a test helper
+        // TODO: Implement via admin API endpoint
+        let _ = self
+            .server
+            .put("/v1/admin/users/role")
+            .add_header(key_name, key_value)
+            .add_header(auth_name, auth_value)
+            .json(&json!({
+                "role": role
+            }))
+            .await;
+    }
+
+    /// Report a comment
+    pub async fn report_comment(&self, token: &str, comment_id: &str, reason: &str) {
+        let (key_name, key_value) = self.project_id_header();
+        let (auth_name, auth_value) = Self::auth_header(token);
+
+        let _ = self
+            .server
+            .post(&format!("/v1/comments/{}/report", comment_id))
+            .add_header(key_name, key_value)
+            .add_header(auth_name, auth_value)
+            .json(&json!({
+                "reason": reason
+            }))
+            .await;
+    }
 }
