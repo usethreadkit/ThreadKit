@@ -94,6 +94,7 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   private reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
   private typingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private enabled = true;
+  private connectionErrorLogged = false;
 
   constructor(config: WebSocketClientConfig) {
     super();
@@ -195,6 +196,8 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
 
       this.ws.onopen = () => {
         this.setState({ connected: true });
+        // Reset error flag on successful connection
+        this.connectionErrorLogged = false;
         // Auto-subscribe to the configured page
         this.subscribe(this.config.pageId);
       };
@@ -205,6 +208,11 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
       };
 
       this.ws.onerror = () => {
+        // Log connection error only once (browser will also log but we can't suppress that)
+        if (!this.connectionErrorLogged) {
+          console.warn('[ThreadKit] WebSocket connection failed. Will retry automatically...');
+          this.connectionErrorLogged = true;
+        }
         // Close will be called after error, which will trigger reconnect
         this.ws?.close();
       };
