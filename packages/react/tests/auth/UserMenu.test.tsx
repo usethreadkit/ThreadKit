@@ -25,7 +25,7 @@ describe('UserMenu', () => {
 
   it('shows sign in button when not logged in', () => {
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -37,7 +37,7 @@ describe('UserMenu', () => {
     const onLogin = vi.fn();
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={onLogin} />
       </AuthProvider>
     );
@@ -65,7 +65,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -95,7 +95,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -125,7 +125,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -160,7 +160,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -200,7 +200,7 @@ describe('UserMenu', () => {
     render(
       <div>
         <div data-testid="outside">Outside</div>
-        <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+        <AuthProvider apiUrl="http://test.com" projectId="test-key">
           <UserMenu onLogin={vi.fn()} />
         </AuthProvider>
       </div>
@@ -242,7 +242,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );
@@ -272,7 +272,7 @@ describe('UserMenu', () => {
     });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <UserMenu onLogin={vi.fn()} />
       </AuthProvider>
     );

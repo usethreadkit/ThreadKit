@@ -15,26 +15,59 @@ export default tseslint.config(
       'examples/**', // Don't lint examples
       'bench/**',
       'scripts/**',
+      'packages/*/scripts/**',
       '.storybook/**',
       'storybook-static/**',
+      '**/test-debug.ts',
+      '**/test-debug.js',
+      '**/*.stories.tsx',
+      '**/*.stories.ts',
     ],
   },
 
-  // Base JavaScript config
-  js.configs.recommended,
-
-  // TypeScript config for all TS files
+  // Base JavaScript config for .js files
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.js'],
+    ...js.configs.recommended,
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+      },
+    },
+  },
+
+  // TypeScript config for source files (not tests)
+  {
+    files: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.tsx'],
     extends: [...tseslint.configs.recommended],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: true,
+        project: './packages/*/tsconfig.json',
       },
     },
     rules: {
       // Customize these rules as needed
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
+    },
+  },
+
+  // TypeScript config for test files (without project requirement)
+  {
+    files: ['packages/*/tests/**/*.ts', 'packages/*/tests/**/*.tsx'],
+    extends: [...tseslint.configs.recommended],
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+    rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',

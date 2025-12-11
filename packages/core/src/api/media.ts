@@ -98,7 +98,7 @@ function uploadFile(
         try {
           const response = JSON.parse(xhr.responseText) as MediaUpload;
           resolve(response);
-        } catch (e) {
+        } catch {
           console.error('[Media Upload] Invalid response from server:', xhr.responseText);
           reject(new Error('Invalid response from server'));
         }

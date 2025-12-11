@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render } from '@testing-library/react';
 import { ThreadKit } from '../src/ThreadKit';
 
 // Mock BroadcastChannel
@@ -199,8 +198,8 @@ describe('Vote Synchronization', () => {
     expect(channels).toBeDefined();
 
     const channel = channels![0];
-    const updateSpy = vi.fn();
-    
+    const _updateSpy = vi.fn();
+
     // We can't easily spy on updateComment, but we can verify the filtering logic
     // The actual test would be: send a message with wrong pageUrl and verify no update
     expect(channel).toBeDefined();

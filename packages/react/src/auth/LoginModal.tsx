@@ -91,7 +91,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
                 selectMethod(state.availableMethods[0]);
               }
             }
-          } catch (e) {
+          } catch {
             // COOP may block access to window.closed - stop polling
             clearInterval(pollTimer);
           }

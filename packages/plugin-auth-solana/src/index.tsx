@@ -319,7 +319,7 @@ export function ThreadKitSolanaWalletButton({
   className,
   style,
 }: WalletButtonProps) {
-  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
+  const { address, isConnected, isConnecting, connect } = useWallet();
   const { isSigningIn, isSignedIn, user, signIn, signOut } = useSignIn();
 
   const truncatedAddress = address
@@ -556,7 +556,6 @@ function SolanaAuthModal({
   onSuccess,
   onError,
   onCancel,
-  providerConfig,
 }: {
   apiUrl: string;
   apiKey: string;

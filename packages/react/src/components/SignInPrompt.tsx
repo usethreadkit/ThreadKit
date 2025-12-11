@@ -90,7 +90,7 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
                 handleBack();
               }
             }
-          } catch (e) {
+          } catch {
             // COOP may block access to window.closed - stop polling
             clearInterval(pollTimer);
           }

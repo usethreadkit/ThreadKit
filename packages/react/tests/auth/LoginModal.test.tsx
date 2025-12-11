@@ -36,7 +36,7 @@ function renderLoginModal(onClose = vi.fn()) {
   });
 
   return render(
-    <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+    <AuthProvider apiUrl="http://test.com" projectId="test-key">
       <LoginModalTrigger onClose={onClose} />
     </AuthProvider>
   );
@@ -50,7 +50,7 @@ function LoginModalTrigger({ onClose }: { onClose: () => void }) {
     <>
       <button onClick={login}>Open Login</button>
       {state.step !== 'idle' && (
-        <LoginModal onClose={onClose} apiUrl="http://test.com" apiKey="test-key" />
+        <LoginModal onClose={onClose} apiUrl="http://test.com" projectId="test-key" />
       )}
     </>
   );
@@ -116,7 +116,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true }); // send-otp response
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -156,7 +156,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -188,7 +188,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -219,7 +219,7 @@ describe('LoginModal', () => {
       .mockResolvedValueOnce({ ok: true });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -239,7 +239,7 @@ describe('LoginModal', () => {
     expect(otpInput).toHaveValue('123456');
   });
 
-  it('disables verify button until 6 digits entered', async () => {
+  it('auto-submits OTP when 6 digits entered', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -247,11 +247,27 @@ describe('LoginModal', () => {
           methods: [{ id: 'email', name: 'Email', type: 'otp' }],
         }),
       })
-      .mockResolvedValueOnce({ ok: true });
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          token: 'test-token',
+          refresh_token: 'test-refresh',
+          user: {
+            id: 'user-123',
+            name: 'Test User',
+            email: 'test@example.com',
+            email_verified: true,
+            phone_verified: false,
+            username_set: true,
+          },
+        }),
+      });
 
+    const onClose = vi.fn();
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
-        <LoginModalTrigger onClose={vi.fn()} />
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
+        <LoginModalTrigger onClose={onClose} />
       </AuthProvider>
     );
 
@@ -264,14 +280,20 @@ describe('LoginModal', () => {
 
     await waitFor(() => expect(screen.getByPlaceholderText('000000')).toBeInTheDocument());
 
+    // Verify button is disabled initially
     const verifyButton = screen.getByText('Verify');
     expect(verifyButton).toBeDisabled();
 
+    // Type 5 digits - button should still be disabled
     await userEvent.type(screen.getByPlaceholderText('000000'), '12345');
     expect(verifyButton).toBeDisabled();
 
+    // Type 6th digit - auto-submits and closes modal
     await userEvent.type(screen.getByPlaceholderText('000000'), '6');
-    expect(verifyButton).not.toBeDisabled();
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 
   it('opens OAuth popup for Google', async () => {
@@ -357,7 +379,7 @@ describe('LoginModal', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -372,11 +394,11 @@ describe('LoginModal', () => {
     await waitFor(() => expect(screen.getByPlaceholderText('000000')).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-    await userEvent.click(screen.getByText('Verify'));
+    // Auto-submits after 6 digits
 
     await waitFor(() => {
       expect(screen.getByText('Welcome!')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Your name')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('your-username')).toBeInTheDocument();
     });
   });
 
@@ -394,7 +416,7 @@ describe('LoginModal', () => {
       });
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
@@ -427,7 +449,7 @@ describe('LoginModal', () => {
       .mockImplementationOnce(() => otpPromise);
 
     render(
-      <AuthProvider apiUrl="http://test.com" apiKey="test-key">
+      <AuthProvider apiUrl="http://test.com" projectId="test-key">
         <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );

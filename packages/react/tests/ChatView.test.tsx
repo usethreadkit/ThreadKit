@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ChatView } from '../src/components/ChatView';
+import { AuthProvider } from '../src/auth/AuthContext';
 import type { Comment, User } from '../src/types';
 
 vi.mock('../i18n', () => ({
@@ -56,6 +57,15 @@ const mockModUser: User = {
   isAdmin: false,
 };
 
+// Helper to wrap component in AuthProvider
+const renderWithAuth = (component: React.ReactElement) => {
+  return render(
+    <AuthProvider apiUrl="http://test.com" projectId="test-key">
+      {component}
+    </AuthProvider>
+  );
+};
+
 describe('ChatView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,30 +73,30 @@ describe('ChatView', () => {
 
   describe('rendering', () => {
     it('renders chat messages', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       expect(screen.getByText('Hello everyone')).toBeInTheDocument();
       expect(screen.getByText('Hi there!')).toBeInTheDocument();
     });
 
     it('renders user names', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       expect(screen.getByText('User One')).toBeInTheDocument();
       expect(screen.getByText('User Two')).toBeInTheDocument();
     });
 
     it('shows edited indicator for edited messages', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       expect(screen.getByText('*')).toBeInTheDocument();
     });
 
     it('renders time for each message', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       const times = document.querySelectorAll('.threadkit-chat-time');
       expect(times.length).toBe(2);
     });
 
     it('renders toolbar when provided', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -99,7 +109,7 @@ describe('ChatView', () => {
 
   describe('input', () => {
     it('renders input with placeholder for logged in user', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -110,17 +120,17 @@ describe('ChatView', () => {
     });
 
     it('shows sign in placeholder when no user', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       expect(screen.getByPlaceholderText('Sign in to chat')).toBeInTheDocument();
     });
 
     it('disables input when no user', () => {
-      render(<ChatView comments={mockMessages} onSend={vi.fn()} />);
+      renderWithAuth(<ChatView comments={mockMessages} onSend={vi.fn()} />);
       expect(screen.getByPlaceholderText('Sign in to chat')).toBeDisabled();
     });
 
     it('enables input for logged in user', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -135,7 +145,7 @@ describe('ChatView', () => {
     it('calls onSend when form is submitted', async () => {
       const onSend = vi.fn().mockResolvedValue(undefined);
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -158,7 +168,7 @@ describe('ChatView', () => {
     it('clears input after successful send', async () => {
       const onSend = vi.fn().mockResolvedValue(undefined);
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -181,7 +191,7 @@ describe('ChatView', () => {
     });
 
     it('disables send button when input is empty', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -194,7 +204,7 @@ describe('ChatView', () => {
     it('calls onTyping when typing', () => {
       const onTyping = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -212,7 +222,7 @@ describe('ChatView', () => {
 
   describe('presence', () => {
     it('shows presence count when enabled', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -224,7 +234,7 @@ describe('ChatView', () => {
     });
 
     it('uses singular form for 1 person', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -236,7 +246,7 @@ describe('ChatView', () => {
     });
 
     it('hides presence when disabled', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -250,7 +260,7 @@ describe('ChatView', () => {
 
   describe('typing indicator', () => {
     it('shows typing indicator when users are typing', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -261,7 +271,7 @@ describe('ChatView', () => {
     });
 
     it('uses plural form for multiple typing users', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -275,7 +285,7 @@ describe('ChatView', () => {
     });
 
     it('hides typing indicator when no one is typing', () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
@@ -288,7 +298,7 @@ describe('ChatView', () => {
 
   describe('message actions', () => {
     it('expands message on click to show actions', async () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -309,7 +319,7 @@ describe('ChatView', () => {
     });
 
     it('shows block and report for other user messages', async () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -332,7 +342,7 @@ describe('ChatView', () => {
     it('calls onDelete when delete confirmed', async () => {
       const onDelete = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -363,7 +373,7 @@ describe('ChatView', () => {
     it('calls onEdit when edit saved', async () => {
       const onEdit = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -400,7 +410,7 @@ describe('ChatView', () => {
     it('cancels edit on Escape key', async () => {
       const onEdit = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -431,7 +441,7 @@ describe('ChatView', () => {
     it('submits edit on Enter key', async () => {
       const onEdit = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockCurrentUser}
@@ -462,7 +472,7 @@ describe('ChatView', () => {
 
   describe('moderator actions', () => {
     it('shows ban button for moderators on other user messages', async () => {
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockModUser}
@@ -483,7 +493,7 @@ describe('ChatView', () => {
     it('calls onBan when ban confirmed', async () => {
       const onBan = vi.fn();
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={mockMessages}
           currentUser={mockModUser}
@@ -523,7 +533,7 @@ describe('ChatView', () => {
         text: `Message ${i}`,
       }));
 
-      render(
+      renderWithAuth(
         <ChatView
           comments={manyMessages}
           onSend={vi.fn()}

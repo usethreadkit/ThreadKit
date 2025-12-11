@@ -16,7 +16,6 @@ import {
   useConnect,
   useDisconnect,
   useSignMessage,
-  type Config,
 } from 'wagmi';
 import { mainnet, polygon, arbitrum, optimism, base, type Chain } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
@@ -278,7 +277,7 @@ export function ThreadKitEthereumWalletButton({
   className,
   style,
 }: WalletButtonProps) {
-  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
+  const { address, isConnected, isConnecting, connect } = useWallet();
   const { isSigningIn, isSignedIn, user, signIn, signOut } = useSignIn();
 
   const truncatedAddress = address
@@ -529,7 +528,6 @@ function EthereumAuthModal({
   onSuccess,
   onError,
   onCancel,
-  providerConfig,
 }: {
   apiUrl: string;
   apiKey: string;

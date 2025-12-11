@@ -5,8 +5,6 @@ import {
   PhoneIcon,
   GoogleIcon,
   GitHubIcon,
-  EthereumIcon,
-  SolanaIcon,
   LoadingSpinner,
   BackArrowIcon,
   CloseIcon,
@@ -54,24 +52,6 @@ describe('Auth Icons', () => {
     expect(svg).toHaveAttribute('fill', 'currentColor');
   });
 
-  it('renders EthereumIcon', () => {
-    const { container } = render(<EthereumIcon />);
-    const svg = container.querySelector('svg');
-    expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('fill', 'currentColor');
-  });
-
-  it('renders SolanaIcon with gradient', () => {
-    const { container } = render(<SolanaIcon />);
-    const svg = container.querySelector('svg');
-    expect(svg).toBeInTheDocument();
-
-    // Solana icon should have a gradient
-    const gradient = container.querySelector('linearGradient');
-    expect(gradient).toBeInTheDocument();
-    expect(gradient).toHaveAttribute('id', 'solana-grad');
-  });
-
   it('renders LoadingSpinner with animation', () => {
     const { container } = render(<LoadingSpinner className="spinner" />);
     const svg = container.querySelector('svg');
@@ -106,8 +86,7 @@ describe('Auth Icons', () => {
       expect(AUTH_ICONS).toHaveProperty('phone');
       expect(AUTH_ICONS).toHaveProperty('google');
       expect(AUTH_ICONS).toHaveProperty('github');
-      expect(AUTH_ICONS).toHaveProperty('ethereum');
-      expect(AUTH_ICONS).toHaveProperty('solana');
+      expect(AUTH_ICONS).toHaveProperty('anonymous');
     });
 
     it('maps to correct icon components', () => {
@@ -115,8 +94,6 @@ describe('Auth Icons', () => {
       expect(AUTH_ICONS.phone).toBe(PhoneIcon);
       expect(AUTH_ICONS.google).toBe(GoogleIcon);
       expect(AUTH_ICONS.github).toBe(GitHubIcon);
-      expect(AUTH_ICONS.ethereum).toBe(EthereumIcon);
-      expect(AUTH_ICONS.solana).toBe(SolanaIcon);
     });
 
     it('allows rendering icons from mapping', () => {

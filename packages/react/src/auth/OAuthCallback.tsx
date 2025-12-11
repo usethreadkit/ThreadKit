@@ -52,7 +52,7 @@ export function OAuthCallback() {
           // Redirect to home or previous page
           window.location.href = '/';
         }
-      } catch (e) {
+      } catch {
         setError('Failed to parse user data');
       }
     } else {
