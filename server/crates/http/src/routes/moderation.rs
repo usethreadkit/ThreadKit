@@ -9,11 +9,32 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use threadkit_common::types::{CommentStatus, TreeComment, UserPublic, DELETED_USER_ID};
+use threadkit_common::{ActionLogBuilder, ActionType};
 
 use crate::{
     extractors::{ProjectId, AuthUserWithRole},
     state::AppState,
 };
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Extract IP address from headers (prioritizes X-Forwarded-For)
+fn extract_ip(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
+}
+
+/// Extract user agent from headers
+fn extract_user_agent(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -382,6 +403,7 @@ pub async fn ban_user(
     project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(user_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<BanUserRequest>,
 ) -> Result<Json<BanUserResponse>, (StatusCode, String)> {
     auth.require_moderator()?;
@@ -441,6 +463,36 @@ pub async fn ban_user(
             }
         }
     }
+
+    // Log action
+    let moderator_email = state.redis.get_user(auth.user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let target_email = state.redis.get_user(user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::UserBanned, project_id.0.site_id)
+        .user_id(auth.user_id)
+        .metadata(serde_json::json!({
+            "banned_user_id": user_id,
+            "banned_user_email": target_email,
+            "comments_deleted": comments_deleted,
+            "moderator_id": auth.user_id
+        }));
+
+    if let Some(email) = moderator_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
 
     Ok(Json(BanUserResponse { comments_deleted }))
 }

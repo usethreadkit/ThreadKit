@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::Utc;
 use serde::Serialize;
-use threadkit_common::{image_processing, types::MediaInfo};
+use threadkit_common::{image_processing, types::MediaInfo, ActionLogBuilder, ActionType};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -19,6 +19,26 @@ use crate::{
 const MAX_AVATAR_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const MAX_IMAGE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 const AVATAR_SIZE_PX: u32 = 200;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Extract IP address from headers (prioritizes X-Forwarded-For)
+fn extract_ip(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
+}
+
+/// Extract user agent from headers
+fn extract_user_agent(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
+}
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UploadResponse {
@@ -245,6 +265,7 @@ pub async fn upload_image(
     State(state): State<AppState>,
     project_id: ProjectId,
     auth: AuthUser,
+    headers: axum::http::HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, (StatusCode, String)> {
     let storage = state
@@ -372,6 +393,33 @@ pub async fn upload_image(
         width,
         height
     );
+
+    // Log action
+    let user_email = state.redis.get_user(auth.user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::MediaUploaded, project_id.0.site_id)
+        .user_id(auth.user_id)
+        .metadata(serde_json::json!({
+            "media_id": media_id,
+            "filename": format!("{}.webp", media_id),
+            "size_bytes": webp_data.len(),
+            "dimensions": format!("{}x{}", width, height),
+            "url": url.clone()
+        }));
+
+    if let Some(email) = user_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
 
     Ok(Json(UploadResponse {
         media_id,

@@ -1,3 +1,23 @@
+// ============================================================================
+// TEMPORARY ACTION LOGGING SYSTEM
+// ============================================================================
+//
+// WARNING: This is a TEMPORARY debugging/monitoring solution.
+//
+// This basic file-based logging system is NOT intended for production use
+// and should be REMOVED in a few weeks once a proper logging/analytics
+// solution is implemented.
+//
+// Limitations:
+// - No log rotation
+// - No performance optimization
+// - No querying capabilities
+// - Files can grow unbounded
+// - Not suitable for high-traffic sites
+//
+// TODO: Replace with proper solution (e.g., ClickHouse, Elasticsearch, etc.)
+// ============================================================================
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
