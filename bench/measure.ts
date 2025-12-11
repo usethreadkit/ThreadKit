@@ -12,12 +12,14 @@ import { chromium } from 'playwright';
 import { writeFileSync } from 'fs';
 
 // Domain filters for each comment system - only count resources from these domains
+// IMPORTANT: We exclude tracking/analytics domains (Google Analytics, HubSpot, etc.)
+// We also exclude user-uploaded media in comments (media.disquscdn.com)
 const SYSTEM_DOMAINS = {
-  'Disqus': ['disqus.com', 'disquscdn.com'],
+  'Disqus': ['c.disquscdn.com', 'disqus.com'], // Exclude media.disquscdn.com (user uploads)
   'Isso': ['isso-comments.de', 'posativ.org'],
   'Remark42': ['remark42.com'],
   'Comentario': ['comentario.com', 'cdn.comentario.com', 'commento.io'],
-  'Hyvor Talk': ['talk.hyvor.com', 'hyvor.com'],
+  'Hyvor Talk': ['talk.hyvor.com/talk/', 'hyvor.com/talk/'], // Only the embed script, not docs site
   'ThreadKit': ['usethreadkit.com', 'threadkit.com', 'cdn.jsdelivr.net/npm/@threadkit'],
 };
 
@@ -107,11 +109,6 @@ async function main() {
 
   const tests = [
     {
-      name: 'Disqus',
-      url: 'https://blog.disqus.com/the-web-is-a-customer-service-medium',
-      selector: '#disqus_thread iframe',
-    },
-    {
       name: 'Isso',
       url: 'https://isso-comments.de/',
       selector: '#isso-thread',
@@ -121,16 +118,12 @@ async function main() {
       url: 'https://remark42.com/demo/',
       selector: '#remark42',
     },
-    {
-      name: 'Comentario',
-      url: 'https://deployn.de/en/blog/self-hosted-comment-systems/',
-      selector: '#commento',
-    },
-    {
-      name: 'Hyvor Talk',
-      url: 'https://talk.hyvor.com/',
-      selector: '#hyvor-talk-view',
-    },
+    // Note: Comentario test page doesn't actually use Comentario
+    // {
+    //   name: 'Comentario',
+    //   url: 'https://deployn.de/en/blog/self-hosted-comment-systems/',
+    //   selector: '#commento',
+    // },
   ];
 
   const results = [];
