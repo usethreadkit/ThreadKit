@@ -4,11 +4,15 @@ use axum::{
     routing::{delete, get},
     Json, Router,
 };
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use threadkit_common::types::{Role, TreeComment, UserPublic};
+use threadkit_common::{
+    auth,
+    types::{AuthProvider, Role, SocialLinks, TreeComment, User, UserPublic},
+};
 
 use crate::{
     extractors::{ProjectId, AuthUserWithRole, OwnerAccess},
@@ -18,24 +22,42 @@ use crate::{
 
 pub fn router() -> Router<AppState> {
     Router::new()
+        // User creation (owner only via secret key)
+        .route("/admin/create-user", axum::routing::post(create_user))
         // Admin management (owner only via secret key)
-        .route("/sites/{id}/admins", get(get_admins).post(add_admin))
-        .route("/sites/{id}/admins/{user_id}", delete(remove_admin))
+        .route("/admin/sites/{id}/admins", get(get_admins).post(add_admin))
+        .route("/admin/sites/{id}/admins/{user_id}", delete(remove_admin))
         // Moderator management (admin+)
-        .route("/sites/{id}/moderators", get(get_moderators).post(add_moderator))
-        .route("/sites/{id}/moderators/{user_id}", delete(remove_moderator))
+        .route("/admin/sites/{id}/moderators", get(get_moderators).post(add_moderator))
+        .route("/admin/sites/{id}/moderators/{user_id}", delete(remove_moderator))
         // Site comment feed (moderator+)
-        .route("/sites/{id}/comments", get(get_site_comments))
+        .route("/admin/sites/{id}/comments", get(get_site_comments))
         // Site comment feed for owners (owner only via secret key)
-        .route("/sites/{id}/owner/comments", get(get_site_comments_owner))
+        .route("/admin/sites/{id}/owner/comments", get(get_site_comments_owner))
         // Posting controls (admin+)
-        .route("/sites/{id}/posting", get(get_posting_status).put(set_site_posting))
-        .route("/pages/{page_id}/posting", get(get_page_posting_status).put(set_page_posting))
+        .route("/admin/sites/{id}/posting", get(get_posting_status).put(set_site_posting))
+        .route("/admin/pages/{page_id}/posting", get(get_page_posting_status).put(set_page_posting))
 }
 
 // ============================================================================
 // Request/Response Types
 // ============================================================================
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateUserRequest {
+    /// Username for the new user
+    pub name: String,
+    /// Optional email
+    pub email: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CreateUserResponse {
+    /// The created user
+    pub user: UserPublic,
+    /// JWT token for the created user
+    pub token: String,
+}
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct RoleListResponse {
@@ -78,6 +100,103 @@ pub struct SiteCommentsResponse {
 // ============================================================================
 // Admin Handlers (Owner only - requires secret API key)
 // ============================================================================
+
+/// Create a new user programmatically (owner only - requires secret API key)
+#[utoipa::path(
+    post,
+    path = "/admin/create-user",
+    tag = "admin",
+    request_body = CreateUserRequest,
+    responses(
+        (status = 200, description = "User created", body = CreateUserResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Not authorized")
+    ),
+    security(("secret_key" = []))
+)]
+pub async fn create_user(
+    State(state): State<AppState>,
+    owner: OwnerAccess,
+    Json(req): Json<CreateUserRequest>,
+) -> Result<Json<CreateUserResponse>, (StatusCode, String)> {
+    // Only allow in standalone mode (not SaaS) to prevent username squatting
+    use threadkit_common::config::Mode;
+    if !matches!(state.config.mode, Mode::Standalone(_)) {
+        return Err((StatusCode::FORBIDDEN, "User creation only available in standalone mode".into()));
+    }
+
+    // Validate username
+    if req.name.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Name cannot be empty".into()));
+    }
+
+    // Check if username is already taken
+    if let Ok(Some(_)) = state.redis.get_user_by_username(&req.name).await {
+        return Err((StatusCode::BAD_REQUEST, "Username already taken".into()));
+    }
+
+    // Check if email is already taken
+    if let Some(ref email) = req.email {
+        if let Ok(Some(_)) = state.redis.get_user_by_email(email).await {
+            return Err((StatusCode::BAD_REQUEST, "Email already registered".into()));
+        }
+    }
+
+    // Create the user
+    let user_id = Uuid::now_v7();
+    let now = Utc::now();
+
+    let user = User {
+        id: user_id,
+        name: req.name.clone(),
+        email: req.email.clone(),
+        avatar_url: None,
+        provider: AuthProvider::Email, // Use Email as the provider for admin-created users
+        provider_id: None,
+        email_verified: req.email.is_some(), // Auto-verify if email provided
+        karma: 0,
+        global_banned: false,
+        shadow_banned: false,
+        created_at: now,
+        username_set: true,
+        social_links: SocialLinks::default(),
+        total_comments: 0,
+    };
+
+    // Save to Redis
+    state.redis.set_user(&user).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Index username
+    state.redis.set_user_username_index(&user.name, user_id).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Index email if provided
+    if let Some(ref email) = req.email {
+        state.redis.set_user_email_index(email, user_id).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+
+    // Create session
+    let session_id = Uuid::now_v7();
+    state.redis.create_session(session_id, user_id, "", "").await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Generate JWT token
+    let token = auth::create_token(
+        user_id,
+        owner.site_id,
+        session_id,
+        &state.config.jwt_secret,
+        state.config.jwt_expiry_hours,
+    )
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(CreateUserResponse {
+        user: user.into(),
+        token,
+    }))
+}
 
 /// Get site admins (owner only - requires secret API key)
 #[utoipa::path(

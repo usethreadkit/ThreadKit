@@ -28,22 +28,40 @@ end
 local tree = cjson.decode(tree_json)
 
 -- Navigate to comment using path
-local comment = tree
+local comment = nil
 local path = cjson.decode(path_json)
+
+-- For root comments, search in tree.c (comments array)
+-- For nested comments, search in parent.ch (children array)
 for i, pid in ipairs(path) do
     local found = false
-    if comment.children then
-        for j, child in ipairs(comment.children) do
-            if child.id == pid then
+    local search_array = nil
+
+    if i == 1 then
+        -- First level: search in tree.c (root comments)
+        search_array = tree.c
+    else
+        -- Nested: search in comment.r (replies)
+        search_array = comment and comment.r
+    end
+
+    if search_array then
+        for j, child in ipairs(search_array) do
+            if child.i == pid then
                 comment = child
                 found = true
                 break
             end
         end
     end
-    if not found and comment.id ~= pid then
+
+    if not found then
         return redis.error_reply("Comment not found in path")
     end
+end
+
+if not comment then
+    return redis.error_reply("Comment not found")
 end
 
 -- Calculate deltas based on vote transition
@@ -80,12 +98,12 @@ else
     final_vote = new_direction
 end
 
--- Update comment counts
-comment.upvotes = math.max(0, (comment.upvotes or 0) + upvote_delta)
-comment.downvotes = math.max(0, (comment.downvotes or 0) + downvote_delta)
+-- Update comment counts (using compact field names: u=upvotes, d=downvotes)
+comment.u = math.max(0, (comment.u or 0) + upvote_delta)
+comment.d = math.max(0, (comment.d or 0) + downvote_delta)
 
--- Update tree timestamp
-tree.updated_at = redis.call('TIME')[1]
+-- Update tree timestamp (u=updated_at) - convert Redis TIME to number
+tree.u = tonumber(redis.call('TIME')[1])
 
 -- Save updated tree
 redis.call('SET', tree_key, cjson.encode(tree))
@@ -97,4 +115,4 @@ else
     redis.call('HDEL', vote_key, comment_id)
 end
 
-return {final_vote or "", comment.upvotes, comment.downvotes, upvote_delta, downvote_delta}
+return {final_vote or "", comment.u, comment.d, upvote_delta, downvote_delta}

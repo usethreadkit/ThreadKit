@@ -189,20 +189,29 @@ impl TestContext {
         )
     }
 
-    /// Register a new user and return auth response
-    pub async fn register_user(&self, name: &str, email: &str, password: &str) -> serde_json::Value {
-        let (key_name, key_value) = self.project_id_header();
+    /// Create a new user using admin endpoint (for testing)
+    pub async fn register_user(&self, name: &str, email: &str, _password: &str) -> serde_json::Value {
+        // Use secret key for admin endpoint (OwnerAccess extractor expects projectid header)
+        let (key_name, key_value) = (
+            HeaderName::from_static("projectid"),
+            HeaderValue::from_str(&self.secret_key).unwrap(),
+        );
+
         let response = self
             .server
-            .post("/v1/auth/register")
+            .post("/v1/admin/create-user")
             .add_header(key_name, key_value)
             .json(&json!({
                 "name": name,
-                "email": email,
-                "password": password
+                "email": email
             }))
             .await;
 
+        // Debug: Check status
+        println!("Create user response status: {}", response.status_code());
+        println!("Create user response body: {}", response.text());
+
+        // Response contains { user: {...}, token: "..." }
         response.json::<serde_json::Value>()
     }
 

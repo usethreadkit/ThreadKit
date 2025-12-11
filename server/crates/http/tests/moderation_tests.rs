@@ -64,9 +64,10 @@ async fn test_moderator_can_view_queue() {
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
 
     // Set moderator role
-    ctx.set_user_role(mod_token, "Moderator").await;
+    ctx.set_user_role(mod_user_id, "Moderator").await;
 
     // Get moderation queue
     let (key_name, key_value) = project_id_header(&ctx.project_id);
@@ -83,7 +84,8 @@ async fn test_moderator_can_view_queue() {
     let body: serde_json::Value = response.json();
 
     // Should have at least one pending comment
-    assert!(body["comments"].as_array().unwrap().len() > 0);
+    assert!(body["items"].as_array().unwrap().len() > 0);
+    assert_eq!(body["total"], 1);
 }
 
 /// Test that moderators can approve comments
@@ -109,7 +111,12 @@ async fn test_moderator_can_approve_comment() {
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
-    ctx.set_user_role(mod_token, "Moderator").await;
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
+    ctx.set_user_role(mod_user_id, "Moderator").await;
+
+    // Calculate page_id from page_url
+    use threadkit_common::redis::RedisClient;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/page1");
 
     let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(mod_token);
@@ -119,6 +126,10 @@ async fn test_moderator_can_approve_comment() {
         .post(&format!("/v1/moderation/approve/{}", comment_id))
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_id": page_id,
+            "path": [comment_id]
+        }))
         .await;
 
     response.assert_status(StatusCode::OK);
@@ -132,7 +143,8 @@ async fn test_moderator_can_approve_comment() {
         .await;
 
     let body: serde_json::Value = response.json();
-    let comments = body["tree"].as_array().unwrap();
+    let tree = body["tree"].as_object().expect("Expected 'tree' object");
+    let comments = tree["c"].as_array().expect("Expected 'c' (comments) array in tree");
 
     assert_eq!(comments.len(), 1);
     // Status should be "approved" or not present (approved is default)
@@ -162,7 +174,12 @@ async fn test_moderator_can_reject_comment() {
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
-    ctx.set_user_role(mod_token, "Moderator").await;
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
+    ctx.set_user_role(mod_user_id, "Moderator").await;
+
+    // Calculate page_id from page_url
+    use threadkit_common::redis::RedisClient;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/page1");
 
     let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(mod_token);
@@ -172,6 +189,10 @@ async fn test_moderator_can_reject_comment() {
         .post(&format!("/v1/moderation/reject/{}", comment_id))
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_id": page_id,
+            "path": [comment_id]
+        }))
         .await;
 
     response.assert_status(StatusCode::OK);
@@ -185,7 +206,8 @@ async fn test_moderator_can_reject_comment() {
         .await;
 
     let body: serde_json::Value = response.json();
-    let comments = body["tree"].as_array().unwrap();
+    let tree = body["tree"].as_object().expect("Expected 'tree' object");
+    let comments = tree["c"].as_array().expect("Expected 'c' (comments) array in tree");
 
     // Rejected comment should not appear
     assert_eq!(comments.len(), 0);
@@ -210,6 +232,10 @@ async fn test_regular_user_cannot_moderate() {
     let comment_id = body["comment"]["i"].as_str().unwrap();
 
     // Try to approve with regular user
+    // Calculate page_id from page_url
+    use threadkit_common::redis::RedisClient;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/page1");
+
     let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(user_token);
 
@@ -218,6 +244,10 @@ async fn test_regular_user_cannot_moderate() {
         .post(&format!("/v1/moderation/approve/{}", comment_id))
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_id": page_id,
+            "path": [comment_id]
+        }))
         .await;
 
     // Should be forbidden
@@ -256,11 +286,13 @@ async fn test_user_can_report_comment() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
-            "reason": "spam"
+            "page_url": "https://example.com/page1",
+            "reason": "spam",
+            "path": [comment_id]
         }))
         .await;
 
-    response.assert_status(StatusCode::OK);
+    response.assert_status(StatusCode::NO_CONTENT);
 }
 
 /// Test that moderators can view reported comments
@@ -285,14 +317,15 @@ async fn test_moderator_can_view_reports() {
         .await;
     let token2 = auth2["token"].as_str().unwrap();
 
-    ctx.report_comment(token2, comment_id, "spam").await;
+    ctx.report_comment(token2, comment_id, "https://example.com/page1", "spam").await;
 
     // Moderator views reports
     let mod_auth = ctx
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
-    ctx.set_user_role(mod_token, "Moderator").await;
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
+    ctx.set_user_role(mod_user_id, "Moderator").await;
 
     let (key_name, key_value) = project_id_header(&ctx.project_id);
     let (auth_name, auth_value) = auth_header(mod_token);
@@ -308,7 +341,7 @@ async fn test_moderator_can_view_reports() {
     let body: serde_json::Value = response.json();
 
     // Should have at least one report
-    assert!(body["reports"].as_array().unwrap().len() > 0);
+    assert!(body["items"].as_array().unwrap().len() > 0);
 }
 
 /// Test user banning
@@ -326,7 +359,8 @@ async fn test_moderator_can_ban_user() {
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
-    ctx.set_user_role(mod_token, "Moderator").await;
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
+    ctx.set_user_role(mod_user_id, "Moderator").await;
 
     // Ban user
     let (key_name, key_value) = project_id_header(&ctx.project_id);
@@ -338,19 +372,26 @@ async fn test_moderator_can_ban_user() {
         .add_header(key_name, key_value)
         .add_header(auth_name, auth_value)
         .json(&json!({
-            "reason": "Violating community guidelines"
+            "delete_comments": false
         }))
         .await;
 
-    response.assert_status(StatusCode::OK);
+    let ban_status = response.status_code();
+    let ban_body = response.text();
+    println!("Ban response: {} - {}", ban_status, ban_body);
+    assert_eq!(ban_status, StatusCode::OK);
 
     // Verify banned user cannot post
     let user_token = user_auth["token"].as_str().unwrap();
+    println!("Trying to post with banned user token: {}", user_token);
     let response = ctx
         .create_comment(user_token, "https://example.com/page1", "Should fail", None)
         .await;
 
-    response.assert_status(StatusCode::FORBIDDEN);
+    let comment_status = response.status_code();
+    let comment_body = response.text();
+    println!("Create comment response: {} - {}", comment_status, comment_body);
+    assert_eq!(comment_status, StatusCode::FORBIDDEN);
 }
 
 /// Test shadowban functionality
@@ -369,7 +410,8 @@ async fn test_moderator_can_shadowban_user() {
         .register_user("moderator", "moderator@example.com", "password123")
         .await;
     let mod_token = mod_auth["token"].as_str().unwrap();
-    ctx.set_user_role(mod_token, "Moderator").await;
+    let mod_user_id = mod_auth["user"]["id"].as_str().unwrap();
+    ctx.set_user_role(mod_user_id, "Moderator").await;
 
     // Shadowban user
     let (key_name, key_value) = project_id_header(&ctx.project_id);
@@ -408,7 +450,8 @@ async fn test_moderator_can_shadowban_user() {
         .await;
 
     let body: serde_json::Value = response.json();
-    let comments = body["tree"].as_array().unwrap();
+    let tree = body["tree"].as_object().expect("Expected 'tree' object");
+    let comments = tree["c"].as_array().expect("Expected 'c' (comments) array in tree");
 
     // Should not see shadowbanned user's comment
     assert_eq!(comments.len(), 0);

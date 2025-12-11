@@ -379,12 +379,19 @@ where
                 role: auth.role,
                 username_set: auth.username_set,
             }),
-            Err(_) => Ok(MaybeAuthUserWithRole {
-                user_id: None,
-                site_id: None,
-                role: Role::User, // Anonymous users have basic user role
-                username_set: true, // Anonymous users don't need username
-            }),
+            Err(err) => {
+                // If the user is blocked, propagate the error instead of treating as anonymous
+                if err.1.contains("User is blocked") {
+                    return Err(err);
+                }
+                // For other errors (invalid token, no token, etc.), treat as anonymous
+                Ok(MaybeAuthUserWithRole {
+                    user_id: None,
+                    site_id: None,
+                    role: Role::User, // Anonymous users have basic user role
+                    username_set: true, // Anonymous users don't need username
+                })
+            }
         }
     }
 }
