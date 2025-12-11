@@ -741,7 +741,7 @@ export function SettingsPanel({
           projectId={projectId}
           token={token}
           currentAvatar={localAvatar || currentUser?.avatar}
-          theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme}
+          theme={theme}
           onClose={() => setShowAvatarModal(false)}
           onUploadComplete={handleAvatarUploadComplete}
         />

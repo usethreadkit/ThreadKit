@@ -8,7 +8,7 @@ interface AvatarUploadModalProps {
   projectId: string;
   token: string;
   currentAvatar?: string;
-  theme?: 'light' | 'dark';
+  theme?: 'light' | 'dark' | 'system';
   onClose: () => void;
   onUploadComplete: (url: string) => void;
 }
@@ -100,9 +100,14 @@ export function AvatarUploadModal({
     };
   }, []);
 
+  // Resolve system theme to light/dark
+  const resolvedTheme = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme;
+
   return createPortal(
-    <div className="threadkit-root threadkit-user-modal-overlay" data-theme={theme} onClick={handleCancel}>
-      <div className="threadkit-root threadkit-avatar-upload-modal" data-theme={theme} onClick={(e) => e.stopPropagation()}>
+    <div className="threadkit-root threadkit-user-modal-overlay" data-theme={resolvedTheme} onClick={handleCancel}>
+      <div className="threadkit-root threadkit-avatar-upload-modal" data-theme={resolvedTheme} onClick={(e) => e.stopPropagation()}>
         <div className="threadkit-avatar-modal-header">
           <h3>Upload Avatar</h3>
           <button
