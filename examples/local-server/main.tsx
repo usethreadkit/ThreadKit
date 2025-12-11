@@ -17,19 +17,42 @@ function App() {
   return (
     <>
       <style>{`
+        .demo-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 24px;
+        }
+
         .demo-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 24px;
         }
 
+        .demo-main {
+          border-radius: 8px;
+          padding: 24px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
         @media (max-width: 768px) {
+          .demo-container {
+            padding: 0;
+          }
+
           .demo-grid {
             grid-template-columns: 1fr;
+            gap: 0;
+          }
+
+          .demo-main {
+            border-radius: 0;
+            padding: 16px;
+            box-shadow: none;
           }
         }
       `}</style>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+      <div className="demo-container">
       <header style={{ marginBottom: 32 }}>
         <h1 style={{ marginBottom: 8 }}>ThreadKit - Local Server (Two Instances)</h1>
         <p style={{ color: '#666', marginBottom: 16 }}>
@@ -94,11 +117,9 @@ function App() {
 
       <div className="demo-grid">
         <main
+          className="demo-main"
           style={{
             background: theme === 'dark' ? '#1a1a1a' : '#fff',
-            borderRadius: 8,
-            padding: 24,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 18 }}>Chat Mode</h2>
@@ -118,11 +139,9 @@ function App() {
         </main>
 
         <main
+          className="demo-main"
           style={{
             background: theme === 'dark' ? '#1a1a1a' : '#fff',
-            borderRadius: 8,
-            padding: 24,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 18 }}>Thread Mode</h2>
