@@ -50,7 +50,7 @@ If you already have React on your page:
 <script src="https://cdn.jsdelivr.net/npm/@threadkit/svelte@latest/dist/cdn/threadkit.min.js"></script>
 ```
 
-**Size:** ~TBD KB gzipped (includes Svelte)
+**Size:** 42KB gzipped (includes Svelte)
 
 ### Svelte (with external Svelte)
 
@@ -58,6 +58,8 @@ If you already have React on your page:
 <script src="https://unpkg.com/svelte@5/svelte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@threadkit/svelte@latest/dist/cdn/threadkit.nonbundled-svelte.min.js"></script>
 ```
+
+**Size:** 22KB gzipped (external Svelte)
 
 ### Core (Framework-agnostic)
 
@@ -69,7 +71,7 @@ If you already have React on your page:
 </script>
 ```
 
-**Size:** ~TBD KB gzipped
+**Size:** 11KB gzipped
 
 ## CDN Bundle Structure
 
@@ -107,8 +109,8 @@ pnpm build:cdn
 | Package | Standalone | External Framework |
 |---------|------------|-------------------|
 | **React** | 110KB gzipped | 52KB gzipped |
-| **Svelte** | TBD KB gzipped | TBD KB gzipped |
-| **Core** | TBD KB gzipped | N/A |
+| **Svelte** | 42KB gzipped | 22KB gzipped |
+| **Core** | 11KB gzipped | N/A |
 
 ## npm Usage
 

@@ -8,6 +8,8 @@
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { gzipSync } from 'zlib';
+import sveltePlugin from 'esbuild-svelte';
+import sveltePreprocess from 'svelte-preprocess';
 
 console.log('📦 Building CDN bundles for @threadkit/svelte...\n');
 
@@ -28,6 +30,12 @@ await build({
     'process.env.NODE_ENV': '"production"',
   },
   external: ['katex', 'dompurify', 'shiki'], // Optional plugins
+  plugins: [
+    sveltePlugin({
+      compilerOptions: { css: 'injected' },
+      preprocess: sveltePreprocess(),
+    }),
+  ],
   logLevel: 'info',
 });
 
@@ -46,6 +54,12 @@ await build({
     'process.env.NODE_ENV': '"production"',
   },
   external: ['svelte', 'svelte/store', 'katex', 'dompurify', 'shiki'],
+  plugins: [
+    sveltePlugin({
+      compilerOptions: { css: 'injected' },
+      preprocess: sveltePreprocess(),
+    }),
+  ],
   banner: {
     js: '/* ThreadKit Svelte - https://usethreadkit.com - Requires Svelte */',
   },
