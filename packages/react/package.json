@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Privacy-first commenting and chat system for React",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,6 +11,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./cdn": "./dist/cdn/threadkit.min.js",
+    "./cdn/standalone": "./dist/cdn/threadkit.min.js",
+    "./cdn/nonbundled-react": "./dist/cdn/threadkit.nonbundled-react.min.js",
     "./styles": "./dist/styles.css",
     "./styles.css": "./dist/styles.css"
   },
@@ -20,6 +23,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.js",
+    "build:cdn": "node scripts/build-cdn.js",
     "dev:watch": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest run",
@@ -43,6 +47,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^2.1.9",
+    "esbuild": "^0.27.1",
     "jsdom": "^25.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

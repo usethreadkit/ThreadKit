@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/svelte",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Privacy-first commenting and chat system for Svelte",
   "type": "module",
   "svelte": "./dist/index.js",
@@ -12,6 +12,9 @@
       "svelte": "./dist/index.js",
       "import": "./dist/index.js"
     },
+    "./cdn": "./dist/cdn/threadkit.min.js",
+    "./cdn/standalone": "./dist/cdn/threadkit.min.js",
+    "./cdn/nonbundled-svelte": "./dist/cdn/threadkit.nonbundled-svelte.min.js",
     "./styles": "./dist/styles.css",
     "./styles.css": "./dist/styles.css"
   },
@@ -21,6 +24,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.js",
+    "build:cdn": "node scripts/build-cdn.js",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest",
     "test:run": "vitest run"
@@ -36,6 +40,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@testing-library/svelte": "^5.2.6",
     "@vitest/coverage-v8": "^2.1.9",
+    "esbuild": "^0.27.1",
     "jsdom": "^25.0.1",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
@@ -44,12 +49,12 @@
     "vitest": "^2.1.9"
   },
   "optionalDependencies": {
-    "katex": "^0.16.11",
-    "dompurify": "^3.3.0",
-    "shiki": "^1.24.0",
     "@threadkit/plugin-latex": "workspace:*",
+    "@threadkit/plugin-media-preview": "workspace:*",
     "@threadkit/plugin-syntax-highlight": "workspace:*",
-    "@threadkit/plugin-media-preview": "workspace:*"
+    "dompurify": "^3.3.0",
+    "katex": "^0.16.11",
+    "shiki": "^1.24.0"
   },
   "keywords": [
     "svelte",

@@ -1,6 +1,6 @@
 {
   "name": "@threadkit/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic core for ThreadKit commenting system",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,6 +11,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./cdn": "./dist/cdn/threadkit.min.js",
     "./styles": "./dist/styles.css",
     "./styles.css": "./dist/styles.css"
   },
@@ -20,6 +21,7 @@
   ],
   "scripts": {
     "build": "tsc && cp src/styles/threadkit.css dist/styles.css",
+    "build:cdn": "node scripts/build-cdn.js",
     "dev:watch": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest run",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.9",
+    "esbuild": "^0.27.1",
     "typescript": "^5.3.3",
     "vitest": "^2.1.0"
   },

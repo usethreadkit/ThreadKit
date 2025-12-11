@@ -1,0 +1,6 @@
+# Temporary build artifacts
+temp/
+
+# Generated results
+results.json
+RESULTS.md
