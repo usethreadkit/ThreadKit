@@ -137,7 +137,7 @@ function ThreadKitInner({
   onSignIn: _onSignIn,
   innerRef,
 }: ThreadKitInnerProps) {
-  const { state: authState, login, logout, registerPlugin, updateUsername } = useAuth();
+  const { state: authState, login, logout, registerPlugin, updateUsername, updateAvatar } = useAuth();
   const t = useTranslation();
   const isRTL = useRTL();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -702,9 +702,12 @@ function ThreadKitInner({
   }, [logout]);
 
   const handleUpdateAvatar = useCallback(async (avatar: string) => {
-    // TODO: Implement avatar update via API
-    console.log('Update avatar:', avatar);
-  }, []);
+    try {
+      await updateAvatar(avatar);
+    } catch (err) {
+      onError?.(err instanceof Error ? err : new Error('Failed to update avatar'));
+    }
+  }, [updateAvatar, onError]);
 
   const handleUpdateName = useCallback(async (name: string) => {
     try {

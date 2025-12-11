@@ -154,6 +154,10 @@ export function AuthProvider({
     await manager.updateUsername(username);
   }, [manager]);
 
+  const updateAvatar = useCallback(async (avatarUrl: string) => {
+    await manager.updateAvatar(avatarUrl);
+  }, [manager]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       state,
@@ -165,9 +169,10 @@ export function AuthProvider({
       loginAnonymous,
       registerPlugin,
       updateUsername,
+      updateAvatar,
       plugins,
     }),
-    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, loginAnonymous, registerPlugin, updateUsername, plugins]
+    [state, login, logout, selectMethod, setOtpTarget, verifyOtp, loginAnonymous, registerPlugin, updateUsername, updateAvatar, plugins]
   );
 
   return (

@@ -85,18 +85,71 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // Getters
   // ============================================================================
 
+  /**
+   * Get the current authentication state.
+   * @returns State object including current step, user info, tokens, and error messages
+   * @example
+   * ```ts
+   * const state = authManager.getState();
+   * if (state.step === 'otp-verify') {
+   *   console.log('Waiting for OTP verification');
+   * } else if (state.error) {
+   *   console.error('Auth error:', state.error);
+   * }
+   * ```
+   */
   getState(): AuthState {
     return this.state;
   }
 
+  /**
+   * Get the current authentication token (JWT).
+   * @returns The auth token if logged in, null otherwise
+   * @example
+   * ```ts
+   * const token = authManager.getToken();
+   * if (token) {
+   *   // Include in API requests
+   *   fetch(url, {
+   *     headers: { Authorization: `Bearer ${token}` }
+   *   });
+   * }
+   * ```
+   */
   getToken(): string | null {
     return this.state.token;
   }
 
+  /**
+   * Get the current logged-in user.
+   * @returns The user object if logged in, null otherwise
+   * @example
+   * ```ts
+   * const user = authManager.getUser();
+   * if (user) {
+   *   console.log(`Welcome, ${user.name}!`);
+   *   if (user.is_guest) {
+   *     console.log('(Guest user)');
+   *   }
+   * }
+   * ```
+   */
   getUser(): AuthUser | null {
     return this.state.user;
   }
 
+  /**
+   * Check if a user is currently authenticated.
+   * @returns True if user is logged in with a valid token, false otherwise
+   * @example
+   * ```ts
+   * if (authManager.isAuthenticated()) {
+   *   // Show post comment button
+   * } else {
+   *   // Show sign in prompt
+   * }
+   * ```
+   */
   isAuthenticated(): boolean {
     return this.state.user !== null && this.state.token !== null;
   }
@@ -123,7 +176,21 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // ============================================================================
 
   /**
-   * Initialize auth manager - load and validate stored tokens
+   * Initialize the auth manager by loading and validating stored tokens.
+   * Call this on app startup to restore the user's session.
+   * Emits 'stateChange' event when complete.
+   *
+   * @example
+   * ```ts
+   * const authManager = new AuthManager({ apiUrl, projectId, storage });
+   *
+   * // Initialize on app startup
+   * await authManager.initialize();
+   *
+   * if (authManager.isAuthenticated()) {
+   *   console.log(`Welcome back, ${authManager.getUser()?.name}!`);
+   * }
+   * ```
    */
   async initialize(): Promise<void> {
     const { storage, apiUrl, projectId, onUserChange } = this.config;
@@ -177,7 +244,21 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // ============================================================================
 
   /**
-   * Start login - fetch available methods and show selection
+   * Start the login process by fetching available authentication methods.
+   * Updates state to 'methods' step with available auth options.
+   * Emits 'stateChange' event when complete.
+   *
+   * @throws {Error} If the request fails
+   * @example
+   * ```ts
+   * await authManager.startLogin();
+   *
+   * const state = authManager.getState();
+   * state.availableMethods.forEach(method => {
+   *   console.log(`${method.name}: ${method.type}`);
+   *   // e.g., "Google: oauth", "Email: otp", "Anonymous: anonymous"
+   * });
+   * ```
    */
   async startLogin(): Promise<void> {
     const { apiUrl, projectId } = this.config;
@@ -290,7 +371,25 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   }
 
   /**
-   * Send OTP to email/phone
+   * Send a one-time password (OTP) code to an email address or phone number.
+   * Updates state to 'otp-verify' step on success.
+   * Emits 'stateChange' event when complete.
+   *
+   * @param target - Email address or phone number to send OTP to
+   * @throws {Error} If the request fails or target is invalid
+   * @example
+   * ```ts
+   * // Send OTP to email
+   * await authManager.sendOtp('user@example.com');
+   *
+   * // Send OTP to phone
+   * await authManager.sendOtp('+1234567890');
+   *
+   * // Check if OTP was sent successfully
+   * if (authManager.getState().step === 'otp-verify') {
+   *   console.log('OTP sent! Check your inbox/messages');
+   * }
+   * ```
    */
   async sendOtp(target: string): Promise<void> {
     const { apiUrl, projectId } = this.config;
@@ -333,7 +432,27 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   }
 
   /**
-   * Verify OTP code
+   * Verify the OTP code received by the user.
+   * On success, logs the user in and stores authentication tokens.
+   * For new accounts, may require providing a name.
+   * Emits 'stateChange' event when complete.
+   *
+   * @param code - The OTP code received via email/SMS
+   * @param name - Optional display name for new accounts
+   * @throws {Error} If verification fails or code is invalid
+   * @example
+   * ```ts
+   * // Verify OTP code
+   * try {
+   *   await authManager.verifyOtp('123456');
+   *   console.log('Logged in successfully!');
+   * } catch (error) {
+   *   console.error('Invalid code');
+   * }
+   *
+   * // Verify with name for new account
+   * await authManager.verifyOtp('123456', 'John Doe');
+   * ```
    */
   async verifyOtp(code: string, name?: string): Promise<void> {
     const { apiUrl, projectId, storage, onUserChange } = this.config;
@@ -533,6 +652,59 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
     }
   }
 
+  /**
+   * Update avatar for the current user
+   */
+  async updateAvatar(avatarUrl: string): Promise<void> {
+    const { apiUrl, projectId, onUserChange } = this.config;
+    const token = this.state.token;
+
+    if (!token) {
+      this.setState({ error: 'Not authenticated' });
+      return;
+    }
+
+    this.setStep('loading');
+
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'projectid': projectId,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatar_url: avatarUrl }),
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to update avatar');
+      }
+
+      const updatedUser: AuthUser = await res.json();
+
+      this.setState({
+        user: updatedUser,
+        step: 'idle',
+        error: null,
+      });
+      onUserChange?.(updatedUser);
+
+      // Broadcast avatar update to other instances
+      if (this.authSyncChannel) {
+        this.log('[ThreadKit AuthManager] Broadcasting avatar update');
+        this.authSyncChannel.postMessage({ type: 'threadkit:login' });
+      }
+    } catch (err) {
+      this.setState({
+        step: 'idle',
+        error: err instanceof Error ? err.message : 'Failed to update avatar',
+      });
+      throw err;
+    }
+  }
+
   // ============================================================================
   // OAuth Listener
   // ============================================================================
@@ -641,7 +813,22 @@ export class AuthManager extends EventEmitter<AuthManagerEvents> {
   // ============================================================================
 
   /**
-   * Log out the current user and broadcast to other instances
+   * Log out the current user.
+   * Clears stored tokens and broadcasts the logout to other instances via BroadcastChannel.
+   * Emits 'stateChange' event and calls onUserChange callback with null.
+   *
+   * @example
+   * ```ts
+   * authManager.logout();
+   * console.log('Logged out');
+   *
+   * // Listen for logout
+   * authManager.on('stateChange', (state) => {
+   *   if (!state.user) {
+   *     console.log('User logged out');
+   *   }
+   * });
+   * ```
    */
   logout(): void {
     this.logoutLocal();

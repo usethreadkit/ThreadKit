@@ -109,6 +109,7 @@ export interface AuthContextValue {
   loginAnonymous: (name?: string) => Promise<void>;
   registerPlugin: (plugin: AuthPlugin) => void;
   updateUsername: (username: string) => Promise<void>;
+  updateAvatar: (avatarUrl: string) => Promise<void>;
   plugins: AuthPlugin[];
 }
 
