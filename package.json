@@ -13,7 +13,19 @@
     "version": "node scripts/version.js",
     "version:minor": "node scripts/version.js minor",
     "version:patch": "node scripts/version.js patch",
-    "version:major": "node scripts/version.js major"
+    "version:major": "node scripts/version.js major",
+    "example:react": "pnpm --filter react-example dev",
+    "example:vanilla": "pnpm --filter vanilla-example dev",
+    "example:svelte": "pnpm --filter svelte-example dev",
+    "example:kitchen-sink": "pnpm --filter kitchen-sink dev",
+    "example:nextjs": "pnpm --filter nextjs-ssr dev",
+    "example:latex": "pnpm --filter @threadkit/example-latex dev",
+    "example:i18n": "pnpm --filter @threadkit/example-i18n dev",
+    "example:media": "pnpm --filter @threadkit/example-media-preview dev",
+    "example:syntax": "pnpm --filter @threadkit/example-syntax-highlight dev",
+    "example:turnstile": "pnpm --filter @threadkit/example-turnstile dev",
+    "example:ethereum": "pnpm --filter @threadkit/example-ethereum dev",
+    "example:solana": "pnpm --filter @threadkit/example-solana dev"
   },
   "devDependencies": {
     "@storybook/addon-links": "10.1.6",
