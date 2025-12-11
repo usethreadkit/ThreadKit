@@ -87,3 +87,16 @@ export const WithLargePendingCount: Story = {
     onLoadPending: () => console.log('Load pending comments clicked'),
   },
 };
+
+export const WithImageUpload: Story = {
+  args: {
+    placeholder: 'Write a comment...',
+    apiUrl: 'https://api.usethreadkit.com/v1',
+    projectId: 'demo-project',
+    token: 'demo-token',
+    onSubmit: async (text) => {
+      console.log('Submitted with text:', text);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    },
+  },
+};

@@ -267,3 +267,25 @@ export const WithUserProfile: Story = {
     },
   },
 };
+
+export const WithImage: Story = {
+  args: {
+    comment: {
+      ...mockComment,
+      text: 'Check out this awesome image I found!\n\n![Sample image](https://picsum.photos/600/400)',
+    },
+    currentUser: mockUser,
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+  },
+};
+
+export const WithMultipleImages: Story = {
+  args: {
+    comment: {
+      ...mockComment,
+      text: 'Here are some cool images:\n\n![First image](https://picsum.photos/400/300)\n\n![Second image](https://picsum.photos/500/350)\n\nWhat do you think?',
+    },
+    currentUser: mockUser,
+    onVote: (commentId, voteType) => console.log('Vote:', commentId, voteType),
+  },
+};
