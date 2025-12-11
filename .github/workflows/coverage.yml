@@ -261,9 +261,54 @@ jobs:
           flag-name: rust
           parallel: true
 
+  wordpress:
+    name: WordPress Plugin Coverage
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: xdebug
+          extensions: mysqli, zip
+      - name: Install Composer dependencies
+        working-directory: integrations/wordpress
+        run: composer install --no-interaction --prefer-dist
+      - name: Install WordPress test suite
+        working-directory: integrations/wordpress
+        run: bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1:3306 latest true
+      - name: Run tests with coverage
+        working-directory: integrations/wordpress
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+      - name: Convert coverage to lcov
+        working-directory: integrations/wordpress
+        run: |
+          composer require --dev php-coveralls/php-coveralls
+          vendor/bin/php-coveralls -x coverage.xml -o coverage.lcov --json_path=/dev/null
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          file: integrations/wordpress/coverage.lcov
+          flag-name: wordpress
+          parallel: true
+
   finish:
     name: Finish Coveralls
-    needs: [core, react, plugin-latex, plugin-syntax-highlight, plugin-media-preview, plugin-turnstile, plugin-auth-ethereum, plugin-auth-solana, svelte, rust]
+    needs: [core, react, plugin-latex, plugin-syntax-highlight, plugin-media-preview, plugin-turnstile, plugin-auth-ethereum, plugin-auth-solana, svelte, rust, wordpress]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -271,4 +316,4 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           parallel-finished: true
-          carryforward: core,react,plugin-latex,plugin-syntax-highlight,plugin-media-preview,plugin-turnstile,plugin-auth-ethereum,plugin-auth-solana,svelte,rust
+          carryforward: core,react,plugin-latex,plugin-syntax-highlight,plugin-media-preview,plugin-turnstile,plugin-auth-ethereum,plugin-auth-solana,svelte,rust,wordpress
