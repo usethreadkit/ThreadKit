@@ -92,6 +92,7 @@ export function SettingsPanel({
   const [isHolding, setIsHolding] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | undefined>(undefined);
   const [twitter, setTwitter] = useState(currentUser?.socialLinks?.twitter || '');
   const [github, setGithub] = useState(currentUser?.socialLinks?.github || '');
   const [facebook, setFacebook] = useState(currentUser?.socialLinks?.facebook || '');
@@ -233,6 +234,7 @@ export function SettingsPanel({
     setIsOpen((prev) => !prev);
     setActiveSection(null);
     setEditingName(false);
+    setLocalAvatar(undefined);
     setTwitter(currentUser?.socialLinks?.twitter || '');
     setGithub(currentUser?.socialLinks?.github || '');
     setFacebook(currentUser?.socialLinks?.facebook || '');
@@ -286,6 +288,7 @@ export function SettingsPanel({
   }, [newName, currentUser?.name, onUpdateName]);
 
   const handleAvatarUploadComplete = useCallback((url: string) => {
+    setLocalAvatar(url);
     _onUpdateAvatar(url);
   }, [_onUpdateAvatar]);
 
@@ -435,7 +438,7 @@ export function SettingsPanel({
                   title="Click to change avatar"
                 >
                   <Avatar
-                    src={currentUser.avatar}
+                    src={localAvatar || currentUser.avatar}
                     alt={currentUser.name}
                     seed={currentUser.name}
                     className="threadkit-settings-avatar"
@@ -737,7 +740,8 @@ export function SettingsPanel({
           apiUrl={apiUrl}
           projectId={projectId}
           token={token}
-          currentAvatar={currentUser?.avatar}
+          currentAvatar={localAvatar || currentUser?.avatar}
+          theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme}
           onClose={() => setShowAvatarModal(false)}
           onUploadComplete={handleAvatarUploadComplete}
         />

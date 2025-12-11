@@ -8,6 +8,7 @@ interface AvatarUploadModalProps {
   projectId: string;
   token: string;
   currentAvatar?: string;
+  theme?: 'light' | 'dark';
   onClose: () => void;
   onUploadComplete: (url: string) => void;
 }
@@ -17,6 +18,7 @@ export function AvatarUploadModal({
   projectId,
   token,
   currentAvatar,
+  theme = 'light',
   onClose,
   onUploadComplete,
 }: AvatarUploadModalProps) {
@@ -99,8 +101,8 @@ export function AvatarUploadModal({
   }, []);
 
   return createPortal(
-    <div className="threadkit-root threadkit-user-modal-overlay" onClick={handleCancel}>
-      <div className="threadkit-root threadkit-avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="threadkit-root threadkit-user-modal-overlay" data-theme={theme} onClick={handleCancel}>
+      <div className="threadkit-root threadkit-avatar-upload-modal" data-theme={theme} onClick={(e) => e.stopPropagation()}>
         <div className="threadkit-avatar-modal-header">
           <h3>Upload Avatar</h3>
           <button
