@@ -745,7 +745,7 @@ pub async fn oauth_start(
 
     let auth_url = match provider.as_str() {
         "google" => format!(
-            "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope=openid%20email%20profile&state={}",
+            "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope=openid%20email%20profile&state={}&prompt=consent",
             oauth.client_id,
             urlencoding::encode(&oauth.redirect_url),
             site_id
@@ -1011,9 +1011,11 @@ async fn oauth_callback_inner(
     let token_data: serde_json::Value = token_response.json().await
         .map_err(|e| e.to_string())?;
 
+    eprintln!("OAuth token response from {}: {:?}", provider, token_data);
+
     let access_token = token_data["access_token"]
         .as_str()
-        .ok_or("No access token in response")?;
+        .ok_or_else(|| format!("No access token in response. Full response: {:?}", token_data))?;
 
     let user_response = client
         .get(user_url)
