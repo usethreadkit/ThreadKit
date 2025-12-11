@@ -21,11 +21,8 @@ const config: StorybookConfig = {
           '@threadkit/react': resolve(__dirname, '../packages/react/src'),
           '@threadkit/plugin-auth-ethereum': resolve(__dirname, '../packages/plugin-auth-ethereum/src'),
           '@threadkit/plugin-auth-solana': resolve(__dirname, '../packages/plugin-auth-solana/src'),
-          // Force single React version to avoid "React Element from older version" error
-          'react': resolve(__dirname, '../node_modules/.pnpm/react@19.2.0/node_modules/react'),
-          'react-dom': resolve(__dirname, '../node_modules/.pnpm/react-dom@19.2.0_react@19.2.0/node_modules/react-dom'),
-          'react/jsx-runtime': resolve(__dirname, '../node_modules/.pnpm/react@19.2.0/node_modules/react/jsx-runtime'),
         },
+        dedupe: ['react', 'react-dom'],
       },
       esbuild: {
         jsx: 'automatic',
