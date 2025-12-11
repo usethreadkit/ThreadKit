@@ -13,7 +13,7 @@ license = "MIT"
 tokio = { version = "1.42", features = ["full"] }
 
 # HTTP framework
-axum = { version = "0.8", features = ["ws"] }
+axum = { version = "0.8", features = ["ws", "multipart"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
 
 # WebSocket
@@ -68,13 +68,27 @@ utoipa-scalar = { version = "0.3", features = ["axum"] }
 # HTTP client (for SaaS mode API calls)
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
+# S3 storage
+aws-sdk-s3 = "1.117"
+aws-config = "1.8.12"
+aws-credential-types = "1.2"
+
+# Image processing
+image = { version = "0.25.5", features = ["jpeg", "png", "webp", "gif"] }
+webp = "0.3"
+
+# Multipart form handling
+multer = "3.1"
+bytes = "1.9"
+mime = "0.3"
+
 # CLI (for admin tool)
 clap = { version = "4.5", features = ["derive"] }
 
 # Testing
 tokio-test = "0.4"
 testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["redis"] }
+testcontainers-modules = { version = "0.11", features = ["redis", "minio"] }
 axum-test = "18"
 fake = { version = "3.0", features = ["derive", "uuid", "chrono"] }
 criterion = { version = "0.5", features = ["async_tokio"] }

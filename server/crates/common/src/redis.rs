@@ -1238,6 +1238,47 @@ impl RedisClient {
     }
 
     // ========================================================================
+    // Media Operations
+    // ========================================================================
+
+    /// Store media metadata
+    pub async fn set_media_info(&self, info: &crate::types::MediaInfo) -> Result<()> {
+        self.hsetall_json(&format!("media:{}", info.id), info).await
+    }
+
+    /// Get media metadata
+    pub async fn get_media_info(&self, media_id: Uuid) -> Result<Option<crate::types::MediaInfo>> {
+        self.hgetall_json(&format!("media:{}", media_id)).await
+    }
+
+    /// Delete media metadata
+    pub async fn delete_media_info(&self, media_id: Uuid) -> Result<()> {
+        let _: () = self.client.del(format!("media:{}", media_id)).await?;
+        Ok(())
+    }
+
+    /// Add media to user's media set
+    pub async fn add_user_media(&self, user_id: Uuid, media_id: Uuid) -> Result<()> {
+        let key = format!("user:{}:media", user_id);
+        let _: () = self.client.sadd(key, media_id.to_string()).await?;
+        Ok(())
+    }
+
+    /// Remove media from user's media set
+    pub async fn remove_user_media(&self, user_id: Uuid, media_id: Uuid) -> Result<()> {
+        let key = format!("user:{}:media", user_id);
+        let _: () = self.client.srem(key, media_id.to_string()).await?;
+        Ok(())
+    }
+
+    /// Get all media uploaded by a user (across all sites)
+    pub async fn get_user_media(&self, user_id: Uuid) -> Result<Vec<Uuid>> {
+        let key = format!("user:{}:media", user_id);
+        let ids: Vec<String> = self.client.smembers(key).await?;
+        Ok(ids.into_iter().filter_map(|s| s.parse().ok()).collect())
+    }
+
+    // ========================================================================
     // Session Operations
     // ========================================================================
 

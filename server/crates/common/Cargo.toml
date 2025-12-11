@@ -27,3 +27,14 @@ alloy-primitives.workspace = true
 ed25519-dalek.workspace = true
 bs58.workspace = true
 hex.workspace = true
+
+# S3 storage
+aws-sdk-s3.workspace = true
+aws-config.workspace = true
+aws-credential-types.workspace = true
+
+# Image processing
+image.workspace = true
+webp.workspace = true
+bytes.workspace = true
+mime.workspace = true
