@@ -7,12 +7,12 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({
+      page_id: '00000000-0000-0000-0000-000000000000',
       tree: {
         comments: [],
-        total_count: 0,
-        page: 0,
-        page_size: 50
-      }
+        updated_at: 0
+      },
+      total: 0
     }),
   })
 ) as unknown as typeof fetch;

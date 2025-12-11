@@ -35,39 +35,40 @@ GET /v1/comments
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `page_url` | string | required | URL of the page |
-| `sort` | string | `new` | Sort order: `new`, `top`, `hot` |
-| `offset` | number | `0` | Pagination offset |
-| `limit` | number | `50` | Items per page (max 100) |
-| `parent_id` | uuid | null | Get replies to specific comment |
+| `sort` | string | `top` | Sort order: `new`, `top`, `controversial`, `old` |
 
 **Response:**
 ```json
 {
-  "comments": [
-    {
-      "id": "uuid",
-      "author": {
-        "id": "uuid",
-        "name": "John Doe",
-        "avatar_url": "https://...",
-        "karma": 42
-      },
-      "content": "Great article!",
-      "content_html": "<p>Great article!</p>",
-      "upvotes": 10,
-      "downvotes": 2,
-      "reply_count": 3,
-      "depth": 0,
-      "status": "approved",
-      "edited": false,
-      "created_at": "2024-01-15T10:30:00Z",
-      "user_vote": "up"
-    }
-  ],
+  "page_id": "uuid",
+  "tree": {
+    "comments": [
+      {
+        "i": "comment-uuid",
+        "a": "author-uuid",
+        "n": "John Doe",
+        "p": "https://avatar.url",
+        "k": 42,
+        "t": "Great article!",
+        "h": "<p>Great article!</p>",
+        "u": 10,
+        "d": 2,
+        "c": 1705315800,
+        "m": 1705315800,
+        "r": [],
+        "s": "approved",
+        "pid": null
+      }
+    ],
+    "updated_at": 1705315800
+  },
   "total": 42,
-  "pageviews": 1234
+  "pageviews": 1234,
+  "pinned": []
 }
 ```
+
+**Note:** The response uses a compact tree format with single-letter keys to reduce bandwidth. The entire comment tree is returned (no pagination).
 
 ---
 

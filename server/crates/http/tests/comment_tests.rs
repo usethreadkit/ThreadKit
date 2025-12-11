@@ -384,6 +384,44 @@ async fn test_report_comment() {
 }
 
 #[tokio::test]
+async fn test_comment_length_validation() {
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx
+        .register_user("longcommenter", "long@example.com", "password123")
+        .await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Test: comment at exactly the limit (10,000 chars) should succeed
+    let max_length_content = "x".repeat(10_000);
+    let response = ctx
+        .create_comment(token, "https://example.com/page_max", &max_length_content, None)
+        .await;
+    response.assert_status(StatusCode::OK);
+
+    // Test: comment over the limit (10,001 chars) should fail
+    let over_limit_content = "x".repeat(10_001);
+    let (key_name, key_value) = project_id_header(&ctx.project_id);
+    let (auth_name, auth_value) = auth_header(token);
+    let response = ctx
+        .server
+        .post("/v1/comments")
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&json!({
+            "page_url": "https://example.com/page_over",
+            "content": over_limit_content
+        }))
+        .await;
+
+    response.assert_status(StatusCode::BAD_REQUEST);
+    let error_msg = response.text();
+    assert!(error_msg.contains("exceeds maximum length"));
+    assert!(error_msg.contains("10000") || error_msg.contains("10,000"));
+}
+
+#[tokio::test]
 async fn test_create_comment_requires_auth() {
     let ctx = TestContext::new().await;
 
