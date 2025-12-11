@@ -151,6 +151,7 @@ export function MediaUploader({
           className="threadkit-attach-btn"
           onClick={() => fileInputRef.current?.click()}
           title="Attach media"
+          aria-label="Attach media"
           disabled={uploads.length > 0}
         >
           <ImagePlusIcon />

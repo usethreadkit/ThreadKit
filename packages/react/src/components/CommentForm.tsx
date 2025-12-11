@@ -1,9 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { CommentFormProps } from '../types';
 import type { MediaUpload } from '@threadkit/core';
 import { useTranslation } from '../i18n';
 import { NewCommentsBanner } from './NewCommentsBanner';
 import { MediaUploader } from './MediaUploader';
+
+// Server enforces 10,000 character limit
+const MAX_COMMENT_LENGTH = 10000;
+// Show counter when within this many characters of the limit
+const SHOW_COUNTER_THRESHOLD = 5000;
 
 const FORMATTING_HELP = [
   { input: '*italics*', output: 'italics', style: 'italic' },
@@ -35,6 +40,12 @@ export function CommentForm({
 
   const placeholderText = placeholder ?? t('writeComment');
 
+  // Calculate character count and whether to show it
+  const charCount = useMemo(() => text.length, [text]);
+  const showCounter = charCount >= SHOW_COUNTER_THRESHOLD;
+  const remaining = MAX_COMMENT_LENGTH - charCount;
+  const isOverLimit = remaining < 0;
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -61,24 +72,33 @@ export function CommentForm({
 
   return (
     <form className="threadkit-form" onSubmit={handleSubmit}>
-      <textarea
-        className="threadkit-textarea"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={placeholderText}
-        disabled={isSubmitting}
-        rows={3}
-        autoFocus={autoFocus}
-      />
+      <div className="threadkit-textarea-wrapper">
+        <textarea
+          className="threadkit-textarea"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholderText}
+          disabled={isSubmitting}
+          rows={3}
+          autoFocus={autoFocus}
+          maxLength={MAX_COMMENT_LENGTH}
+        />
+        {showCounter && (
+          <div className={`threadkit-char-counter ${isOverLimit ? 'over-limit' : ''}`}>
+            {remaining.toLocaleString()}
+          </div>
+        )}
+      </div>
 
       {attachedMedia.length > 0 && (
         <div className="threadkit-attachments">
           {attachedMedia.map((media) => (
             <div key={media.mediaId} className="threadkit-attachment-preview">
-              <img src={media.url} alt="" />
+              <img src={media.url} alt="Attached media preview" />
               <button
                 type="button"
                 className="threadkit-attachment-remove"
+                aria-label="Remove attachment"
                 onClick={() => {
                   // Remove from attachedMedia
                   setAttachedMedia(prev => prev.filter(m => m.mediaId !== media.mediaId));
@@ -102,7 +122,7 @@ export function CommentForm({
         </div>
       )}
 
-      {error && <div className="threadkit-error">{error}</div>}
+      {error && <div className="threadkit-error" role="alert" aria-live="assertive">{error}</div>}
 
       <div className="threadkit-form-actions">
         <button

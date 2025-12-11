@@ -19,6 +19,8 @@ export function NewCommentsBanner({ count, onClick }: NewCommentsBannerProps) {
     <button
       className="threadkit-new-comments-banner"
       onClick={onClick}
+      aria-live="polite"
+      aria-atomic="true"
     >
       {text}
     </button>

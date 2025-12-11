@@ -10,6 +10,9 @@ import { GuestAwareUsername, formatUsername } from '../utils/username';
 import { normalizeUsername, validateUsername, MAX_USERNAME_LENGTH } from '@threadkit/core';
 import { MediaUploader } from './MediaUploader';
 
+// Chat messages should be short - limit to 500 characters
+const MAX_CHAT_LENGTH = 500;
+
 interface ChatViewProps {
   comments: Comment[];
   currentUser?: User;
@@ -152,6 +155,7 @@ function ChatMessage({
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             autoFocus
+            maxLength={MAX_CHAT_LENGTH}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && editText.trim()) {
                 handleSaveEdit();
@@ -191,6 +195,7 @@ function ChatMessage({
             onChange={(e) => setReplyText(e.target.value)}
             placeholder={`${t('reply')} to ${replyToName}...`}
             autoFocus
+            maxLength={MAX_CHAT_LENGTH}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && replyText.trim()) {
                 handleSendReply();
@@ -928,7 +933,7 @@ export function ChatView({
               {t('sendCode')}
             </button>
           </form>
-          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+          {authState.error && <span className="threadkit-signin-error" role="alert" aria-live="assertive">{authState.error}</span>}
         </div>
       );
     }
@@ -961,7 +966,7 @@ export function ChatView({
               {t('verify')}
             </button>
           </form>
-          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+          {authState.error && <span className="threadkit-signin-error" role="alert" aria-live="assertive">{authState.error}</span>}
         </div>
       );
     }
@@ -1003,7 +1008,7 @@ export function ChatView({
               {isSubmittingUsername ? t('loading') : authState.step === 'otp-name' ? t('continue') : t('save')}
             </button>
           </form>
-          {authState.error && <span className="threadkit-signin-error">{authState.error}</span>}
+          {authState.error && <span className="threadkit-signin-error" role="alert" aria-live="assertive">{authState.error}</span>}
         </div>
       );
     }
@@ -1054,6 +1059,7 @@ export function ChatView({
           onChange={handleInputChange}
           placeholder={t('typeMessage')}
           disabled={isSubmitting}
+          maxLength={MAX_CHAT_LENGTH}
         />
         {authState.token && (
           <MediaUploader
@@ -1084,10 +1090,11 @@ export function ChatView({
         <div className="threadkit-attachments threadkit-chat-attachments">
           {attachedMedia.map((media) => (
             <div key={media.mediaId} className="threadkit-attachment-preview">
-              <img src={media.url} alt="" />
+              <img src={media.url} alt="Attached media preview" />
               <button
                 type="button"
                 className="threadkit-attachment-remove"
+                aria-label="Remove attachment"
                 onClick={() => {
                   // Remove from attachedMedia
                   setAttachedMedia(prev => prev.filter(m => m.mediaId !== media.mediaId));

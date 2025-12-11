@@ -128,6 +128,8 @@ export function Comment({
           className="threadkit-expand-btn"
           onClick={handleCollapse}
           title={t('expandComment')}
+          aria-expanded="false"
+          aria-label={t('expandComment')}
         >
           [+]
         </button>
@@ -165,6 +167,7 @@ export function Comment({
                 onVote(comment.id, 'up');
               }}
               aria-label={t('upvote')}
+              aria-pressed={hasUpvoted}
               title={!currentUser || needsUsername ? t('signInToVote') : undefined}
               disabled={!currentUser || needsUsername}
             >
@@ -177,6 +180,7 @@ export function Comment({
                 onVote(comment.id, 'down');
               }}
               aria-label={t('downvote')}
+              aria-pressed={hasDownvoted}
               title={!currentUser || needsUsername ? t('signInToVote') : undefined}
               disabled={!currentUser || needsUsername}
             >
@@ -205,6 +209,8 @@ export function Comment({
               className="threadkit-collapse-btn"
               onClick={handleCollapse}
               title={t('collapseComment')}
+              aria-expanded="true"
+              aria-label={t('collapseComment')}
             >
               [–]
             </button>

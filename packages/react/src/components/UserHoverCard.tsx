@@ -222,6 +222,7 @@ export function UserHoverCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   title={title}
+                  aria-label={`${title} profile`}
                   className="threadkit-social-link"
                 >
                   <Icon className="threadkit-social-icon" />
@@ -290,6 +291,9 @@ export function UserHoverCard({
           <div
             ref={cardRef}
             className="threadkit-root threadkit-hover-card threadkit-hover-card-centered"
+            role="dialog"
+            aria-modal="true"
+            aria-label="User profile"
             onClick={(e) => e.stopPropagation()}
           >
             {profile ? profileCard : skeletonCard}

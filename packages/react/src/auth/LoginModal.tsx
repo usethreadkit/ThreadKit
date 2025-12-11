@@ -136,7 +136,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'methods':
         return (
           <div className="tk-auth-methods">
-            <h2 className="tk-auth-title">{t('signIn')}</h2>
+            <h2 id="tk-auth-title" className="tk-auth-title">{t('signIn')}</h2>
             <p className="tk-auth-subtitle">{t('chooseSignInMethod')}</p>
 
             <div className="tk-auth-method-list">
@@ -157,7 +157,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'otp-input':
         return (
           <form className="tk-auth-form" onSubmit={handleOtpSubmit}>
-            <h2 className="tk-auth-title">
+            <h2 id="tk-auth-title" className="tk-auth-title">
               {t('enterEmail')}
             </h2>
             <p className="tk-auth-subtitle">
@@ -172,10 +172,12 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               autoComplete="email"
+              aria-describedby={state.error ? 'tk-auth-error-otp-input' : undefined}
+              aria-invalid={state.error ? 'true' : 'false'}
             />
 
             {state.error && (
-              <p className="tk-auth-error">{state.error}</p>
+              <p id="tk-auth-error-otp-input" className="tk-auth-error" role="alert">{state.error}</p>
             )}
 
             <button
@@ -191,7 +193,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'otp-verify':
         return (
           <form className="tk-auth-form" onSubmit={handleVerifySubmit}>
-            <h2 className="tk-auth-title">{t('checkEmail')}</h2>
+            <h2 id="tk-auth-title" className="tk-auth-title">{t('checkEmail')}</h2>
             <p className="tk-auth-subtitle">
               {t('enterCode')} {state.otpTarget}
             </p>
@@ -206,10 +208,12 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
               autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}
+              aria-describedby={state.error ? 'tk-auth-error-otp-verify' : undefined}
+              aria-invalid={state.error ? 'true' : 'false'}
             />
 
             {state.error && (
-              <p className="tk-auth-error">{state.error}</p>
+              <p id="tk-auth-error-otp-verify" className="tk-auth-error" role="alert">{state.error}</p>
             )}
 
             <button
@@ -225,7 +229,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'otp-name':
         return (
           <form className="tk-auth-form" onSubmit={handleNameSubmit}>
-            <h2 className="tk-auth-title">{t('welcome')}</h2>
+            <h2 id="tk-auth-title" className="tk-auth-title">{t('welcome')}</h2>
             <p className="tk-auth-subtitle">
               {t('chooseUsername')}
             </p>
@@ -238,10 +242,12 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="username"
+              aria-describedby={state.error ? 'tk-auth-error-otp-name' : undefined}
+              aria-invalid={state.error ? 'true' : 'false'}
             />
 
             {state.error && (
-              <p className="tk-auth-error">{state.error}</p>
+              <p id="tk-auth-error-otp-name" className="tk-auth-error" role="alert">{state.error}</p>
             )}
 
             <button
@@ -281,7 +287,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
 
   return (
     <div className="tk-auth-overlay" onClick={onClose}>
-      <div className="tk-auth-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="tk-auth-modal" role="dialog" aria-modal="true" aria-labelledby="tk-auth-title" onClick={(e) => e.stopPropagation()}>
         <div className="tk-auth-header">
           {showBackButton && (
             <button

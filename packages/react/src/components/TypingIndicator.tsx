@@ -23,8 +23,8 @@ export function TypingIndicator({ typingUsers }: TypingIndicatorProps) {
   const text = t('isTyping').replace('{name}', firstName);
 
   return (
-    <div className="threadkit-typing-indicator">
-      <span className="threadkit-typing-dots">
+    <div className="threadkit-typing-indicator" aria-live="polite" aria-atomic="true">
+      <span className="threadkit-typing-dots" aria-hidden="true">
         <span></span>
         <span></span>
         <span></span>
