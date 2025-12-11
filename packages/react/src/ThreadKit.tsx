@@ -1,10 +1,10 @@
-import React, { useCallback, useState, useEffect, /* useMemo, */ forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
 import type { ThreadKitProps, ThreadKitCSSVariables, ThreadKitRef, User, Comment, SortBy, UserProfile } from './types';
 import { useComments, ThreadKitError } from './hooks/useComments';
 import { useWebSocket } from './hooks/useWebSocket';
-import { /* sortComments, */ getUser } from '@threadkit/core';
+import { sortComments, getUser } from '@threadkit/core';
 import { CommentsView } from './components/CommentsView';
-// import { ChatView } from './components/ChatView';
+import { ChatView } from './components/ChatView';
 import { SettingsPanel } from './components/SettingsPanel';
 import { NotificationsPanel, type Notification } from './components/NotificationsPanel';
 import { AuthProvider, useAuth, LoginModal, injectAuthStyles } from './auth';
@@ -269,10 +269,10 @@ function ThreadKitInner({
   const [pendingReplies, setPendingReplies] = useState<Map<string, Comment[]>>(new Map());
 
   // Sort comments by newest for chat mode
-  // const chatComments = useMemo(() => {
-  //   if (mode === 'chat') return sortComments(comments, 'new');
-  //   return comments;
-  // }, [mode, comments]);
+  const chatComments = useMemo(() => {
+    if (mode === 'chat') return sortComments(comments, 'new');
+    return comments;
+  }, [mode, comments]);
 
   // Imperative handle for parent component control
   useImperativeHandle(innerRef, () => ({
@@ -785,15 +785,15 @@ function ThreadKitInner({
   );
 
   // Handler to scroll to a comment by ID (for chat mode reply references)
-  // const handleScrollToComment = useCallback((commentId: string) => {
-  //   const element = rootRef.current?.querySelector(`[data-comment-id="${commentId}"]`);
-  //   if (element) {
-  //     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  //     setHighlightedCommentId(commentId);
-  //     // Auto-clear highlight after 3 seconds
-  //     setTimeout(() => setHighlightedCommentId(null), 3000);
-  //   }
-  // }, []);
+  const handleScrollToComment = useCallback((commentId: string) => {
+    const element = rootRef.current?.querySelector(`[data-comment-id="${commentId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedCommentId(commentId);
+      // Auto-clear highlight after 3 seconds
+      setTimeout(() => setHighlightedCommentId(null), 3000);
+    }
+  }, []);
 
   // Compute merged styles (cssVariables + user style)
   const rootStyle = { ...cssVariablesToStyle(cssVariables), ...style };
@@ -897,6 +897,8 @@ function ThreadKitInner({
         theme={currentTheme}
         blockedUsers={blockedUsers}
         apiUrl={apiUrl}
+        projectId={projectId}
+        token={authState.token ?? undefined}
         onLogin={handleLogin}
         onLogout={handleLogout}
         onUpdateAvatar={handleUpdateAvatar}
@@ -911,21 +913,21 @@ function ThreadKitInner({
 
   return (
     <div ref={rootRef} className={rootClassName} data-theme={currentTheme} dir={isRTL ? 'rtl' : 'ltr'} style={rootStyle}>
-      {/* {mode === 'chat' ? (
+      {mode === 'chat' ? (
         <ChatView
           comments={chatComments}
           currentUser={currentUser}
           needsUsername={authState.step === 'username-required' || authState.user?.username_set === false}
-          showLastN={showLastN}
-          autoScroll={autoScroll}
-          showPresence={showPresence}
-          wsConnected={wsConnected}
-          presenceCount={presenceCount}
-          typingUsers={showTyping ? typingUsers : []}
+          showLastN={_showLastN}
+          autoScroll={_autoScroll}
+          showPresence={_showPresence}
+          wsConnected={_wsConnected}
+          presenceCount={_presenceCount}
+          typingUsers={_showTyping ? _typingUsers : []}
           apiUrl={apiUrl}
           projectId={projectId}
           onSend={handlePost}
-          onTyping={sendTyping}
+          onTyping={_sendTyping}
           onBlock={handleBlock}
           onReport={handleReport}
           onDelete={handleDelete}
@@ -938,7 +940,7 @@ function ThreadKitInner({
           getUserProfile={getUserProfile}
           fetchUserProfile={fetchUserProfile}
         />
-      ) : ( */}
+      ) : (
         <CommentsView
           comments={comments}
           currentUser={currentUser}
@@ -982,7 +984,7 @@ function ThreadKitInner({
           getUserProfile={getUserProfile}
           fetchUserProfile={fetchUserProfile}
         />
-      {/* )} */}
+      )}
 
       {!hideBranding && (
         <div className="threadkit-branding">
