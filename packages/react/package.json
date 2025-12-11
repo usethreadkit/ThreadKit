@@ -50,16 +50,16 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.0",
-    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/coverage-v8": "^4.0.15",
     "esbuild": "^0.27.1",
-    "jsdom": "^25.0.0",
+    "jsdom": "^27.3.0",
     "katex": "^0.16.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "shiki": "^1.24.0",
-    "typescript": "^5.3.3",
-    "vite": "^6.0.0",
-    "vitest": "^2.1.0"
+    "shiki": "^3.19.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7",
+    "vitest": "^4.0.15"
   },
   "keywords": [
     "react",

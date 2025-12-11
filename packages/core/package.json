@@ -29,10 +29,10 @@
     "generate:types": "cd ../../server && cargo run --bin openapi 2>/dev/null > ../packages/core/openapi.json && cd ../packages/core && npx openapi-typescript ./openapi.json -o ./src/api.generated.ts"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/coverage-v8": "^4.0.15",
     "esbuild": "^0.27.1",
-    "typescript": "^5.3.3",
-    "vitest": "^2.1.0"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   },
   "keywords": [
     "threadkit",

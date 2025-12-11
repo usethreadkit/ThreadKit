@@ -25,7 +25,8 @@
     "example:syntax": "pnpm --filter @threadkit/example-syntax-highlight dev",
     "example:turnstile": "pnpm --filter @threadkit/example-turnstile dev",
     "example:ethereum": "pnpm --filter @threadkit/example-ethereum dev",
-    "example:solana": "pnpm --filter @threadkit/example-solana dev"
+    "example:solana": "pnpm --filter @threadkit/example-solana dev",
+    "outdated": "pnpm -r outdated"
   },
   "devDependencies": {
     "@storybook/addon-links": "10.1.7",
@@ -38,8 +39,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "storybook": "10.1.7",
-    "typescript": "^5.3.3",
-    "vite": "^6.4.1"
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
