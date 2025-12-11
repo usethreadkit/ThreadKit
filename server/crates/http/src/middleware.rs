@@ -312,3 +312,59 @@ fn rate_limit_response(result: &RateLimitResult, layer: &str) -> Response {
 
     response
 }
+
+/// Security headers middleware
+/// Adds Content-Security-Policy and other security headers to responses
+pub async fn security_headers(
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    let mut response = next.run(request).await;
+
+    let headers = response.headers_mut();
+
+    // Content Security Policy
+    // This policy is designed for a REST API server:
+    // - default-src 'none': No resources loaded by default
+    // - frame-ancestors 'none': Prevent embedding in frames (clickjacking protection)
+    // - base-uri 'none': Prevent <base> tag manipulation
+    headers.insert(
+        "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+            .parse()
+            .unwrap(),
+    );
+
+    // Prevent MIME type sniffing
+    headers.insert("X-Content-Type-Options", "nosniff".parse().unwrap());
+
+    // Prevent clickjacking
+    headers.insert("X-Frame-Options", "DENY".parse().unwrap());
+
+    // Force HTTPS in production (strict transport security)
+    // 1 year max-age, include subdomains
+    headers.insert(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains".parse().unwrap(),
+    );
+
+    // Disable client-side caching of sensitive data
+    headers.insert(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+            .parse()
+            .unwrap(),
+    );
+    headers.insert("Pragma", "no-cache".parse().unwrap());
+
+    // Prevent DNS prefetching
+    headers.insert("X-DNS-Prefetch-Control", "off".parse().unwrap());
+
+    // Disable browser features that could leak information
+    headers.insert(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(), camera=()".parse().unwrap(),
+    );
+
+    response
+}

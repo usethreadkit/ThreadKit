@@ -87,14 +87,49 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   // Getters
   // ============================================================================
 
+  /**
+   * Get the current state of the comment store.
+   * @returns The complete state including comments, loading status, errors, and page ID
+   * @example
+   * ```ts
+   * const state = commentStore.getState();
+   * console.log(`Loaded ${state.comments.length} comments`);
+   * if (state.error) {
+   *   console.error('Error:', state.error.message);
+   * }
+   * ```
+   */
   getState(): CommentStoreState {
     return this.state;
   }
 
+  /**
+   * Get all comments in the current tree structure.
+   * @returns Array of root-level comments with nested children
+   * @example
+   * ```ts
+   * const comments = commentStore.getComments();
+   * comments.forEach(comment => {
+   *   console.log(`${comment.userName}: ${comment.text}`);
+   *   comment.children.forEach(reply => {
+   *     console.log(`  └─ ${reply.userName}: ${reply.text}`);
+   *   });
+   * });
+   * ```
+   */
   getComments(): Comment[] {
     return this.state.comments;
   }
 
+  /**
+   * Get the current sort order.
+   * @returns The current sort criteria ('top', 'new', 'controversial', or 'old')
+   * @example
+   * ```ts
+   * const sortBy = commentStore.getSortBy();
+   * console.log(`Currently sorting by: ${sortBy}`);
+   * ```
+   */
   getSortBy(): SortBy {
     return this.sortBy;
   }
@@ -113,7 +148,26 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   // ============================================================================
 
   /**
-   * Fetch comments from the API
+   * Fetch comments from the API for the configured page.
+   * Sets loading state during the request and updates state with results or errors.
+   * If user is authenticated, also fetches their votes in parallel.
+   *
+   * @throws {ThreadKitError} If the request fails or returns an error
+   * @example
+   * ```ts
+   * try {
+   *   await commentStore.fetch();
+   *   console.log('Comments loaded successfully');
+   * } catch (error) {
+   *   if (error instanceof ThreadKitError) {
+   *     if (error.code === 'SITE_NOT_FOUND') {
+   *       console.error('Invalid site configuration');
+   *     } else if (error.code === 'RATE_LIMITED') {
+   *       console.error('Too many requests, please try again later');
+   *     }
+   *   }
+   * }
+   * ```
    */
   async fetch(): Promise<void> {
     try {
@@ -200,7 +254,23 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   }
 
   /**
-   * Post a new comment
+   * Post a new comment or reply to the API.
+   * Requires authentication. Use {@link addComment} to update local state after posting.
+   *
+   * @param text - The comment text content (markdown supported)
+   * @param parentId - Optional ID of the parent comment for replies
+   * @returns The newly created comment
+   * @throws {ThreadKitError} If the request fails, user is not authenticated, or rate limited
+   * @example
+   * ```ts
+   * // Post a root-level comment
+   * const comment = await commentStore.post('Great article!');
+   * commentStore.addComment(comment);
+   *
+   * // Post a reply
+   * const reply = await commentStore.post('Thanks!', parentComment.id);
+   * commentStore.addComment(reply);
+   * ```
    */
   async post(text: string, parentId?: string): Promise<Comment> {
     const { apiUrl, url, projectId } = this.config;
@@ -290,7 +360,23 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   }
 
   /**
-   * Vote on a comment
+   * Vote on a comment (upvote or downvote).
+   * Requires authentication. Use {@link updateComment} to update local state after voting.
+   *
+   * @param commentId - The ID of the comment to vote on
+   * @param type - Vote direction: 'up' for upvote, 'down' for downvote
+   * @returns Vote response with updated vote counts
+   * @throws {ThreadKitError} If the request fails or user is not authenticated
+   * @example
+   * ```ts
+   * // Upvote a comment
+   * const result = await commentStore.vote(comment.id, 'up');
+   * commentStore.updateComment(comment.id, {
+   *   upvotes: result.upvotes,
+   *   downvotes: result.downvotes,
+   *   userVote: 'up'
+   * });
+   * ```
    */
   async vote(commentId: string, type: 'up' | 'down'): Promise<VoteResponse> {
     const { apiUrl, url, projectId } = this.config;
@@ -413,8 +499,17 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   // ============================================================================
 
   /**
-   * Add a comment to local state (doesn't call API)
-   * Always sorts by 'newest' so user's own comments appear at the top
+   * Add a comment to local state without calling the API.
+   * Useful for optimistic updates after posting a comment.
+   * Always sorts by 'newest' so user's own comments appear at the top.
+   *
+   * @param comment - The comment to add
+   * @example
+   * ```ts
+   * // Optimistic update after posting
+   * const newComment = await commentStore.post('Hello world!');
+   * commentStore.addComment(newComment);
+   * ```
    */
   addComment(comment: Comment): void {
     this.setState({
@@ -423,7 +518,16 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   }
 
   /**
-   * Remove a comment from local state (doesn't call API)
+   * Remove a comment from local state without calling the API.
+   * Useful for optimistic updates after deleting a comment.
+   *
+   * @param commentId - The ID of the comment to remove
+   * @example
+   * ```ts
+   * // Optimistic update after deletion
+   * await commentStore.delete(commentId);
+   * commentStore.removeComment(commentId);
+   * ```
    */
   removeComment(commentId: string): void {
     this.setState({
@@ -432,7 +536,28 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
   }
 
   /**
-   * Update a comment in local state (doesn't call API)
+   * Update a comment's properties in local state without calling the API.
+   * Useful for optimistic updates after editing, voting, or receiving WebSocket events.
+   *
+   * @param commentId - The ID of the comment to update
+   * @param updates - Partial comment object with properties to update
+   * @example
+   * ```ts
+   * // Update after voting
+   * const result = await commentStore.vote(commentId, 'up');
+   * commentStore.updateComment(commentId, {
+   *   upvotes: result.upvotes,
+   *   downvotes: result.downvotes,
+   *   userVote: 'up'
+   * });
+   *
+   * // Update after editing
+   * await commentStore.edit(commentId, 'Updated text');
+   * commentStore.updateComment(commentId, {
+   *   text: 'Updated text',
+   *   edited: true
+   * });
+   * ```
    */
   updateComment(commentId: string, updates: Partial<Comment>): void {
     this.setState({

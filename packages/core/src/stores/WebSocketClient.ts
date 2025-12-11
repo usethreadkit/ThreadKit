@@ -110,10 +110,31 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   // Getters
   // ============================================================================
 
+  /**
+   * Get the current WebSocket state.
+   * @returns State object including connection status, presence count, and typing users
+   * @example
+   * ```ts
+   * const state = wsClient.getState();
+   * console.log(`Connected: ${state.connected}`);
+   * console.log(`${state.presenceCount} users online`);
+   * console.log(`${state.typingUsers.length} users typing`);
+   * ```
+   */
   getState(): WebSocketState {
     return this.state;
   }
 
+  /**
+   * Check if the WebSocket connection is currently open.
+   * @returns True if connected, false otherwise
+   * @example
+   * ```ts
+   * if (wsClient.isConnected()) {
+   *   console.log('Real-time updates active');
+   * }
+   * ```
+   */
   isConnected(): boolean {
     return this.state.connected;
   }
@@ -132,7 +153,23 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   // ============================================================================
 
   /**
-   * Establish WebSocket connection
+   * Establish WebSocket connection to the server.
+   * Automatically subscribes to the configured page and handles reconnection on failure.
+   * Emits 'stateChange' event when connection status changes.
+   *
+   * @example
+   * ```ts
+   * const wsClient = new WebSocketClient({ wsUrl, projectId, pageId, getToken });
+   *
+   * // Listen for connection changes
+   * wsClient.on('stateChange', (state) => {
+   *   if (state.connected) {
+   *     console.log('Connected to real-time updates');
+   *   }
+   * });
+   *
+   * wsClient.connect();
+   * ```
    */
   connect(): void {
     if (!this.enabled) return;
@@ -215,7 +252,22 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   }
 
   /**
-   * Send typing indicator
+   * Send a typing indicator to other users on the page.
+   * The indicator will automatically expire after the configured timeout (default 3 seconds).
+   *
+   * @param replyTo - Optional comment ID to indicate which comment is being replied to
+   * @example
+   * ```ts
+   * // Show typing indicator when user starts typing
+   * textarea.addEventListener('input', () => {
+   *   wsClient.sendTyping();
+   * });
+   *
+   * // Show typing indicator for a reply
+   * replyTextarea.addEventListener('input', () => {
+   *   wsClient.sendTyping(parentCommentId);
+   * });
+   * ```
    */
   sendTyping(replyTo?: string): void {
     this.sendRpc('typing', {

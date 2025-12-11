@@ -23,7 +23,7 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 use threadkit_common::Config;
-use threadkit_http::{middleware::rate_limit, openapi::ApiDoc, routes, state::AppState};
+use threadkit_http::{middleware::{rate_limit, security_headers}, openapi::ApiDoc, routes, state::AppState};
 
 #[derive(Parser)]
 #[command(name = "threadkit-http")]
@@ -186,6 +186,7 @@ async fn main() -> Result<()> {
             .layer(middleware::from_fn_with_state(state.clone(), rate_limit))
         )
         // Global middleware
+        .layer(middleware::from_fn(security_headers))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(
