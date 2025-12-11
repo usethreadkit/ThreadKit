@@ -23,6 +23,41 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const oauthWindowRef = useRef<Window | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null);
+
+  // Store previously focused element and set initial focus
+  useEffect(() => {
+    previouslyFocusedElement.current = document.activeElement as HTMLElement;
+    return () => {
+      // Return focus when unmounting
+      previouslyFocusedElement.current?.focus();
+    };
+  }, []);
+
+  // Focus trap: keep focus within modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !modalRef.current) return;
+
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement?.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [state.step]);
 
   // Focus input when step changes
   useEffect(() => {
@@ -127,7 +162,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
     switch (state.step) {
       case 'loading':
         return (
-          <div className="tk-auth-loading">
+          <div className="tk-auth-loading" aria-busy="true" aria-live="polite">
             <LoadingSpinner className="tk-auth-spinner" />
             <p>{t('loading')}</p>
           </div>
@@ -262,7 +297,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
 
       case 'oauth-pending':
         return (
-          <div className="tk-auth-loading">
+          <div className="tk-auth-loading" aria-busy="true" aria-live="polite">
             <LoadingSpinner className="tk-auth-spinner" />
             <p>{t('completingSignIn')} {state.selectedMethod?.name}...</p>
             <p className="tk-auth-subtitle">{t('popupShouldOpen')}</p>
@@ -272,7 +307,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
       case 'web3-pending':
         // Handled by plugin render in AuthContext
         return (
-          <div className="tk-auth-loading">
+          <div className="tk-auth-loading" aria-busy="true" aria-live="polite">
             <LoadingSpinner className="tk-auth-spinner" />
             <p>{t('connectingTo')} {state.selectedMethod?.name}...</p>
           </div>
@@ -287,7 +322,7 @@ export function LoginModal({ onClose, apiUrl, projectId }: LoginModalProps) {
 
   return (
     <div className="tk-auth-overlay" onClick={onClose}>
-      <div className="tk-auth-modal" role="dialog" aria-modal="true" aria-labelledby="tk-auth-title" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="tk-auth-modal" role="dialog" aria-modal="true" aria-labelledby="tk-auth-title" onClick={(e) => e.stopPropagation()}>
         <div className="tk-auth-header">
           {showBackButton && (
             <button

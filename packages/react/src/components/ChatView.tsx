@@ -901,7 +901,7 @@ export function ChatView({
     // Loading auth methods
     if (authState.step === 'loading') {
       return (
-        <div className="threadkit-chat-signin">
+        <div className="threadkit-chat-signin" aria-busy="true" aria-live="polite">
           <LoadingSpinner className="threadkit-signin-spinner-small" />
         </div>
       );
@@ -1016,7 +1016,7 @@ export function ChatView({
     // OAuth pending
     if (authState.step === 'oauth-pending' || authState.step === 'web3-pending') {
       return (
-        <div className="threadkit-chat-signin">
+        <div className="threadkit-chat-signin" aria-busy="true" aria-live="polite">
           <LoadingSpinner className="threadkit-signin-spinner-small" />
           <span>{t('signingInWith')} {authState.selectedMethod?.name}...</span>
           <button type="button" className="threadkit-signin-cancel-inline" onClick={handleBack}>

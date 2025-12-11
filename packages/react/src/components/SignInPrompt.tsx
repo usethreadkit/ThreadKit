@@ -474,7 +474,7 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
         />
 
         <div className="threadkit-form-actions">
-          <div className="threadkit-signin-loading-inline">
+          <div className="threadkit-signin-loading-inline" aria-busy="true" aria-live="polite">
             <LoadingSpinner className="threadkit-signin-spinner-small" />
             <span>{t('signingInWith')} {state.selectedMethod?.name}...</span>
             <button type="button" className="threadkit-signin-cancel-inline" onClick={handleBack}>
@@ -541,7 +541,7 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
       <div className="threadkit-form-actions">
         {state.step === 'loading' ? (
           // Loading auth methods
-          <div className="threadkit-signin-loading-inline">
+          <div className="threadkit-signin-loading-inline" aria-busy="true" aria-live="polite">
             <LoadingSpinner className="threadkit-signin-spinner-small" />
           </div>
         ) : (

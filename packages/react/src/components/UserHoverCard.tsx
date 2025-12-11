@@ -45,6 +45,7 @@ export function UserHoverCard({
   const triggerRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
   const profile = getUserProfile?.(userId);
 
@@ -95,12 +96,17 @@ export function UserHoverCard({
     };
   }, []);
 
-  // Prevent body scroll when in click mode
+  // Store previously focused element and manage focus in click mode
   useEffect(() => {
     if (isClickMode && isVisible) {
+      previouslyFocusedElement.current = document.activeElement as HTMLElement;
       document.body.style.overflow = 'hidden';
+      // Focus the card for keyboard navigation
+      cardRef.current?.focus();
       return () => {
         document.body.style.overflow = '';
+        // Return focus when closing
+        previouslyFocusedElement.current?.focus();
       };
     }
   }, [isClickMode, isVisible]);
@@ -121,6 +127,41 @@ export function UserHoverCard({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isClickMode, isVisible]);
+
+  // Focus trap for click mode
+  useEffect(() => {
+    if (!isClickMode || !isVisible) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsVisible(false);
+        setIsClickMode(false);
+        return;
+      }
+
+      if (e.key !== 'Tab' || !cardRef.current) return;
+
+      const focusableElements = cardRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement?.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isClickMode, isVisible]);
 
   // Don't add hover triggers for anonymous users
@@ -294,6 +335,7 @@ export function UserHoverCard({
             role="dialog"
             aria-modal="true"
             aria-label="User profile"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
           >
             {profile ? profileCard : skeletonCard}
