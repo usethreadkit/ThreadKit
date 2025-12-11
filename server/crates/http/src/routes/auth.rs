@@ -897,6 +897,74 @@ pub async fn oauth_callback(
     }
 }
 
+/// Helper function to create a new OAuth user
+async fn create_new_oauth_user(
+    state: AppState,
+    provider: String,
+    provider_id: String,
+    name: String,
+    email: Option<String>,
+    avatar_url: Option<String>,
+    auth_provider: AuthProvider,
+) -> Result<User, String> {
+    let user_id = Uuid::now_v7();
+    let now = Utc::now();
+
+    // Normalize the name from OAuth provider for initial username suggestion
+    let normalized_name = threadkit_common::normalize_username(&name);
+    let display_name = if normalized_name.is_empty() {
+        format!("user-{}", &user_id.to_string()[..8])
+    } else {
+        normalized_name
+    };
+
+    let user = User {
+        id: user_id,
+        name: display_name.clone(),
+        email: email.clone(),
+        avatar_url,
+        provider: auth_provider,
+        provider_id: Some(provider_id.clone()),
+        email_verified: email.is_some(),
+        karma: 0,
+        global_banned: false,
+        shadow_banned: false,
+        created_at: now,
+        username_set: false, // New users must confirm their username
+        social_links: SocialLinks::default(),
+        total_comments: 0,
+    };
+
+    state.redis.set_user(&user).await
+        .map_err(|e| e.to_string())?;
+
+    let final_name = if state.redis.is_username_available(&user.name, None).await.unwrap_or(false) {
+        user.name.clone()
+    } else {
+        format!("{}-{}", user.name, &user_id.to_string()[..8])
+    };
+    state.redis.set_user_username_index(&final_name, user_id).await
+        .map_err(|e| e.to_string())?;
+
+    state.redis.set_user_provider_index(&provider, &provider_id, user_id).await
+        .map_err(|e| e.to_string())?;
+
+    if let Some(ref email) = email {
+        let _ = state.redis.set_user_email_index(email, user_id).await;
+    }
+
+    // Update user with final name if it changed
+    if final_name != user.name {
+        let mut updated_user = user.clone();
+        updated_user.name = final_name;
+        state.redis.set_user(&updated_user).await
+            .map_err(|e| e.to_string())?;
+        Ok(updated_user)
+    } else {
+        Ok(user)
+    }
+}
+
 async fn oauth_callback_inner(
     state: AppState,
     provider: String,
@@ -1005,66 +1073,43 @@ async fn oauth_callback_inner(
     };
 
     let user = if let Some(user_id) = existing_user_id {
+        // User already exists with this OAuth provider
         state.redis.get_user(user_id).await
             .map_err(|e| e.to_string())?
             .ok_or("User not found")?
-    } else {
-        let user_id = Uuid::now_v7();
-        let now = Utc::now();
+    } else if let Some(ref user_email) = email {
+        // No existing OAuth account, but check if there's an account with this email
+        if let Some(existing_user_id) = state.redis.get_user_by_email(user_email).await.map_err(|e| e.to_string())? {
+            // Account exists with this email - link the OAuth provider to it
+            let mut existing_user = state.redis.get_user(existing_user_id).await
+                .map_err(|e| e.to_string())?
+                .ok_or("User not found")?;
 
-        // Normalize the name from OAuth provider for initial username suggestion
-        let normalized_name = threadkit_common::normalize_username(&name);
-        let display_name = if normalized_name.is_empty() {
-            format!("user-{}", &user_id.to_string()[..8])
-        } else {
-            normalized_name
-        };
+            // Update the user with OAuth provider info
+            existing_user.provider = auth_provider;
+            existing_user.provider_id = Some(provider_id.clone());
+            existing_user.email_verified = true; // OAuth providers verify email
 
-        let user = User {
-            id: user_id,
-            name: display_name.clone(),
-            email: email.clone(),
-            avatar_url,
-            provider: auth_provider,
-            provider_id: Some(provider_id.clone()),
-            email_verified: email.is_some(),
-            karma: 0,
-            global_banned: false,
-            shadow_banned: false,
-            created_at: now,
-            username_set: false, // New users must confirm their username
-            social_links: SocialLinks::default(),
-            total_comments: 0,
-        };
+            // Update avatar if user doesn't have one
+            if existing_user.avatar_url.is_none() && avatar_url.is_some() {
+                existing_user.avatar_url = avatar_url.clone();
+            }
 
-        state.redis.set_user(&user).await
-            .map_err(|e| e.to_string())?;
-
-        let final_name = if state.redis.is_username_available(&user.name, None).await.unwrap_or(false) {
-            user.name.clone()
-        } else {
-            format!("{}-{}", user.name, &user_id.to_string()[..8])
-        };
-        state.redis.set_user_username_index(&final_name, user_id).await
-            .map_err(|e| e.to_string())?;
-
-        state.redis.set_user_provider_index(&provider, &provider_id, user_id).await
-            .map_err(|e| e.to_string())?;
-
-        if let Some(ref email) = email {
-            let _ = state.redis.set_user_email_index(email, user_id).await;
-        }
-
-        // Update user with final name if it changed
-        if final_name != user.name {
-            let mut updated_user = user.clone();
-            updated_user.name = final_name;
-            state.redis.set_user(&updated_user).await
+            state.redis.set_user(&existing_user).await
                 .map_err(|e| e.to_string())?;
-            updated_user
+
+            // Create the OAuth provider index
+            state.redis.set_user_provider_index(&provider, &provider_id, existing_user_id).await
+                .map_err(|e| e.to_string())?;
+
+            existing_user
         } else {
-            user
+            // No existing account - create new user
+            create_new_oauth_user(state.clone(), provider, provider_id, name, email, avatar_url, auth_provider).await?
         }
+    } else {
+        // No email provided by OAuth provider - create new user without email linking
+        create_new_oauth_user(state.clone(), provider, provider_id, name, email, avatar_url, auth_provider).await?
     };
 
     let session_id = Uuid::now_v7();

@@ -440,4 +440,28 @@ impl TestContext {
         let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
         format!("redis://{}:{}", host, port)
     }
+
+    /// Manually add a comment to user's comment index (for testing background task simulation)
+    /// This is needed because comment indexing happens asynchronously in tokio::spawn,
+    /// which may not complete before tests check the indexes
+    pub async fn index_comment(&self, user_id: &str, page_url: &str, comment_id: &str) {
+        use threadkit_common::redis::RedisClient;
+
+        let user_uuid = Uuid::parse_str(user_id).expect("Invalid user ID");
+        let comment_uuid = Uuid::parse_str(comment_id).expect("Invalid comment ID");
+
+        let redis_url = self.get_redis_url().await;
+        let redis = RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to connect to Redis");
+
+        // Generate page_id from page_url (deterministic hash)
+        let page_id = RedisClient::generate_page_id(self.site_id, page_url);
+
+        // Add to user's comment index
+        redis
+            .add_user_comment_index(user_uuid, page_id, comment_uuid)
+            .await
+            .expect("Failed to add comment to user index");
+    }
 }

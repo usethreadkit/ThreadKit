@@ -122,8 +122,8 @@ async fn test_turnstile_verify_requires_secret_key() {
 #[tokio::test]
 async fn test_turnstile_enforcement_unverified_currently_same_as_anonymous() {
     // NOTE: Currently "unverified" enforcement behaves the same as "anonymous"
-    // It only checks if is_anonymous, not if email/phone is verified
-    // TODO: Implement actual email_verified/phone_verified checking
+    // It only checks if is_anonymous, not if email is verified
+    // TODO: Implement actual email_verified checking
     let ctx = TestContext::new().await;
 
     // Register a user (email not verified by default)

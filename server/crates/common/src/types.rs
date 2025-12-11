@@ -427,6 +427,32 @@ impl PageTree {
             self.flatten_recursive(reply, Some(comment.id), depth + 1, result);
         }
     }
+
+    /// Anonymize a comment by ID (recursively searches tree)
+    /// Used for GDPR account deletion
+    pub fn anonymize_comment(&mut self, comment_id: Uuid) {
+        // Helper function to recursively find and anonymize
+        fn anonymize_in_tree(comment: &mut TreeComment, target_id: Uuid) -> bool {
+            if comment.id == target_id {
+                comment.anonymize_for_gdpr();
+                return true;
+            }
+            for reply in &mut comment.replies {
+                if anonymize_in_tree(reply, target_id) {
+                    return true;
+                }
+            }
+            false
+        }
+
+        // Search all root comments and their replies
+        for root in &mut self.comments {
+            if anonymize_in_tree(root, comment_id) {
+                self.updated_at = chrono::Utc::now().timestamp();
+                return;
+            }
+        }
+    }
 }
 
 /// Flattened comment for API responses
