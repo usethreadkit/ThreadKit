@@ -495,6 +495,7 @@ pub async fn create_comment(
         downvotes: 0,
         created_at: now_ts,
         modified_at: now_ts,
+        edited: false,
         replies: Vec::new(),
         status: status.clone(),
         parent_id: req.parent_path.last().copied(),

@@ -4,6 +4,15 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 // ============================================================================
+// Helper functions
+// ============================================================================
+
+/// Helper for skip_serializing_if to skip false values
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+// ============================================================================
 // User Types
 // ============================================================================
 
@@ -213,6 +222,9 @@ pub struct TreeComment {
     /// modified_at (unix timestamp)
     #[serde(rename = "m")]
     pub modified_at: i64,
+    /// edited (true if comment has been edited)
+    #[serde(rename = "e", default, skip_serializing_if = "is_false")]
+    pub edited: bool,
     /// replies (nested array of child comments)
     #[serde(rename = "r", default, skip_serializing_if = "Vec::is_empty")]
     pub replies: Vec<TreeComment>,

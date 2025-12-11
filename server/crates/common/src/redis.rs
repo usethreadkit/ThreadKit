@@ -837,6 +837,7 @@ impl RedisClient {
             .await?;
 
         // Extract array result from Resp3Frame
+        tracing::debug!("atomic_vote response frame: {:?}", frame);
         let result: Vec<Value> = match frame {
             Resp3Frame::Array { data, .. } => {
                 data.into_iter()
