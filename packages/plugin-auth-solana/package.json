@@ -16,8 +16,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js",
-    "dev": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js --watch",
+    "build": "tsup src/index.tsx --format esm --dts --external react --external react-dom --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-react-ui --external @solana/wallet-adapter-wallets --external @solana/wallet-adapter-base --external @solana/web3.js",
+    "dev": "tsup src/index.tsx --format esm --dts --external react --external react-dom --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-react-ui --external @solana/wallet-adapter-wallets --external @solana/wallet-adapter-base --external @solana/web3.js --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",

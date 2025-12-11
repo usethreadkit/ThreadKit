@@ -16,8 +16,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external wagmi --external viem --external @tanstack/react-query",
-    "dev": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external wagmi --external viem --external @tanstack/react-query --watch",
+    "build": "tsup src/index.tsx --format esm --dts --external react --external react-dom --external @threadkit/react --external wagmi --external viem --external @tanstack/react-query",
+    "dev": "tsup src/index.tsx --format esm --dts --external react --external react-dom --external @threadkit/react --external wagmi --external viem --external @tanstack/react-query --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",
