@@ -70,18 +70,30 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
             alt={token.content}
             className="threadkit-image"
             loading="lazy"
-            onClick={() => options.onImageClick?.(token.url!)}
+            onClick={(e) => {
+              const target = e.target as HTMLImageElement;
+              // Don't open lightbox for 404 images
+              if (target.dataset.is404 === 'true') {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
+              options.onImageClick?.(token.url!);
+            }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.style.display = 'inline-block';
-              target.style.padding = '8px 12px';
-              target.style.border = '1px solid #e5e7eb';
-              target.style.borderRadius = '4px';
-              target.style.backgroundColor = '#f9fafb';
-              target.style.color = '#6b7280';
-              target.style.fontSize = '14px';
-              target.alt = '🖼️ Image not found (404)';
-              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjEgMTlWNWMwLTEuMS0uOS0yLTItMkg1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMSAuOSAyIDIgMmgxNGMxLjEgMCAyLS45IDItMnpNOC41IDEzLjVsMi41IDMuMDFMMTQuNSAxMmw0LjUgNkg1bDMuNS00LjV6IiBmaWxsPSIjOWNhM2FmIi8+PC9zdmc+';
+              target.dataset.is404 = 'true'; // Mark as 404
+              target.style.display = 'inline';
+              target.style.width = '1em';
+              target.style.height = '1em';
+              target.style.verticalAlign = 'middle';
+              target.style.margin = '0';
+              target.style.padding = '0';
+              target.style.cursor = 'default';
+              target.className = '';
+              target.alt = '🖼️';
+              target.title = 'Image not found (404)';
+              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzljYTNhZiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjEgMTlWNWMwLTEuMS0uOS0yLTItMkg1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMSAuOSAyIDIgMmgxNGMxLjEgMCAyLS45IDItMnpNOC41IDEzLjVsMi41IDMuMDFMMTQuNSAxMmw0LjUgNkg1bDMuNS00LjV6Ii8+PC9zdmc+';
             }}
           />
         );
