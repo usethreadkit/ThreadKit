@@ -2664,6 +2664,63 @@ button.threadkit-new-comments-banner:hover {
 .threadkit-avatar-upload-modal {
   max-width: 500px;
   width: 90%;
+  background: var(--threadkit-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.threadkit-avatar-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--threadkit-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.threadkit-avatar-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--threadkit-text);
+}
+
+.threadkit-avatar-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--threadkit-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.threadkit-avatar-modal-close:hover:not(:disabled) {
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text);
+}
+
+.threadkit-avatar-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.threadkit-avatar-modal-body {
+  padding: 24px;
+}
+
+.threadkit-avatar-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--threadkit-border);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .threadkit-avatar-preview-section {

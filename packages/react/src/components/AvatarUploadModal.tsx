@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { uploadAvatar, type MediaUpload } from '@threadkit/core';
 import { Avatar } from './Avatar';
 
@@ -88,13 +89,21 @@ export function AvatarUploadModal({
     }
   }, [uploading, onClose]);
 
-  return (
-    <div className="threadkit-modal-backdrop" onClick={handleCancel}>
-      <div className="threadkit-modal threadkit-avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="threadkit-modal-header">
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return createPortal(
+    <div className="threadkit-root threadkit-user-modal-overlay" onClick={handleCancel}>
+      <div className="threadkit-avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="threadkit-avatar-modal-header">
           <h3>Upload Avatar</h3>
           <button
-            className="threadkit-modal-close"
+            className="threadkit-avatar-modal-close"
             onClick={handleCancel}
             disabled={uploading}
             aria-label="Close"
@@ -103,7 +112,7 @@ export function AvatarUploadModal({
           </button>
         </div>
 
-        <div className="threadkit-modal-body">
+        <div className="threadkit-avatar-modal-body">
           <div className="threadkit-avatar-preview-section">
             <div className="threadkit-avatar-preview-current">
               <label>Current</label>
@@ -182,7 +191,7 @@ export function AvatarUploadModal({
           )}
         </div>
 
-        <div className="threadkit-modal-footer">
+        <div className="threadkit-avatar-modal-footer">
           <button
             className="threadkit-btn threadkit-btn-secondary"
             onClick={handleCancel}
@@ -199,6 +208,7 @@ export function AvatarUploadModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
