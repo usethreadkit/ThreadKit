@@ -50,35 +50,6 @@ pub fn verify_token(token: &str, secret: &str) -> Result<Claims> {
     .map_err(|_| Error::Unauthorized)
 }
 
-pub fn hash_password(password: &str) -> Result<String> {
-    use argon2::{
-        password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-        Argon2,
-    };
-
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    argon2
-        .hash_password(password.as_bytes(), &salt)
-        .map(|hash| hash.to_string())
-        .map_err(|e| Error::Internal(format!("Failed to hash password: {}", e)))
-}
-
-pub fn verify_password(password: &str, hash: &str) -> Result<bool> {
-    use argon2::{
-        password_hash::{PasswordHash, PasswordVerifier},
-        Argon2,
-    };
-
-    let parsed_hash =
-        PasswordHash::new(hash).map_err(|e| Error::Internal(format!("Invalid hash: {}", e)))?;
-
-    Ok(Argon2::default()
-        .verify_password(password.as_bytes(), &parsed_hash)
-        .is_ok())
-}
-
 pub fn generate_verification_code() -> String {
     use rand::Rng;
     let mut rng = rand::thread_rng();
@@ -102,13 +73,5 @@ mod tests {
         assert_eq!(claims.sub, user_id);
         assert_eq!(claims.site_id, site_id);
         assert_eq!(claims.session_id, session_id);
-    }
-
-    #[test]
-    fn test_password_roundtrip() {
-        let password = "test_password_123";
-        let hash = hash_password(password).unwrap();
-        assert!(verify_password(password, &hash).unwrap());
-        assert!(!verify_password("wrong_password", &hash).unwrap());
     }
 }

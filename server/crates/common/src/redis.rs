@@ -1732,13 +1732,10 @@ impl RedisClient {
         }
         self.client.del::<(), _>(format!("user:{}:blocked_by", user_id)).await?;
 
-        // Delete email/phone/username/provider indexes
+        // Delete email/username/provider indexes
         if let Some(ref user) = user {
             if let Some(ref email) = user.email {
                 self.client.del::<(), _>(format!("email:{}", email.to_lowercase())).await?;
-            }
-            if let Some(ref phone) = user.phone {
-                self.client.del::<(), _>(format!("phone:{}", phone)).await?;
             }
             // Delete username index
             self.client.del::<(), _>(format!("username:{}", user.name.to_lowercase())).await?;

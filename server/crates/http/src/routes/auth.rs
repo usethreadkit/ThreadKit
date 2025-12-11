@@ -22,14 +22,9 @@ use crate::{extractors::ProjectId, state::AppState};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/auth/methods", get(auth_methods))
-        .route("/auth/register", post(register))
-        .route("/auth/login", post(login))
-        .route("/auth/verify", post(verify))
         .route("/auth/send-otp", post(send_otp))
         .route("/auth/verify-otp", post(verify_otp))
         .route("/auth/anonymous", post(anonymous_login))
-        .route("/auth/forgot", post(forgot_password))
-        .route("/auth/reset", post(reset_password))
         .route("/auth/refresh", post(refresh_token))
         .route("/auth/logout", post(logout))
         // Web3 authentication
@@ -49,24 +44,6 @@ pub fn oauth_router() -> Router<AppState> {
 // ============================================================================
 // Request/Response Types
 // ============================================================================
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct RegisterRequest {
-    /// Username (must be unique)
-    pub name: String,
-    /// Email address
-    pub email: String,
-    /// Password
-    pub password: String,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct LoginRequest {
-    /// Email address
-    pub email: String,
-    /// Password
-    pub password: String,
-}
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AuthResponse {
@@ -104,30 +81,6 @@ impl From<User> for UserResponse {
             social_links: u.social_links,
         }
     }
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct VerifyRequest {
-    /// Email to verify
-    pub email: String,
-    /// Verification code
-    pub code: String,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct ForgotPasswordRequest {
-    /// Email address
-    pub email: String,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct ResetPasswordRequest {
-    /// Email address
-    pub email: String,
-    /// Reset code from email
-    pub code: String,
-    /// New password
-    pub new_password: String,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -444,12 +397,10 @@ pub async fn verify_otp(
             id: user_id,
             name: name.clone(),
             email: Some(req.email.clone()),
-            phone: None,
             avatar_url: None,
             provider,
             provider_id: None,
             email_verified: true,
-            phone_verified: false,
             karma: 0,
             global_banned: false,
             shadow_banned: false,
@@ -567,12 +518,10 @@ pub async fn anonymous_login(
         id: user_id,
         name: username.clone(),
         email: None,
-        phone: None,
         avatar_url: None,
         provider: AuthProvider::Anonymous,
         provider_id: None,
         email_verified: false,
-        phone_verified: false,
         karma: 0,
         global_banned: false,
         shadow_banned: false,
@@ -682,316 +631,6 @@ async fn send_otp_email_resend(config: &threadkit_common::config::ResendConfig, 
     Ok(())
 }
 
-
-/// Register a new user
-#[utoipa::path(
-    post,
-    path = "/auth/register",
-    tag = "auth",
-    request_body = RegisterRequest,
-    responses(
-        (status = 200, description = "Registration successful", body = AuthResponse),
-        (status = 400, description = "Invalid request"),
-        (status = 409, description = "Email/username already taken")
-    ),
-    security(("project_id" = []))
-)]
-pub async fn register(
-    State(state): State<AppState>,
-    project_id: ProjectId,
-    Json(req): Json<RegisterRequest>,
-) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    // Validate username format
-    threadkit_common::validate_username(&req.name)
-        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
-
-    if !state.redis.is_username_available(&req.name, None).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))? {
-        return Err((StatusCode::CONFLICT, "Username already taken".into()));
-    }
-
-    if state.redis.get_user_by_email(&req.email).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?.is_some() {
-        return Err((StatusCode::CONFLICT, "Email already registered".into()));
-    }
-
-    let password_hash = auth::hash_password(&req.password)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let user_id = Uuid::now_v7();
-    let now = Utc::now();
-
-    let provider = AuthProvider::Email;
-
-    let user = User {
-        id: user_id,
-        name: req.name,
-        email: Some(req.email.clone()),
-        phone: None,
-        avatar_url: None,
-        provider,
-        provider_id: None,
-        email_verified: false,
-        phone_verified: false,
-        karma: 0,
-        global_banned: false,
-        shadow_banned: false,
-        created_at: now,
-        username_set: true, // User explicitly chose this username in registration
-        social_links: SocialLinks::default(),
-        total_comments: 0,
-    };
-
-    state.redis.set_user(&user).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    state.redis.set_user_username_index(&user.name, user_id).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    state.redis.set_user_password(user_id, &password_hash).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    state.redis.set_user_email_index(&req.email, user_id).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let code = generate_verification_code();
-    let verification = VerificationCode {
-        code: code.clone(),
-        user_id: Some(user_id),
-        verification_type: VerificationType::Email,
-        created_at: now,
-    };
-    state.redis.set_verification_code(&req.email, &verification).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    tracing::info!("Verification code for {}: {}", req.email, code);
-
-    let session_id = Uuid::now_v7();
-    state.redis.create_session(session_id, user_id, "", "").await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let token = auth::create_token(
-        user_id,
-        project_id.0.site_id,
-        session_id,
-        &state.config.jwt_secret,
-        state.config.jwt_expiry_hours,
-    )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let refresh_token = auth::create_token(
-        user_id,
-        project_id.0.site_id,
-        session_id,
-        &state.config.jwt_secret,
-        24 * 365 * 100, // ~100 years - refresh tokens never expire
-    )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(Json(AuthResponse {
-        token,
-        refresh_token,
-        user: UserResponse::from(user),
-    }))
-}
-
-/// Login with email and password
-#[utoipa::path(
-    post,
-    path = "/auth/login",
-    tag = "auth",
-    request_body = LoginRequest,
-    responses(
-        (status = 200, description = "Login successful", body = AuthResponse),
-        (status = 401, description = "Invalid credentials"),
-        (status = 403, description = "Account banned")
-    ),
-    security(("project_id" = []))
-)]
-pub async fn login(
-    State(state): State<AppState>,
-    project_id: ProjectId,
-    Json(req): Json<LoginRequest>,
-) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    let user_id = state.redis.get_user_by_email(&req.email).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".into()))?;
-
-    let user = state.redis.get_user(user_id).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".into()))?;
-
-    // Verify password
-    let password_hash = state.redis.get_user_password(user_id).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".into()))?;
-
-    if !auth::verify_password(&req.password, &password_hash)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))? {
-        return Err((StatusCode::UNAUTHORIZED, "Invalid credentials".into()));
-    }
-
-    if user.global_banned {
-        return Err((StatusCode::FORBIDDEN, "Account banned".into()));
-    }
-
-    let session_id = Uuid::now_v7();
-    state.redis.create_session(session_id, user_id, "", "").await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let token = auth::create_token(
-        user_id,
-        project_id.0.site_id,
-        session_id,
-        &state.config.jwt_secret,
-        state.config.jwt_expiry_hours,
-    )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let refresh_token = auth::create_token(
-        user_id,
-        project_id.0.site_id,
-        session_id,
-        &state.config.jwt_secret,
-        24 * 365 * 100, // ~100 years - refresh tokens never expire
-    )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(Json(AuthResponse {
-        token,
-        refresh_token,
-        user: UserResponse::from(user),
-    }))
-}
-
-/// Verify email with code
-#[utoipa::path(
-    post,
-    path = "/auth/verify",
-    tag = "auth",
-    request_body = VerifyRequest,
-    responses(
-        (status = 200, description = "Verification successful"),
-        (status = 400, description = "Invalid or expired code")
-    ),
-    security(("project_id" = []))
-)]
-pub async fn verify(
-    State(state): State<AppState>,
-    _project_id: ProjectId,
-    Json(req): Json<VerifyRequest>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let key = &req.email;
-
-    // Rate limit verification attempts (5 attempts per 10 minutes)
-    let verify_key = format!("ratelimit:verify:{}", key);
-    state.redis.check_rate_limit(&verify_key, 5, 600).await
-        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Too many verification attempts. Please request a new code.".into()))?;
-
-    let verification = state.redis.get_verification_code(key).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::BAD_REQUEST, "No verification code found".into()))?;
-
-    if verification.code != req.code {
-        return Err((StatusCode::BAD_REQUEST, "Invalid verification code".into()));
-    }
-
-    if let Some(user_id) = verification.user_id {
-        if let Ok(Some(mut user)) = state.redis.get_user(user_id).await {
-            user.email_verified = true;
-            let _ = state.redis.set_user(&user).await;
-        }
-    }
-
-    let _ = state.redis.delete_verification_code(key).await;
-
-    Ok(StatusCode::OK)
-}
-
-/// Request password reset code
-#[utoipa::path(
-    post,
-    path = "/auth/forgot",
-    tag = "auth",
-    request_body = ForgotPasswordRequest,
-    responses(
-        (status = 200, description = "Reset code sent (if account exists)")
-    ),
-    security(("project_id" = []))
-)]
-pub async fn forgot_password(
-    State(state): State<AppState>,
-    _project_id: ProjectId,
-    Json(req): Json<ForgotPasswordRequest>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let key = &req.email;
-
-    let user_id = state.redis.get_user_by_email(key).await.ok().flatten();
-
-    if let Some(user_id) = user_id {
-        let code = generate_verification_code();
-        let verification = VerificationCode {
-            code: code.clone(),
-            user_id: Some(user_id),
-            verification_type: VerificationType::PasswordReset,
-            created_at: Utc::now(),
-        };
-        let _ = state.redis.set_verification_code(key, &verification).await;
-
-        tracing::info!("Password reset code for {}: {}", key, code);
-    }
-
-    Ok(StatusCode::OK)
-}
-
-/// Reset password with code
-#[utoipa::path(
-    post,
-    path = "/auth/reset",
-    tag = "auth",
-    request_body = ResetPasswordRequest,
-    responses(
-        (status = 200, description = "Password reset successful"),
-        (status = 400, description = "Invalid or expired code")
-    ),
-    security(("project_id" = []))
-)]
-pub async fn reset_password(
-    State(state): State<AppState>,
-    _project_id: ProjectId,
-    Json(req): Json<ResetPasswordRequest>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let key = &req.email;
-
-    // Rate limit reset attempts (5 attempts per 10 minutes)
-    let reset_key = format!("ratelimit:reset:{}", key);
-    state.redis.check_rate_limit(&reset_key, 5, 600).await
-        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Too many reset attempts. Please request a new code.".into()))?;
-
-    let verification = state.redis.get_verification_code(key).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::BAD_REQUEST, "No reset code found".into()))?;
-
-    if verification.code != req.code {
-        return Err((StatusCode::BAD_REQUEST, "Invalid reset code".into()));
-    }
-
-    if !matches!(verification.verification_type, VerificationType::PasswordReset) {
-        return Err((StatusCode::BAD_REQUEST, "Invalid reset code".into()));
-    }
-
-    let password_hash = auth::hash_password(&req.new_password)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    // Store the new password
-    if let Some(user_id) = verification.user_id {
-        state.redis.set_user_password(user_id, &password_hash).await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    }
-
-    let _ = state.redis.delete_verification_code(key).await;
-
-    Ok(StatusCode::OK)
-}
 
 /// Refresh access token
 #[utoipa::path(
@@ -1385,12 +1024,10 @@ async fn oauth_callback_inner(
             id: user_id,
             name: display_name.clone(),
             email: email.clone(),
-            phone: None,
             avatar_url,
             provider: auth_provider,
             provider_id: Some(provider_id.clone()),
             email_verified: email.is_some(),
-            phone_verified: false,
             karma: 0,
             global_banned: false,
             shadow_banned: false,
@@ -1739,12 +1376,10 @@ async fn get_or_create_web3_user(
         id: user_id,
         name: display_name.clone(),
         email: None,
-        phone: None,
         avatar_url: None,
         provider,
         provider_id: Some(address.to_lowercase()),
         email_verified: false,
-        phone_verified: false,
         karma: 0,
         global_banned: false,
         shadow_banned: false,

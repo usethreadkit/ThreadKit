@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use threadkit_common::{
     config::{
-        ContentModerationConfig, EmailConfig, RateLimitConfig, S3Config, SmsConfig,
+        ContentModerationConfig, EmailConfig, RateLimitConfig, S3Config,
         StandaloneConfig, TurnstileConfig,
     },
     Config,
@@ -97,9 +97,8 @@ impl TestContext {
 
         // Create SiteConfig and save it to Redis
         let mut settings = threadkit_common::types::SiteSettings::default();
-        // Enable email auth by default for tests
+        // Enable email auth by default for tests (but not anonymous)
         settings.auth.email = true;
-        settings.auth.anonymous = true;
 
         let site_config = threadkit_common::types::SiteConfig {
             id: site_id,
@@ -130,21 +129,20 @@ impl TestContext {
             oauth: Default::default(),
             rate_limit: RateLimitConfig {
                 enabled: true,
-                ip_writes_per_minute: 5,
-                ip_reads_per_minute: 30,
-                project_id_writes_per_minute: 100,
-                project_id_reads_per_minute: 500,
-                user_writes_per_minute: 5,
-                user_reads_per_minute: 30,
-                auth_attempts_per_hour: 10,
-                ws_messages_per_sec: 10,
-                otp_per_target_per_hour: 3,
-                otp_per_ip_per_hour: 10,
+                ip_writes_per_minute: 100,  // Higher limit for tests
+                ip_reads_per_minute: 300,
+                project_id_writes_per_minute: 1000,
+                project_id_reads_per_minute: 5000,
+                user_writes_per_minute: 100,  // Higher limit for tests
+                user_reads_per_minute: 300,
+                auth_attempts_per_hour: 100,  // Higher limit for tests
+                ws_messages_per_sec: 100,
+                otp_per_target_per_hour: 10,  // Higher limit for tests
+                otp_per_ip_per_hour: 100,  // Higher limit for tests
                 trusted_proxies: vec!["127.0.0.1".to_string()],
             },
             content_moderation: ContentModerationConfig::default(),
             email: EmailConfig::default(),
-            sms: SmsConfig::default(),
             turnstile: TurnstileConfig::default(),
             s3: s3_config.clone(),
             max_comment_length: 10_000,
@@ -253,33 +251,87 @@ impl TestContext {
     }
 
     /// Set moderation mode for the site
-    pub async fn set_moderation_mode(&self, _mode: &str) {
-        // This would update the site config in Redis
-        // For now, this is a placeholder - actual implementation would update Redis
-        // TODO: Implement site config update in Redis
+    pub async fn set_moderation_mode(&self, mode: &str) {
+        use threadkit_common::redis::RedisClient;
+        use threadkit_common::types::ModerationMode;
+
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        let redis_url = format!("redis://{}:{}", host, port);
+
+        let redis = RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to connect to Redis");
+
+        // Get current site config
+        let mut config = redis
+            .get_site_config(self.site_id)
+            .await
+            .expect("Failed to get site config")
+            .expect("Site config not found");
+
+        // Update moderation mode
+        config.settings.moderation_mode = match mode {
+            "none" => ModerationMode::None,
+            "pre_moderation" | "pre" => ModerationMode::Pre,
+            "post_moderation" | "post" => ModerationMode::Post,
+            _ => panic!("Invalid moderation mode: {}", mode),
+        };
+
+        // Save updated config
+        redis
+            .set_site_config(&config)
+            .await
+            .expect("Failed to update site config");
+
+        // Invalidate the API key cache
+        redis
+            .invalidate_project_id_cache(&self.project_id)
+            .await
+            .expect("Failed to invalidate cache");
     }
 
-    /// Set user role (Owner, Admin, Moderator, User)
-    pub async fn set_user_role(&self, token: &str, role: &str) {
-        let (key_name, key_value) = self.project_id_header();
-        let (auth_name, auth_value) = Self::auth_header(token);
+    /// Set user role (Owner, Admin, Moderator, User, Blocked)
+    /// For testing purposes, directly updates Redis instead of using API
+    pub async fn set_user_role(&self, user_id: &str, role: &str) {
+        use threadkit_common::redis::RedisClient;
 
-        // This would need an admin endpoint to set roles
-        // For now, directly update in Redis as a test helper
-        // TODO: Implement via admin API endpoint
-        let _ = self
-            .server
-            .put("/v1/admin/users/role")
-            .add_header(key_name, key_value)
-            .add_header(auth_name, auth_value)
-            .json(&json!({
-                "role": role
-            }))
-            .await;
+        let user_uuid = Uuid::parse_str(user_id).expect("Invalid user ID");
+
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        let redis_url = format!("redis://{}:{}", host, port);
+
+        let redis = RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to connect to Redis");
+
+        match role {
+            "Owner" | "owner" => {
+                // Owner is typically set in site config, but for tests we'll use Admin
+                redis.add_admin(self.site_id, user_uuid).await.expect("Failed to add admin");
+            }
+            "Admin" | "admin" => {
+                redis.add_admin(self.site_id, user_uuid).await.expect("Failed to add admin");
+            }
+            "Moderator" | "moderator" => {
+                redis.add_moderator(self.site_id, user_uuid).await.expect("Failed to add moderator");
+            }
+            "User" | "user" => {
+                // Remove from admin/moderator sets if present
+                let _ = redis.remove_admin(self.site_id, user_uuid).await;
+                let _ = redis.remove_moderator(self.site_id, user_uuid).await;
+            }
+            "Blocked" | "blocked" => {
+                // Would need a block_user method in RedisClient
+                panic!("Blocked role not yet implemented in tests");
+            }
+            _ => panic!("Invalid role: {}", role),
+        }
     }
 
     /// Report a comment
-    pub async fn report_comment(&self, token: &str, comment_id: &str, reason: &str) {
+    pub async fn report_comment(&self, token: &str, comment_id: &str, page_url: &str, reason: &str) {
         let (key_name, key_value) = self.project_id_header();
         let (auth_name, auth_value) = Self::auth_header(token);
 
@@ -289,7 +341,9 @@ impl TestContext {
             .add_header(key_name, key_value)
             .add_header(auth_name, auth_value)
             .json(&json!({
-                "reason": reason
+                "page_url": page_url,
+                "reason": reason,
+                "path": [comment_id]
             }))
             .await;
     }
@@ -332,6 +386,19 @@ impl TestContext {
         self.invalidate_project_id_cache().await;
     }
 
+    /// Get Redis client for direct testing
+    pub async fn get_redis_client(&self) -> threadkit_common::redis::RedisClient {
+        use threadkit_common::redis::RedisClient;
+
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        let redis_url = format!("redis://{}:{}", host, port);
+
+        RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to create Redis client")
+    }
+
     /// Invalidate the project ID cache (forces server to reload config from Redis)
     #[allow(dead_code)]
     async fn invalidate_project_id_cache(&self) {
@@ -350,5 +417,12 @@ impl TestContext {
             .invalidate_project_id_cache(&self.project_id)
             .await
             .expect("Failed to invalidate cache");
+    }
+
+    /// Get the Redis URL for direct access
+    pub async fn get_redis_url(&self) -> String {
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        format!("redis://{}:{}", host, port)
     }
 }

@@ -40,14 +40,10 @@ pub struct MeResponse {
     pub name: String,
     /// Email address (if set)
     pub email: Option<String>,
-    /// Phone number (if set)
-    pub phone: Option<String>,
     /// Avatar URL
     pub avatar_url: Option<String>,
     /// Whether email is verified
     pub email_verified: bool,
-    /// Whether phone is verified
-    pub phone_verified: bool,
     /// User karma from votes
     pub karma: i64,
     /// Number of unread notifications
@@ -160,10 +156,8 @@ pub async fn get_me(
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         avatar_url: user.avatar_url,
         email_verified: user.email_verified,
-        phone_verified: user.phone_verified,
         karma: user.karma,
         unread_notifications: unread,
         username_set: user.username_set,
@@ -249,10 +243,8 @@ pub async fn update_me(
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         avatar_url: user.avatar_url,
         email_verified: user.email_verified,
-        phone_verified: user.phone_verified,
         karma: user.karma,
         unread_notifications: unread,
         username_set: user.username_set,

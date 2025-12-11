@@ -15,7 +15,6 @@ pub struct Config {
     pub rate_limit: RateLimitConfig,
     pub content_moderation: ContentModerationConfig,
     pub email: EmailConfig,
-    pub sms: SmsConfig,
     pub turnstile: TurnstileConfig,
     pub s3: Option<S3Config>,
     /// Maximum comment length in characters
@@ -61,24 +60,6 @@ pub struct ResendConfig {
     pub from_domain: String,
 }
 
-/// Configuration for SMS sending
-#[derive(Debug, Clone, Default)]
-pub struct SmsConfig {
-    /// SMS provider (currently only "twilio" is supported)
-    pub provider: Option<SmsProvider>,
-}
-
-#[derive(Debug, Clone)]
-pub enum SmsProvider {
-    Twilio(TwilioConfig),
-}
-
-#[derive(Debug, Clone)]
-pub struct TwilioConfig {
-    pub account_sid: String,
-    pub auth_token: String,
-    pub from_number: String,
-}
 
 /// Configuration for AI-powered content moderation (OpenAI-compatible API)
 #[derive(Debug, Clone, Default)]
@@ -306,10 +287,6 @@ impl Config {
             provider: Self::load_email_provider(),
         };
 
-        let sms = SmsConfig {
-            provider: Self::load_sms_provider(),
-        };
-
         let turnstile = TurnstileConfig {
             secret_key: env::var("TURNSTILE_SECRET_KEY").ok().filter(|s| !s.is_empty()),
         };
@@ -349,7 +326,6 @@ impl Config {
             rate_limit,
             content_moderation,
             email,
-            sms,
             turnstile,
             s3,
             max_comment_length: env::var("MAX_COMMENT_LENGTH")
@@ -385,25 +361,6 @@ impl Config {
                 Some(EmailProvider::Resend(ResendConfig {
                     api_key,
                     from_domain,
-                }))
-            }
-            _ => None,
-        }
-    }
-
-    fn load_sms_provider() -> Option<SmsProvider> {
-        let provider = env::var("SMS_PROVIDER").unwrap_or_default();
-
-        match provider.to_lowercase().as_str() {
-            "twilio" => {
-                let account_sid = env::var("TWILIO_ACCOUNT_SID").ok()?;
-                let auth_token = env::var("TWILIO_AUTH_TOKEN").ok()?;
-                let from_number = env::var("TWILIO_FROM_NUMBER").ok()?;
-
-                Some(SmsProvider::Twilio(TwilioConfig {
-                    account_sid,
-                    auth_token,
-                    from_number,
                 }))
             }
             _ => None,

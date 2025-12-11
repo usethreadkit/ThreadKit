@@ -30,7 +30,6 @@ fred = { version = "10.0", features = ["subscriber-client", "enable-native-tls"]
 
 # Auth
 jsonwebtoken = "9.3"
-argon2 = "0.5"
 
 # Crypto
 sha2 = "0.10"

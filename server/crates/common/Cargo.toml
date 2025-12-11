@@ -10,7 +10,6 @@ serde.workspace = true
 serde_json.workspace = true
 fred.workspace = true
 jsonwebtoken.workspace = true
-argon2.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 thiserror.workspace = true
