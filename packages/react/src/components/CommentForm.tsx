@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import type { CommentFormProps } from '../types';
+import type { MediaUpload } from '@threadkit/core';
 import { useTranslation } from '../i18n';
 import { NewCommentsBanner } from './NewCommentsBanner';
+import { MediaUploader } from './MediaUploader';
 
 const FORMATTING_HELP = [
   { input: '*italics*', output: 'italics', style: 'italic' },
@@ -20,12 +22,16 @@ export function CommentForm({
   onCancel,
   pendingCount,
   onLoadPending,
+  apiUrl,
+  projectId,
+  token,
 }: CommentFormProps) {
   const t = useTranslation();
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [attachedMedia, setAttachedMedia] = useState<MediaUpload[]>([]);
 
   const placeholderText = placeholder ?? t('writeComment');
 
@@ -34,21 +40,23 @@ export function CommentForm({
       e.preventDefault();
 
       const trimmedText = text.trim();
-      if (!trimmedText) return;
+      if (!trimmedText && attachedMedia.length === 0) return;
 
       setIsSubmitting(true);
       setError(null);
 
       try {
+        // Text already contains markdown images from upload, just submit as-is
         await onSubmit(trimmedText, parentId);
         setText('');
+        setAttachedMedia([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('failedToPost'));
       } finally {
         setIsSubmitting(false);
       }
     },
-    [text, parentId, onSubmit]
+    [text, attachedMedia, parentId, onSubmit, t]
   );
 
   return (
@@ -63,16 +71,64 @@ export function CommentForm({
         autoFocus={autoFocus}
       />
 
+      {attachedMedia.length > 0 && (
+        <div className="threadkit-attachments">
+          {attachedMedia.map((media) => (
+            <div key={media.mediaId} className="threadkit-attachment-preview">
+              <img src={media.url} alt="" />
+              <button
+                type="button"
+                className="threadkit-attachment-remove"
+                onClick={() => {
+                  // Remove from attachedMedia
+                  setAttachedMedia(prev => prev.filter(m => m.mediaId !== media.mediaId));
+                  // Remove markdown from textarea
+                  const markdownToRemove = `![](${media.url})`;
+                  setText(prev => {
+                    // Remove the markdown link and clean up extra newlines
+                    let updated = prev.replace(markdownToRemove, '');
+                    // Clean up: remove multiple consecutive newlines
+                    updated = updated.replace(/\n{3,}/g, '\n\n');
+                    // Remove leading/trailing newlines
+                    updated = updated.trim();
+                    return updated;
+                  });
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && <div className="threadkit-error">{error}</div>}
 
       <div className="threadkit-form-actions">
         <button
           type="submit"
           className="threadkit-submit-btn"
-          disabled={isSubmitting || !text.trim()}
+          disabled={isSubmitting || (!text.trim() && attachedMedia.length === 0)}
         >
           {isSubmitting ? t('posting') : t('post')}
         </button>
+        {token && apiUrl && projectId && (
+          <MediaUploader
+            apiUrl={apiUrl}
+            projectId={projectId}
+            token={token}
+            type="image"
+            onUploadComplete={(media) => {
+              setAttachedMedia(prev => [...prev, media]);
+              // Append markdown image to textarea
+              setText(prev => {
+                const imageMarkdown = `![](${media.url})`;
+                return prev ? `${prev}\n${imageMarkdown}` : imageMarkdown;
+              });
+            }}
+            iconOnly
+          />
+        )}
         {onCancel && (
           <button
             type="button"

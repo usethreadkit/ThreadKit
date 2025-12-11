@@ -19,6 +19,8 @@ export interface MarkdownOptions {
   fetchUserProfile?: (userId: string) => Promise<void>;
   /** Callback to resolve @username to userId */
   resolveUsername?: (username: string) => string | undefined;
+  /** Callback when an image is clicked */
+  onImageClick?: (url: string) => void;
 }
 
 function tokenizeLine(text: string, options: MarkdownOptions): Token[] {
@@ -56,6 +58,32 @@ function renderTokens(tokens: Token[], options: MarkdownOptions): React.ReactNod
           >
             {token.content}
           </a>
+        );
+      case 'image':
+        if (!token.url || !isSafeUrl(token.url)) {
+          return <span key={i} className="threadkit-unsafe-link">[Image: {token.content}]</span>;
+        }
+        return (
+          <img
+            key={i}
+            src={token.url}
+            alt={token.content}
+            className="threadkit-image"
+            loading="lazy"
+            onClick={() => options.onImageClick?.(token.url!)}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'inline-block';
+              target.style.padding = '8px 12px';
+              target.style.border = '1px solid #e5e7eb';
+              target.style.borderRadius = '4px';
+              target.style.backgroundColor = '#f9fafb';
+              target.style.color = '#6b7280';
+              target.style.fontSize = '14px';
+              target.alt = '🖼️ Image not found (404)';
+              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjEgMTlWNWMwLTEuMS0uOS0yLTItMkg1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMSAuOSAyIDIgMmgxNGMxLjEgMCAyLS45IDItMnpNOC41IDEzLjVsMi41IDMuMDFMMTQuNSAxMmw0LjUgNkg1bDMuNS00LjV6IiBmaWxsPSIjOWNhM2FmIi8+PC9zdmc+';
+            }}
+          />
         );
       case 'mention':
         if (options.getUserProfile) {

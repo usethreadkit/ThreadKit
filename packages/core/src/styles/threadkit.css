@@ -34,11 +34,6 @@
   list-style: none;
 }
 
-.threadkit-root img {
-  max-width: 100%;
-  display: block;
-}
-
 .threadkit-root {
   position: relative;
 
@@ -879,6 +874,80 @@
   margin-top: 8px;
 }
 
+.threadkit-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--threadkit-border);
+  border-radius: var(--threadkit-radius);
+  color: var(--threadkit-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.threadkit-attach-btn:hover {
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text);
+  border-color: var(--threadkit-primary);
+}
+
+.threadkit-attach-btn:active {
+  transform: scale(0.95);
+}
+
+.threadkit-attach-btn svg {
+  display: block;
+}
+
+.threadkit-attach-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.threadkit-attach-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.threadkit-upload-progress-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  white-space: nowrap;
+}
+
+.threadkit-upload-status-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.threadkit-chat-input .threadkit-attach-wrapper {
+  position: absolute;
+  right: 60px;
+  bottom: 8px;
+}
+
+.threadkit-chat-input .threadkit-attach-btn {
+  border: none;
+  background: transparent;
+}
+
+.threadkit-chat-input .threadkit-upload-progress-inline {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: var(--threadkit-bg);
+  padding: 4px 8px;
+}
+
 .threadkit-form-actions-spacer {
   flex: 1;
 }
@@ -1044,6 +1113,16 @@
   margin-top: 4px;
 }
 
+/* Constrain image sizes in chat mode */
+.threadkit-chat-text .threadkit-image {
+  max-width: 128px;
+  max-height: 128px;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 4px 0;
+}
+
 .threadkit-chat-actions {
   display: flex;
   gap: 8px;
@@ -1064,7 +1143,8 @@
 
 .threadkit-chat-input {
   display: flex;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 0;
   padding: 8px 0;
   position: relative;
   z-index: 1;
@@ -1072,7 +1152,7 @@
 
 .threadkit-chat-input input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 8px 90px 2px 12px;
   border: none;
   border-bottom: 1px solid var(--threadkit-border-light);
   border-radius: 0;
@@ -1086,11 +1166,13 @@
 }
 
 .threadkit-chat-input .threadkit-submit-btn {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  align-self: flex-end;
 }
 
 .threadkit-chat-signin {
@@ -1407,6 +1489,22 @@ button.threadkit-new-comments-banner:hover {
 
 .threadkit-link {
   color: var(--threadkit-link);
+}
+
+.threadkit-image {
+  max-width: 256px;
+  max-height: 256px;
+  width: auto;
+  height: auto;
+  border-radius: var(--threadkit-radius);
+  margin: 8px 0;
+  display: block;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.threadkit-image:hover {
+  opacity: 0.9;
 }
 
 .threadkit-unsafe-link {
@@ -2439,4 +2537,251 @@ button.threadkit-new-comments-banner:hover {
   .threadkit-hover-card-social-links {
     flex-wrap: wrap;
   }
+}
+
+/* ============================================================================
+ * Media Upload Styles
+ * ========================================================================= */
+
+.threadkit-uploader {
+  position: relative;
+  margin: 8px 0;
+}
+
+.threadkit-uploader-dragging {
+  border: 2px dashed var(--threadkit-primary, #3b82f6);
+  border-radius: 4px;
+  background: var(--threadkit-bg-hover, #f3f4f6);
+}
+
+.threadkit-upload-btn {
+  padding: 6px 12px;
+  font-size: 14px;
+  border: 1px solid var(--threadkit-border, #d1d5db);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.threadkit-upload-btn:hover {
+  background: var(--threadkit-bg-hover, #f9fafb);
+}
+
+.threadkit-upload-progress {
+  margin-top: 8px;
+}
+
+.threadkit-upload-item {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.threadkit-progress-bar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.threadkit-progress-fill {
+  height: 100%;
+  background: var(--threadkit-primary, #3b82f6);
+  transition: width 0.2s ease;
+}
+
+.threadkit-upload-status {
+  margin-left: 8px;
+  color: var(--threadkit-text-secondary, #6b7280);
+}
+
+.threadkit-upload-error {
+  color: var(--threadkit-error, #ef4444);
+  margin-left: 8px;
+}
+
+.threadkit-attachments {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.threadkit-attachment-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--threadkit-border);
+}
+
+.threadkit-attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.threadkit-attachment-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.threadkit-attachment-remove:hover {
+  background: var(--threadkit-bg-hover);
+  color: var(--threadkit-text);
+}
+
+/* Chat mode attachment preview - 80px max */
+.threadkit-chat-attachments {
+  padding: 8px 12px;
+  background: var(--threadkit-bg-secondary, #f9fafb);
+  border-radius: var(--threadkit-radius);
+  margin-bottom: 8px;
+}
+
+.threadkit-chat-attachments .threadkit-attachment-preview {
+  width: 80px;
+  height: 80px;
+}
+
+/* ===== Avatar Upload Modal ===== */
+
+.threadkit-avatar-upload-modal {
+  max-width: 500px;
+  width: 90%;
+}
+
+.threadkit-avatar-preview-section {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.threadkit-avatar-preview-current,
+.threadkit-avatar-preview-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.threadkit-avatar-preview-current label,
+.threadkit-avatar-preview-new label {
+  font-size: 12px;
+  color: var(--threadkit-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.threadkit-select-file-btn {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.threadkit-selected-file-info {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.threadkit-file-name {
+  font-weight: 600;
+  color: var(--threadkit-text);
+  margin: 0 0 4px 0;
+  word-break: break-all;
+}
+
+.threadkit-file-size {
+  color: var(--threadkit-text-secondary);
+  font-size: 13px;
+  margin: 0 0 12px 0;
+}
+
+.threadkit-change-file-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.threadkit-upload-progress-section {
+  margin-bottom: 16px;
+}
+
+.threadkit-progress-text {
+  text-align: center;
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  color: var(--threadkit-text-secondary);
+}
+
+.threadkit-error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  padding: 12px;
+  border-radius: var(--threadkit-radius);
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ===== Image Lightbox ===== */
+
+.threadkit-lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.threadkit-lightbox-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--threadkit-radius);
+}
+
+.threadkit-lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.threadkit-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

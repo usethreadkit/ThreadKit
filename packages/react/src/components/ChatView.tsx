@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { Comment, User, UserProfile, ThreadKitPlugin } from '../types';
+import type { MediaUpload } from '@threadkit/core';
 import { UserHoverCard } from './UserHoverCard';
 import { renderMarkdown } from '../utils/markdown';
 import { useTranslation } from '../i18n';
@@ -7,6 +8,7 @@ import { useAuth, AUTH_ICONS, LoadingSpinner } from '../auth';
 import type { AuthMethod } from '../auth/types';
 import { GuestAwareUsername, formatUsername } from '../utils/username';
 import { normalizeUsername, validateUsername, MAX_USERNAME_LENGTH } from '@threadkit/core';
+import { MediaUploader } from './MediaUploader';
 
 interface ChatViewProps {
   comments: Comment[];
@@ -101,8 +103,23 @@ function ChatMessage({
   const [editText, setEditText] = useState(message.text);
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const isOwnMessage = currentUser && message.userId === currentUser.id;
+
+  // ESC key handler for lightbox
+  useEffect(() => {
+    if (!lightboxImage) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightboxImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [lightboxImage]);
 
   const handleSaveEdit = () => {
     if (editText.trim() && editText !== message.text) {
@@ -231,6 +248,7 @@ function ChatMessage({
             getUserProfile,
             fetchUserProfile,
             plugins,
+            onImageClick: setLightboxImage,
           })}
           {message.edited && <span className="threadkit-edited">*</span>}
           {message.replyReferenceId && onScrollToComment && (
@@ -487,6 +505,28 @@ function ChatMessage({
           )}
         </div>
       )}
+
+      {/* Lightbox modal for full-size image viewing */}
+      {lightboxImage && (
+        <div className="threadkit-lightbox" onClick={() => setLightboxImage(null)}>
+          <button
+            className="threadkit-lightbox-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+            aria-label="Close lightbox"
+          >
+            ×
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Full size"
+            className="threadkit-lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -524,6 +564,7 @@ export function ChatView({
   const authInputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attachedMedia, setAttachedMedia] = useState<MediaUpload[]>([]);
   const [otpEmail, setOtpEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [username, setUsername] = useState('');
@@ -572,14 +613,16 @@ export function ChatView({
     async (e: React.FormEvent) => {
       e.preventDefault();
       const text = inputValue.trim();
-      if (!text || isSubmitting) return;
+      if ((!text && attachedMedia.length === 0) || isSubmitting) return;
 
       setIsSubmitting(true);
 
       try {
+        // Input already contains markdown images from upload, just submit as-is
         await onSend(text);
         // Only clear and refocus after successful send
         setInputValue('');
+        setAttachedMedia([]);
         // Simple focus call - more reliable than blur/focus dance
         setTimeout(() => {
           inputRef.current?.focus();
@@ -591,7 +634,7 @@ export function ChatView({
         setIsSubmitting(false);
       }
     },
-    [inputValue, isSubmitting, onSend]
+    [inputValue, attachedMedia, isSubmitting, onSend]
   );
 
   const handleInputChange = useCallback(
@@ -1012,14 +1055,62 @@ export function ChatView({
           placeholder={t('typeMessage')}
           disabled={isSubmitting}
         />
+        {authState.token && (
+          <MediaUploader
+            apiUrl={apiUrl}
+            projectId={projectId}
+            token={authState.token}
+            type="image"
+            maxFiles={5}
+            onUploadComplete={(media) => {
+              setAttachedMedia(prev => [...prev, media]);
+              // Append markdown image to input
+              const imageMarkdown = `![](${media.url})`;
+              setInputValue(prev => prev ? `${prev} ${imageMarkdown}` : imageMarkdown);
+            }}
+            iconOnly
+          />
+        )}
         <button
           type="submit"
           className="threadkit-submit-btn"
-          disabled={!isLoggedIn || isSubmitting || !inputValue.trim()}
+          disabled={!isLoggedIn || isSubmitting || (!inputValue.trim() && attachedMedia.length === 0)}
         >
           {t('send')}
         </button>
       </form>
+
+      {attachedMedia.length > 0 && (
+        <div className="threadkit-attachments threadkit-chat-attachments">
+          {attachedMedia.map((media) => (
+            <div key={media.mediaId} className="threadkit-attachment-preview">
+              <img src={media.url} alt="" />
+              <button
+                type="button"
+                className="threadkit-attachment-remove"
+                onClick={() => {
+                  // Remove from attachedMedia
+                  setAttachedMedia(prev => prev.filter(m => m.mediaId !== media.mediaId));
+                  // Remove markdown from input
+                  const markdownToRemove = `![](${media.url})`;
+                  setInputValue(prev => {
+                    // Remove the markdown link and clean up extra spaces
+                    let updated = prev.replace(markdownToRemove, '');
+                    // Clean up: remove multiple consecutive spaces
+                    updated = updated.replace(/\s{2,}/g, ' ');
+                    // Remove leading/trailing spaces
+                    updated = updated.trim();
+                    return updated;
+                  });
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {renderSignInArea()}
 
       {(showPresence && wsConnected) || otherTypingUsers.length > 0 ? (
