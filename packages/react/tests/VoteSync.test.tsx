@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { ThreadKit } from '../src/ThreadKit';
 
 // Mock BroadcastChannel
@@ -57,23 +57,14 @@ describe('Vote Synchronization', () => {
     const mockFetch = vi.fn();
     global.fetch = mockFetch;
 
-    // Mock comments endpoint
-    mockFetch.mockResolvedValueOnce({
+    // Mock all fetch responses (comments, auth methods, etc.)
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         page_id: 'page-1',
         tree: { c: [], u: Date.now() },
         total: 0,
-      }),
-    });
-
-    // Mock vote endpoint
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        upvotes: 1,
-        downvotes: 0,
-        user_vote: 'up',
+        methods: [], // For auth methods endpoint
       }),
     });
 
@@ -89,11 +80,10 @@ describe('Vote Synchronization', () => {
       />
     );
 
-    // Wait for initial load
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    // Wait for initial load (ThreadKit makes multiple fetch calls for comments and auth)
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
-    // Simulate a vote (would need actual vote button click in real component)
-    // For now, just verify the BroadcastChannel was created
+    // Verify the BroadcastChannel was created
     expect(MockBroadcastChannel.channels.has('threadkit-votes-https://example.com')).toBe(true);
 
     unmount();
@@ -104,8 +94,8 @@ describe('Vote Synchronization', () => {
     const mockFetch = vi.fn();
     global.fetch = mockFetch;
 
-    // Mock comments endpoint with a comment
-    mockFetch.mockResolvedValueOnce({
+    // Mock all fetch responses
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         page_id: 'page-1',
@@ -129,6 +119,7 @@ describe('Vote Synchronization', () => {
           u: Date.now(),
         },
         total: 1,
+        methods: [], // For auth methods endpoint
       }),
     });
 
@@ -141,7 +132,7 @@ describe('Vote Synchronization', () => {
     );
 
     // Wait for initial load
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     // Get the channel that was created
     const channels = MockBroadcastChannel.channels.get('threadkit-votes-https://example.com');
@@ -175,12 +166,13 @@ describe('Vote Synchronization', () => {
     const mockFetch = vi.fn();
     global.fetch = mockFetch;
 
-    mockFetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         page_id: 'page-1',
         tree: { c: [], u: Date.now() },
         total: 0,
+        methods: [], // For auth methods endpoint
       }),
     });
 
@@ -192,7 +184,7 @@ describe('Vote Synchronization', () => {
       />
     );
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     const channels = MockBroadcastChannel.channels.get('threadkit-votes-https://example.com/page1');
     expect(channels).toBeDefined();
@@ -209,12 +201,13 @@ describe('Vote Synchronization', () => {
     const mockFetch = vi.fn();
     global.fetch = mockFetch;
 
-    mockFetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         page_id: 'page-1',
         tree: { c: [], u: Date.now() },
         total: 0,
+        methods: [], // For auth methods endpoint
       }),
     });
 
@@ -226,7 +219,7 @@ describe('Vote Synchronization', () => {
       />
     );
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     const channelsBefore = MockBroadcastChannel.channels.get('threadkit-votes-https://example.com');
     expect(channelsBefore!.length).toBeGreaterThan(0);

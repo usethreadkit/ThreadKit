@@ -4,16 +4,18 @@ import { ChatView } from '../src/components/ChatView';
 import { AuthProvider } from '../src/auth/AuthContext';
 import type { Comment, User } from '../src/types';
 
+// Mock the useTranslation hook to return a translator function
+const mockTranslator = vi.fn((key: string, params?: { n?: number }) => {
+  const n = params?.n ?? 0;
+  if (key === 'personOnline') return `${n} person online`;
+  if (key === 'peopleOnline') return `${n} people online`;
+  if (key === 'personTyping') return `${n} person is typing...`;
+  if (key === 'peopleTyping') return `${n} people are typing...`;
+  return key; // Default to returning the key if not mocked
+});
+
 vi.mock('../i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    t: vi.fn((key, { n } = {}) => {
-      if (key === 'personOnline') return `${n} person online`;
-      if (key === 'peopleOnline') return `${n} people online`;
-      if (key === 'personTyping') return `${n} person is typing...`;
-      if (key === 'peopleTyping') return `${n} people are typing...`;
-      return key; // Default to returning the key if not mocked
-    }),
-  })),
+  useTranslation: vi.fn(() => mockTranslator),
 }));
 
 const mockMessages: Comment[] = [
@@ -224,12 +226,13 @@ describe('ChatView', () => {
   });
 
   describe('presence', () => {
-    it('shows presence count when enabled', () => {
+    it('shows presence count when enabled and connected', () => {
       renderWithAuth(
         <ChatView
           comments={mockMessages}
           onSend={vi.fn()}
           showPresence={true}
+          wsConnected={true}
           presenceCount={5}
         />
       );
@@ -242,6 +245,7 @@ describe('ChatView', () => {
           comments={mockMessages}
           onSend={vi.fn()}
           showPresence={true}
+          wsConnected={true}
           presenceCount={1}
         />
       );
@@ -254,6 +258,7 @@ describe('ChatView', () => {
           comments={mockMessages}
           onSend={vi.fn()}
           showPresence={false}
+          wsConnected={true}
           presenceCount={5}
         />
       );

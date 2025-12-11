@@ -223,9 +223,9 @@ describe('UserHoverCard', () => {
       expect(screen.getByText('Joined Jun 15, 2023')).toBeInTheDocument();
     });
 
-    it('displays default mock profile when getUserProfile not provided', async () => {
+    it('displays skeleton when getUserProfile not provided', async () => {
       render(
-        <UserHoverCard userName="testuser" userId="user-1">
+        <UserHoverCard userId="user-1">
           <span>Test User</span>
         </UserHoverCard>
       );
@@ -236,16 +236,15 @@ describe('UserHoverCard', () => {
         vi.advanceTimersByTime(300);
       });
 
-      expect(screen.getByText('testuser')).toBeInTheDocument();
-      expect(screen.getByText(/karma/i)).toBeInTheDocument();
-      expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      // Should show skeleton when no profile is available
+      expect(document.querySelector('.threadkit-skeleton')).toBeInTheDocument();
     });
 
-    it('displays default mock profile when getUserProfile returns undefined', async () => {
+    it('displays skeleton when getUserProfile returns undefined', async () => {
       const getUserProfile = vi.fn().mockReturnValue(undefined);
 
       render(
-        <UserHoverCard userName="testuser" userId="user-1" getUserProfile={getUserProfile}>
+        <UserHoverCard userId="user-1" getUserProfile={getUserProfile}>
           <span>Test User</span>
         </UserHoverCard>
       );
@@ -256,7 +255,8 @@ describe('UserHoverCard', () => {
         vi.advanceTimersByTime(300);
       });
 
-      expect(screen.getByText('testuser')).toBeInTheDocument();
+      // Should show skeleton when profile is undefined
+      expect(document.querySelector('.threadkit-skeleton')).toBeInTheDocument();
     });
 
     it('displays avatar image', async () => {

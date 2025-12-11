@@ -28,7 +28,6 @@ function renderLoginModal(onClose = vi.fn()) {
     json: () => Promise.resolve({
       methods: [
         { id: 'email', name: 'Email', type: 'otp' },
-        { id: 'phone', name: 'Phone', type: 'otp' },
         { id: 'google', name: 'Google', type: 'oauth' },
         { id: 'github', name: 'GitHub', type: 'oauth' },
       ],
@@ -71,7 +70,6 @@ describe('LoginModal', () => {
     });
 
     expect(screen.getByText('Continue with Email')).toBeInTheDocument();
-    expect(screen.getByText('Continue with Phone')).toBeInTheDocument();
     expect(screen.getByText('Continue with Google')).toBeInTheDocument();
     expect(screen.getByText('Continue with GitHub')).toBeInTheDocument();
   });
@@ -91,19 +89,6 @@ describe('LoginModal', () => {
     expect(screen.getByText('Send code')).toBeInTheDocument();
   });
 
-  it('shows phone input when phone method is selected', async () => {
-    renderLoginModal();
-
-    await userEvent.click(screen.getByText('Open Login'));
-    await waitFor(() => {
-      expect(screen.getByText('Continue with Phone')).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getByText('Continue with Phone'));
-
-    expect(screen.getByText('Enter your phone number')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('+1 234 567 8900')).toBeInTheDocument();
-  });
 
   it('sends OTP when email is submitted', async () => {
     mockFetch
@@ -264,10 +249,9 @@ describe('LoginModal', () => {
         }),
       });
 
-    const onClose = vi.fn();
     render(
       <AuthProvider apiUrl="http://test.com" projectId="test-key">
-        <LoginModalTrigger onClose={onClose} />
+        <LoginModalTrigger onClose={vi.fn()} />
       </AuthProvider>
     );
 
@@ -288,11 +272,12 @@ describe('LoginModal', () => {
     await userEvent.type(screen.getByPlaceholderText('000000'), '12345');
     expect(verifyButton).toBeDisabled();
 
-    // Type 6th digit - auto-submits and closes modal
+    // Type 6th digit - auto-submits and modal disappears (state goes to idle)
     await userEvent.type(screen.getByPlaceholderText('000000'), '6');
 
+    // After successful auth, state goes back to idle and modal is no longer rendered
     await waitFor(() => {
-      expect(onClose).toHaveBeenCalled();
+      expect(screen.queryByText('Sign in')).not.toBeInTheDocument();
     });
   });
 

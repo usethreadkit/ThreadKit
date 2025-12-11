@@ -151,7 +151,7 @@ describe('SettingsPanel', () => {
   });
 
   describe('theme toggle', () => {
-    it('shows current theme', async () => {
+    it('shows current theme as active button', async () => {
       render(
         <SettingsPanel
           currentUser={mockUser}
@@ -171,10 +171,12 @@ describe('SettingsPanel', () => {
         fireEvent.click(screen.getByTitle('Settings'));
       });
 
-      expect(screen.getByText('Theme: light')).toBeInTheDocument();
+      // Light theme button should be marked as pressed
+      const lightThemeBtn = screen.getByLabelText('Light theme');
+      expect(lightThemeBtn).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('toggles theme when clicked', async () => {
+    it('calls onThemeChange when dark theme button is clicked', async () => {
       const onThemeChange = vi.fn();
       render(
         <SettingsPanel
@@ -196,7 +198,7 @@ describe('SettingsPanel', () => {
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Theme: light'));
+        fireEvent.click(screen.getByLabelText('Dark theme'));
       });
 
       expect(onThemeChange).toHaveBeenCalledWith('dark');

@@ -154,61 +154,6 @@ function ThreadKitInner({
     return sortBy;
   });
 
-  // Initialize DevTools in development
-  useEffect(() => {
-    if (debug) {
-      initDevTools({
-        config: {
-          apiUrl,
-          projectId,
-          url,
-          mode,
-          theme: currentTheme,
-          sortBy: currentSort,
-          wsEnabled: Boolean(wsUrl && effectivePageId),
-        },
-      });
-    }
-  }, [debug, apiUrl, projectId, url, mode, currentTheme, currentSort, wsUrl, effectivePageId]);
-
-  // Update DevTools state when comments change
-  useEffect(() => {
-    if (debug) {
-      updateDevTools({
-        state: {
-          comments,
-          loading,
-          error,
-          pageId: effectivePageId,
-        },
-      });
-    }
-  }, [debug, comments, loading, error, effectivePageId]);
-
-  // Update DevTools auth state
-  useEffect(() => {
-    if (debug) {
-      updateDevTools({
-        auth: {
-          user: currentUser ?? null,
-          token: authState.token ?? null,
-        },
-      });
-    }
-  }, [debug, currentUser, authState.token]);
-
-  // Update DevTools WebSocket state
-  useEffect(() => {
-    if (debug) {
-      updateDevTools({
-        webSocket: {
-          connected: _wsConnected,
-          presenceCount: _presenceCount,
-          typingUsers: _typingUsers,
-        },
-      });
-    }
-  }, [debug, _wsConnected, _presenceCount, _typingUsers]);
 
   // Register auth plugins on mount
   useEffect(() => {
@@ -509,6 +454,62 @@ function ThreadKitInner({
     onVoteUpdated: handleWsVoteUpdated,
     onPinUpdated: handleWsPinUpdated,
   });
+
+  // Initialize DevTools in development
+  useEffect(() => {
+    if (debug) {
+      initDevTools({
+        config: {
+          apiUrl,
+          projectId,
+          url,
+          mode,
+          theme: currentTheme,
+          sortBy: currentSort,
+          wsEnabled: Boolean(wsUrl && effectivePageId),
+        },
+      });
+    }
+  }, [debug, apiUrl, projectId, url, mode, currentTheme, currentSort, wsUrl, effectivePageId]);
+
+  // Update DevTools state when comments change
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        state: {
+          comments,
+          loading,
+          error,
+          pageId: effectivePageId,
+        },
+      });
+    }
+  }, [debug, comments, loading, error, effectivePageId]);
+
+  // Update DevTools auth state
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        auth: {
+          user: currentUser ?? null,
+          token: authState.token ?? null,
+        },
+      });
+    }
+  }, [debug, currentUser, authState.token]);
+
+  // Update DevTools WebSocket state
+  useEffect(() => {
+    if (debug) {
+      updateDevTools({
+        webSocket: {
+          connected: _wsConnected,
+          presenceCount: _presenceCount,
+          typingUsers: _typingUsers,
+        },
+      });
+    }
+  }, [debug, _wsConnected, _presenceCount, _typingUsers]);
 
   // Handler to load pending root comments (banner click)
   const handleLoadPendingComments = useCallback(() => {
