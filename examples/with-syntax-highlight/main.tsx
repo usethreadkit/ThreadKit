@@ -59,7 +59,7 @@ function greet(name: string) {
           projectId="tk_pub_your_public_key"
           url="/syntax-highlight"
           theme={theme}
-          sortBy="newest"
+          sortBy="new"
           plugins={[syntaxPlugin]}
           apiUrl="http://localhost:8080/v1"
           wsUrl="ws://localhost:8081"

@@ -78,7 +78,7 @@ function App() {
           projectId="tk_pub_demo_key"
           apiUrl={API_URL}
           theme={theme}
-          sortBy="newest"
+          sortBy="new"
           getPostHeaders={getPostHeaders}
         />
       </main>

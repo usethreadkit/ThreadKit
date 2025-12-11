@@ -208,7 +208,7 @@ function AppContent({
           url="/kitchen-sink"
           mode={mode}
           theme={theme}
-          sortBy="newest"
+          sortBy="new"
           showPresence={mode === 'chat'}
           showTyping={mode === 'chat'}
           plugins={plugins}

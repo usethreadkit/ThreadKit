@@ -121,10 +121,10 @@ function App() {
             projectId="tk_pub_your_public_key"
             url="/solana-auth"
             theme={theme}
-            sortBy="newest"
+            sortBy="new"
             plugins={[plugin]}
             apiUrl="http://localhost:8080/v1"
-          wsUrl="ws://localhost:8081"
+            wsUrl="ws://localhost:8081"
           />
         </main>
       </div>

@@ -128,7 +128,7 @@ function App() {
           url="/demo"
           mode="comments"
           theme={theme}
-          sortBy="newest"
+          sortBy="new"
           translations={translations}
           apiUrl="http://localhost:8080/v1"
           wsUrl="ws://localhost:8081"
