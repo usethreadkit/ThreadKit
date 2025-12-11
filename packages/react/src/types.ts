@@ -268,6 +268,8 @@ export interface CommentProps {
   apiUrl?: string;
   /** Project ID for SignInPrompt (required if needsUsername can be true) */
   projectId?: string;
+  /** Auth token for media uploads */
+  token?: string;
   depth?: number;
   collapsed?: boolean;
   highlighted?: boolean;

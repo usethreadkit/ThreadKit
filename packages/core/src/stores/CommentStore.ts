@@ -419,6 +419,7 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
    * Edit a comment
    */
   async edit(commentId: string, newText: string): Promise<void> {
+    console.log('[CommentStore] Edit called:', { commentId, newText });
     const { apiUrl, url, projectId } = this.config;
     const token = this.config.getToken();
 
@@ -433,9 +434,11 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
     // Get the path to the comment
     const path = getCommentPath(this.state.comments, commentId);
     if (!path) {
+      console.error('[CommentStore] Comment not found for ID:', commentId);
       throw new ThreadKitError('Comment not found', 'UNKNOWN');
     }
 
+    console.log('[CommentStore] Sending edit request:', { commentId, path, url, apiUrl });
     const response = await fetch(`${apiUrl}/comments/${commentId}`, {
       method: 'PUT',
       headers,
@@ -446,10 +449,14 @@ export class CommentStore extends EventEmitter<CommentStoreEvents> {
       }),
     });
 
+    console.log('[CommentStore] Edit response:', { status: response.status, ok: response.ok });
+
     if (!response.ok) {
       const error = await this.parseErrorResponse(response);
+      console.error('[CommentStore] Edit failed:', error);
       throw error;
     }
+    console.log('[CommentStore] Edit successful');
   }
 
   /**

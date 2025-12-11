@@ -587,11 +587,15 @@ function ThreadKitInner({
 
   const handleEdit = useCallback(
     async (commentId: string, newText: string) => {
+      console.log('[ThreadKit] handleEdit called:', { commentId, newText });
       try {
         await editComment(commentId, newText);
+        console.log('[ThreadKit] editComment successful, updating local state');
         updateComment(commentId, { text: newText, edited: true });
+        console.log('[ThreadKit] local state updated, edit complete');
         onCommentEdited?.(commentId, newText);
       } catch (err) {
+        console.error('[ThreadKit] Edit failed:', err);
         onError?.(err instanceof Error ? err : new Error('Failed to edit'));
       }
     },

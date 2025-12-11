@@ -473,31 +473,9 @@
   margin-bottom: 8px;
 }
 
-/* Edit form */
-.threadkit-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.threadkit-edit-form .threadkit-textarea {
-  min-height: 80px;
-}
-
-.threadkit-edit-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.threadkit-edit-actions .threadkit-submit-btn {
-  padding: 4px 12px;
-  font-size: 11px;
-}
-
-.threadkit-edit-actions .threadkit-cancel-btn {
-  padding: 4px 12px;
-  font-size: 11px;
+/* Reply/Edit form wrapper - no special styling needed, forms use standard layout */
+.threadkit-reply-form {
+  margin-top: 12px;
 }
 
 /* Nested replies */

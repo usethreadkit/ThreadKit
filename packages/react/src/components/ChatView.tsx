@@ -146,43 +146,6 @@ function ChatMessage({
     }
   };
 
-  if (isEditing) {
-    return (
-      <div className="threadkit-chat-message editing">
-        <div className="threadkit-chat-edit-form">
-          <input
-            type="text"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            autoFocus
-            maxLength={MAX_CHAT_LENGTH}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && editText.trim()) {
-                handleSaveEdit();
-              }
-              if (e.key === 'Escape') {
-                handleCancelEdit();
-              }
-            }}
-          />
-          <button
-            className="threadkit-submit-btn"
-            onClick={handleSaveEdit}
-            disabled={!editText.trim()}
-          >
-            {t('save')}
-          </button>
-          <button
-            className="threadkit-cancel-btn"
-            onClick={handleCancelEdit}
-          >
-            {t('cancel')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const replyToName = formatUsername(message.userName, t);
 
   return (
@@ -206,6 +169,7 @@ function ChatMessage({
         >
           <span className="threadkit-chat-author">
             <GuestAwareUsername userName={message.userName} t={t} />
+            {message.edited && <span className="threadkit-edited">*</span>}
           </span>
         </UserHoverCard>
         <span className="threadkit-chat-text">
@@ -218,7 +182,6 @@ function ChatMessage({
             plugins,
             onImageClick: setLightboxImage,
           })}
-          {message.edited && <span className="threadkit-edited">*</span>}
           {message.replyReferenceId && onScrollToComment && (
             <button
               className="threadkit-chat-reply-ref"
@@ -246,6 +209,7 @@ function ChatMessage({
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsEditing(true);
+                    setIsExpanded(false);
                   }}
                 >
                   {t('edit')}
@@ -471,6 +435,40 @@ function ChatMessage({
               {t('reply')}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Edit form - shown when editing */}
+      {isEditing && (
+        <div className="threadkit-chat-reply-form">
+          <input
+            type="text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            autoFocus
+            maxLength={MAX_CHAT_LENGTH}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && editText.trim()) {
+                handleSaveEdit();
+              }
+              if (e.key === 'Escape') {
+                handleCancelEdit();
+              }
+            }}
+          />
+          <button
+            className="threadkit-submit-btn"
+            onClick={handleSaveEdit}
+            disabled={!editText.trim()}
+          >
+            {t('save')}
+          </button>
+          <button
+            className="threadkit-cancel-btn"
+            onClick={handleCancelEdit}
+          >
+            {t('cancel')}
+          </button>
         </div>
       )}
 

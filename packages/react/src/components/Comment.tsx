@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { formatTimestamp } from '@threadkit/core';
 import type { CommentProps } from '../types';
+import type { MediaUpload } from '@threadkit/core';
 import { CommentForm } from './CommentForm';
 import { SignInPrompt } from './SignInPrompt';
 import { UserHoverCard } from './UserHoverCard';
 import { NewRepliesIndicator } from './NewRepliesIndicator';
 import { TypingIndicator } from './TypingIndicator';
+import { MediaUploader } from './MediaUploader';
 import { renderMarkdown } from '../utils/markdown';
 import { GuestAwareUsername } from '../utils/username';
 import { useTranslation } from '../i18n';
@@ -20,12 +22,23 @@ const REPORT_REASON_KEYS: ReportReasonKey[] = [
   'reportOther',
 ];
 
+const FORMATTING_HELP = [
+  { input: '*italics*', output: 'italics', style: 'italic' },
+  { input: '**bold**', output: 'bold', style: 'bold' },
+  { input: '[link](https://example.com)', output: 'link', style: 'link' },
+  { input: '![alt](https://example.com/img.jpg)', output: 'image', style: 'link' },
+  { input: '~~strikethrough~~', output: 'strikethrough', style: 'strikethrough' },
+  { input: '`inline code`', output: 'inline code', style: 'code' },
+  { input: '> quoted text', output: 'quoted text', style: 'quote' },
+];
+
 export function Comment({
   comment,
   currentUser,
   needsUsername = false,
   apiUrl,
   projectId,
+  token,
   depth = 0,
   collapsed: initialCollapsed = false,
   highlighted = false,
@@ -70,6 +83,8 @@ export function Comment({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
+  const [editAttachedMedia, setEditAttachedMedia] = useState<MediaUpload[]>([]);
+  const [showEditHelp, setShowEditHelp] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const upvotes = comment.upvotes;
@@ -96,14 +111,22 @@ export function Comment({
   };
 
   const handleSaveEdit = () => {
+    console.log('[Comment] handleSaveEdit called:', { commentId: comment.id, oldText: comment.text, newText: editText });
     if (editText.trim() && editText !== comment.text) {
+      console.log('[Comment] Calling onEdit');
       onEdit?.(comment.id, editText.trim());
+    } else {
+      console.log('[Comment] Text unchanged or empty, skipping onEdit');
     }
+    setEditAttachedMedia([]);
+    setShowEditHelp(false);
     setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
     setEditText(comment.text);
+    setEditAttachedMedia([]);
+    setShowEditHelp(false);
     setIsEditing(false);
   };
 
@@ -263,42 +286,15 @@ export function Comment({
 
           {/* Comment body */}
           <div className="threadkit-comment-body">
-            {isEditing ? (
-              <div className="threadkit-edit-form">
-                <textarea
-                  className="threadkit-textarea"
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  rows={4}
-                  autoFocus
-                />
-                <div className="threadkit-edit-actions">
-                  <button
-                    className="threadkit-submit-btn"
-                    onClick={handleSaveEdit}
-                    disabled={!editText.trim()}
-                  >
-                    {t('save')}
-                  </button>
-                  <button
-                    className="threadkit-cancel-btn"
-                    onClick={handleCancelEdit}
-                  >
-                    {t('cancel')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              renderMarkdown(comment.text, {
-                allowLinks: true,
-                enableAutoLinks: true,
-                enableMentions: true,
-                getUserProfile,
-                fetchUserProfile,
-                plugins,
-                onImageClick: setLightboxImage,
-              })
-            )}
+            {renderMarkdown(comment.text, {
+              allowLinks: true,
+              enableAutoLinks: true,
+              enableMentions: true,
+              getUserProfile,
+              fetchUserProfile,
+              plugins,
+              onImageClick: setLightboxImage,
+            })}
           </div>
 
           {/* Action row - hidden for deleted comments */}
@@ -561,7 +557,145 @@ export function Comment({
                   autoFocus
                   onSubmit={handleReply}
                   onCancel={() => setShowReplyForm(false)}
+                  apiUrl={apiUrl}
+                  projectId={projectId}
+                  token={token}
                 />
+              )}
+            </div>
+          )}
+
+          {/* Edit form */}
+          {isEditing && (
+            <div className="threadkit-reply-form">
+              {(!currentUser || needsUsername) && apiUrl && projectId ? (
+                <SignInPrompt
+                  apiUrl={apiUrl}
+                  projectId={projectId}
+                  placeholder={t('writeComment')}
+                />
+              ) : (
+                <form className="threadkit-form" onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }}>
+                  <div className="threadkit-textarea-wrapper">
+                    <textarea
+                      className="threadkit-textarea"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      placeholder={t('writeComment')}
+                      autoFocus
+                      rows={3}
+                      maxLength={10000}
+                    />
+                  </div>
+
+                  {editAttachedMedia.length > 0 && (
+                    <div className="threadkit-attachments">
+                      {editAttachedMedia.map((media) => (
+                        <div key={media.mediaId} className="threadkit-attachment-preview">
+                          <img src={media.url} alt="Attached media preview" />
+                          <button
+                            type="button"
+                            className="threadkit-attachment-remove"
+                            aria-label="Remove attachment"
+                            onClick={() => {
+                              setEditAttachedMedia(prev => prev.filter(m => m.mediaId !== media.mediaId));
+                              const markdownToRemove = `![](${media.url})`;
+                              setEditText(prev => {
+                                let updated = prev.replace(markdownToRemove, '');
+                                updated = updated.replace(/\n{3,}/g, '\n\n');
+                                updated = updated.trim();
+                                return updated;
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="threadkit-form-actions">
+                    <button
+                      type="submit"
+                      className="threadkit-submit-btn"
+                      disabled={!editText.trim()}
+                    >
+                      {t('save')}
+                    </button>
+                    {token && apiUrl && projectId && (
+                      <MediaUploader
+                        apiUrl={apiUrl}
+                        projectId={projectId}
+                        token={token}
+                        type="image"
+                        onUploadComplete={(media) => {
+                          setEditAttachedMedia(prev => [...prev, media]);
+                          const imageMarkdown = `![](${media.url})`;
+                          setEditText(prev => prev ? `${prev}\n${imageMarkdown}` : imageMarkdown);
+                        }}
+                        iconOnly
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="threadkit-cancel-btn"
+                      onClick={handleCancelEdit}
+                    >
+                      {t('cancel')}
+                    </button>
+                    <div className="threadkit-form-actions-spacer" />
+                    <button
+                      type="button"
+                      className="threadkit-formatting-help-toggle"
+                      onClick={() => setShowEditHelp(!showEditHelp)}
+                    >
+                      {t('formattingHelp')}
+                    </button>
+                  </div>
+
+                  {showEditHelp && (
+                    <div className="threadkit-formatting-help">
+                      <div className="threadkit-formatting-help-header">
+                        {t('markdownSupported')}
+                      </div>
+                      <table className="threadkit-formatting-help-table">
+                        <thead>
+                          <tr>
+                            <th>{t('youType')}</th>
+                            <th>{t('youSee')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {FORMATTING_HELP.map((item) => (
+                            <tr key={item.input}>
+                              <td><code>{item.input}</code></td>
+                              <td>
+                                <span className={`threadkit-format-${item.style}`}>
+                                  {item.output}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td>
+                              <code>* item 1</code><br />
+                              <code>* item 2</code><br />
+                              <code>* item 3</code>
+                            </td>
+                            <td>
+                              <ul className="threadkit-format-list">
+                                <li>item 1</li>
+                                <li>item 2</li>
+                                <li>item 3</li>
+                              </ul>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </form>
               )}
             </div>
           )}
@@ -596,6 +730,7 @@ export function Comment({
                   needsUsername={needsUsername}
                   apiUrl={apiUrl}
                   projectId={projectId}
+                  token={token}
                   depth={depth + 1}
                   index={childIndex}
                   totalSiblings={comment.children.length}

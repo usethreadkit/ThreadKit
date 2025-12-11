@@ -708,6 +708,7 @@ pub async fn update_comment(
     comment.text = req.content.clone();
     comment.html = markdown_to_html(&req.content);
     comment.modified_at = Utc::now().timestamp();
+    comment.edited = true;
 
     // Clone for response before saving
     let updated_comment = comment.clone();

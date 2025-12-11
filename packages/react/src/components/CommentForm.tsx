@@ -14,6 +14,7 @@ const FORMATTING_HELP = [
   { input: '*italics*', output: 'italics', style: 'italic' },
   { input: '**bold**', output: 'bold', style: 'bold' },
   { input: '[link](https://example.com)', output: 'link', style: 'link' },
+  { input: '![alt](https://example.com/img.jpg)', output: 'image', style: 'link' },
   { input: '~~strikethrough~~', output: 'strikethrough', style: 'strikethrough' },
   { input: '`inline code`', output: 'inline code', style: 'code' },
   { input: '> quoted text', output: 'quoted text', style: 'quote' },

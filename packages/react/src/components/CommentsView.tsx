@@ -441,6 +441,7 @@ export function CommentsView({
                 needsUsername={needsUsername}
                 apiUrl={apiUrl}
                 projectId={projectId}
+                token={authState.token || undefined}
                 index={index}
                 totalSiblings={comments.length}
                 highlighted={highlightedCommentId === comment.id}
