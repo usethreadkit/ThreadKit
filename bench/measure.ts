@@ -3,10 +3,30 @@
 /**
  * Real-world bundle size benchmark
  * Loads actual pages using different comment systems and measures network traffic
+ *
+ * IMPORTANT: Only measures resources from the comment system's domains, not the entire page.
+ * This ensures fair comparisons between systems.
  */
 
 import { chromium } from 'playwright';
 import { writeFileSync } from 'fs';
+
+// Domain filters for each comment system - only count resources from these domains
+const SYSTEM_DOMAINS = {
+  'Disqus': ['disqus.com', 'disquscdn.com'],
+  'Isso': ['isso-comments.de', 'posativ.org'],
+  'Remark42': ['remark42.com'],
+  'Comentario': ['comentario.com', 'cdn.comentario.com', 'commento.io'],
+  'Hyvor Talk': ['talk.hyvor.com', 'hyvor.com'],
+  'ThreadKit': ['usethreadkit.com', 'threadkit.com', 'cdn.jsdelivr.net/npm/@threadkit'],
+};
+
+function shouldCountResource(url: string, systemName: string): boolean {
+  const domains = SYSTEM_DOMAINS[systemName];
+  if (!domains) return false;
+
+  return domains.some(domain => url.includes(domain));
+}
 
 async function measureCommentSystem(url, name, commentSelector) {
   const browser = await chromium.launch({ headless: true });
@@ -25,6 +45,11 @@ async function measureCommentSystem(url, name, commentSelector) {
       const body = await response.body().catch(() => null);
 
       if (!body) return;
+
+      // FAIRNESS: Only count resources from the comment system's domains
+      if (!shouldCountResource(url, name)) {
+        return; // Skip host page's CSS, images, fonts, etc.
+      }
 
       const size = body.length;
       totalBytes += size;
@@ -78,6 +103,7 @@ async function main() {
   console.log('🚀 Comment System Bundle Size Benchmark');
   console.log('=========================================\n');
   console.log('Loading real pages and measuring actual network traffic...');
+  console.log('⚖️  FAIR COMPARISON: Only counting resources from comment system domains\n');
 
   const tests = [
     {
@@ -145,7 +171,8 @@ async function main() {
     JSON.stringify(
       {
         timestamp: new Date().toISOString(),
-        note: 'Measured from real pages using network traffic analysis',
+        note: 'Measured from real pages using network traffic analysis. Only counts resources from comment system domains for fair comparison.',
+        domainFilters: SYSTEM_DOMAINS,
         results,
       },
       null,

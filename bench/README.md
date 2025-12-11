@@ -23,10 +23,20 @@ See [RESULTS.md](./RESULTS.md) for the latest measurements.
 
 ## Methodology
 
+**Fair Comparison Approach:**
+
 - Uses Playwright (headless Chrome) to load actual web pages
-- Measures real network traffic, not just bundle size claims
+- **Only counts resources from the comment system's domains** (see SYSTEM_DOMAINS in measure.ts)
+- Filters out the host page's CSS, images, fonts, and other assets
 - Includes all resources loaded by the comment system (JS, CSS, fonts, ads, trackers)
 - All sizes reflect gzip compression as delivered over HTTP
+
+**Example domain filters:**
+- Disqus: `disqus.com`, `disquscdn.com`
+- Isso: `isso-comments.de`, `posativ.org`
+- ThreadKit: `cdn.jsdelivr.net/npm/@threadkit`
+
+This ensures we're comparing apples-to-apples: only the comment system's resources, not the entire page.
 
 ## Requirements
 
@@ -36,8 +46,17 @@ See [RESULTS.md](./RESULTS.md) for the latest measurements.
 
 ## Adding New Systems
 
-Edit `measure.ts` and add a new test:
+Edit `measure.ts` and:
 
+1. Add domain filters to `SYSTEM_DOMAINS`:
+```typescript
+const SYSTEM_DOMAINS = {
+  'YourSystem': ['yoursystem.com', 'cdn.yoursystem.com'],
+  // ...
+};
+```
+
+2. Add a test case:
 ```typescript
 {
   name: 'YourSystem',
