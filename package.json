@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "pnpm --filter website dev",
     "build": "pnpm --filter @threadkit/react build && pnpm --filter website build",
-    "lint": "pnpm -r lint",
+    "lint": "eslint packages --ext .ts,.tsx",
+    "lint:fix": "eslint packages --ext .ts,.tsx --fix",
+    "lint:packages": "pnpm --filter '@threadkit/*' lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --filter '@threadkit/*' test:run",
     "test:coverage": "pnpm -r --filter '@threadkit/*' test:run -- --coverage",
