@@ -1,0 +1,41 @@
+# WordPress
+*.log
+.htaccess
+
+# Development
+node_modules/
+vendor/
+*.zip
+
+# Tests
+/tmp/
+/wordpress/
+/wordpress-tests-lib/
+
+# PHP
+composer.lock
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# PHPUnit
+.phpunit.result.cache
+phpunit.xml
+coverage.xml
+coverage.lcov
+
+# Environment
+.env
+
+# Docker volumes
+wordpress_data/
+db_data/
+
+# Build artifacts
+build/
+*.zip
+
+# SVN checkout (for WordPress.org deployment)
+svn-repo/

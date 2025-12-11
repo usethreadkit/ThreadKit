@@ -1,0 +1,63 @@
+# Deployment ignore file for WordPress.org SVN
+# This file lists what should NOT be included in the distribution
+
+# Development files
+/.git
+/.github
+/node_modules
+/vendor
+/tests
+/bin
+/.wordpress-org
+/test-site
+
+# Configuration files
+.gitignore
+.gitattributes
+.distignore
+.editorconfig
+.phpcs.xml.dist
+phpunit.xml.dist
+phpunit.xml
+composer.json
+composer.lock
+package.json
+package-lock.json
+
+# Documentation (use .wordpress-org/README.txt instead)
+/README.md
+
+# Build files
+*.zip
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+.env
+.env.example
+
+# CI/CD
+/.travis.yml
+/.gitlab-ci.yml
+/azure-pipelines.yml
+
+# IDE
+/.vscode
+/.idea
+*.sublime-project
+*.sublime-workspace
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
