@@ -7,6 +7,7 @@ import React, {
   useMemo,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ConnectionProvider,
   WalletProvider,
@@ -644,50 +645,75 @@ function SolanaAuthModal({
     select(walletName as any);
   }, [select]);
 
-  return (
-    <div className="tk-auth-web3-modal">
-      {step === 'connect' && (
-        <div className="tk-auth-web3-connect">
-          <h3>Connect your wallet</h3>
-          <div className="tk-auth-web3-connectors">
-            {wallets.map((w, index) => (
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return createPortal(
+    <div className="threadkit-root threadkit-user-modal-overlay" onClick={onCancel}>
+      <div className="threadkit-root tk-auth-web3-modal" onClick={(e) => e.stopPropagation()}>
+        {step === 'connect' && (
+          <div className="tk-auth-web3-connect">
+            <div className="threadkit-avatar-modal-header">
+              <h3>Connect your wallet</h3>
               <button
-                key={`${w.adapter.name}-${index}`}
-                onClick={() => handleWalletClick(w.adapter.name)}
-                className="tk-auth-method-btn"
+                className="threadkit-avatar-modal-close"
+                onClick={onCancel}
+                aria-label="Close"
               >
-                {w.adapter.name}
+                ×
               </button>
-            ))}
+            </div>
+            <div className="tk-auth-web3-connectors">
+              {wallets.map((w, index) => (
+                <button
+                  key={`${w.adapter.name}-${index}`}
+                  onClick={() => handleWalletClick(w.adapter.name)}
+                  className="tk-auth-method-btn"
+                >
+                  {w.adapter.name}
+                </button>
+              ))}
+            </div>
           </div>
-          <button onClick={onCancel} className="tk-auth-web3-cancel">
-            Cancel
-          </button>
-        </div>
-      )}
+        )}
 
-      {step === 'sign' && (
-        <div className="tk-auth-web3-sign">
-          <h3>Sign message</h3>
-          <p>Connected as {truncatedAddress}</p>
-          <p className="tk-auth-subtitle">
-            Sign a message to verify ownership of your wallet
-          </p>
-          {error && <p className="tk-auth-error">{error}</p>}
-          <button onClick={handleSign} className="tk-auth-submit-btn">
-            Sign to continue
-          </button>
-          <button onClick={onCancel} className="tk-auth-web3-cancel">
-            Cancel
-          </button>
-        </div>
-      )}
+        {step === 'sign' && (
+          <div className="tk-auth-web3-sign">
+            <div className="threadkit-avatar-modal-header">
+              <h3>Sign message</h3>
+              <button
+                className="threadkit-avatar-modal-close"
+                onClick={onCancel}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="tk-auth-web3-sign-body">
+              <p>Connected as {truncatedAddress}</p>
+              <p className="tk-auth-subtitle">
+                Sign a message to verify ownership of your wallet
+              </p>
+              {error && <p className="tk-auth-error">{error}</p>}
+              <button onClick={handleSign} className="tk-auth-submit-btn">
+                Sign to continue
+              </button>
+            </div>
+          </div>
+        )}
 
-      {step === 'loading' && (
-        <div className="tk-auth-loading">
-          <p>Verifying signature...</p>
-        </div>
-      )}
-    </div>
+        {step === 'loading' && (
+          <div className="tk-auth-loading">
+            <p>Verifying signature...</p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
   );
 }
