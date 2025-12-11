@@ -19,7 +19,9 @@
     "build": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js",
     "dev": "tsup src/index.tsx --format esm --dts --external react --external @threadkit/react --external @solana/wallet-adapter-react --external @solana/wallet-adapter-base --external @solana/web3.js --watch",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "peerDependencies": {
     "@threadkit/react": "workspace:*",

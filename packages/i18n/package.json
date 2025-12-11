@@ -24,7 +24,9 @@
     "build": "tsc && node scripts/validate-translations.js",
     "dev:watch": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "validate": "node scripts/validate-translations.js"
+    "validate": "node scripts/validate-translations.js",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "@threadkit/core": "workspace:*"

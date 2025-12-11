@@ -20,7 +20,9 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --external @threadkit/core",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "@threadkit/core": "workspace:*"
