@@ -503,6 +503,7 @@ export function createEthereumAuthPluginForThreadKit(
     type: 'web3',
     Icon: EthereumIcon,
     render: ({ onSuccess, onError, onCancel, apiUrl, projectId }: AuthPluginRenderProps) => {
+      console.log('[EthereumAuthPlugin] render called with:', { apiUrl, projectId });
       // Render a modal/UI for wallet connection
       return (
         <EthereumAuthModal
@@ -539,8 +540,11 @@ function EthereumAuthModal({
   const [step, setStep] = useState<'connect' | 'sign' | 'loading'>('connect');
   const [error, setError] = useState<string | null>(null);
 
-  const { address, isConnected, connect, connectors } = useWallet();
+  const { address, isConnected } = useWallet();
   const { signMessageAsync } = useSignMessage();
+  const { connect: wagmiConnect, connectors: wagmiConnectors } = useConnect();
+
+  console.log('[EthereumAuthModal] Render:', { step, isConnected, address, connectorCount: wagmiConnectors.length });
 
   // Auto-advance when connected
   useEffect(() => {
@@ -593,16 +597,27 @@ function EthereumAuthModal({
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : '';
 
+  const handleConnectorClick = useCallback((connectorId: string) => {
+    console.log('[EthereumAuthModal] Connector clicked:', connectorId);
+    const connector = wagmiConnectors.find(c => c.id === connectorId);
+    if (connector) {
+      console.log('[EthereumAuthModal] Connecting to:', connector.name);
+      wagmiConnect({ connector });
+    } else {
+      console.error('[EthereumAuthModal] Connector not found:', connectorId);
+    }
+  }, [wagmiConnectors, wagmiConnect]);
+
   return (
     <div className="tk-auth-web3-modal">
       {step === 'connect' && (
         <div className="tk-auth-web3-connect">
           <h3>Connect your wallet</h3>
           <div className="tk-auth-web3-connectors">
-            {connectors.map((connector) => (
+            {wagmiConnectors.map((connector) => (
               <button
                 key={connector.id}
-                onClick={() => connect()}
+                onClick={() => handleConnectorClick(connector.id)}
                 className="tk-auth-method-btn"
               >
                 {connector.name}

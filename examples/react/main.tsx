@@ -2,8 +2,22 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreadKit } from '@threadkit/react';
 import '@threadkit/react/styles';
+import { createEthereumAuthPluginForThreadKit } from '@threadkit/plugin-auth-ethereum';
+import { createSolanaAuthPluginForThreadKit } from '@threadkit/plugin-auth-solana';
 
 type Theme = 'light' | 'dark';
+
+// Create Ethereum auth plugin
+const { Provider: EthereumProvider, authPlugin: ethereumAuthPlugin } =
+  createEthereumAuthPluginForThreadKit({
+    provider: { mode: 'standalone' },
+  });
+
+// Create Solana auth plugin
+const { Provider: SolanaProvider, authPlugin: solanaAuthPlugin } =
+  createSolanaAuthPluginForThreadKit({
+    provider: { mode: 'standalone' },
+  });
 
 // Configuration for local development
 const LOCAL_PROJECT_ID = 'tk_pub_your_public_key';
@@ -33,6 +47,7 @@ function App() {
           border-radius: 8px;
           padding: 24px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          max-width: 600px;
         }
 
         @media (max-width: 768px) {
@@ -134,6 +149,7 @@ function App() {
             apiUrl={API_URL}
             wsUrl={WS_URL}
             debug={true}
+            authPlugins={[ethereumAuthPlugin, solanaAuthPlugin]}
             onError={(error) => console.error('ThreadKit chat error:', error)}
           />
         </main>
@@ -156,6 +172,7 @@ function App() {
             apiUrl={API_URL}
             wsUrl={WS_URL}
             debug={true}
+            authPlugins={[ethereumAuthPlugin, solanaAuthPlugin]}
             onError={(error) => console.error('ThreadKit thread error:', error)}
           />
         </main>
@@ -182,6 +199,10 @@ function App() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <EthereumProvider>
+      <SolanaProvider>
+        <App />
+      </SolanaProvider>
+    </EthereumProvider>
   </StrictMode>
 );

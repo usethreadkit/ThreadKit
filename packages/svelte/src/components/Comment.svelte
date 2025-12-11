@@ -6,6 +6,7 @@
   import CommentForm from './CommentForm.svelte';
   import SignInPrompt from './SignInPrompt.svelte';
   import UserHoverCard from './UserHoverCard.svelte';
+  import NewRepliesIndicator from './NewRepliesIndicator.svelte';
   // Self-import for recursive rendering
   import Comment from './Comment.svelte';
 
@@ -34,6 +35,8 @@
     totalSiblings?: number;
     highlightedCommentId?: string | null;
     collapsedThreads?: Set<string>;
+    pendingRepliesCount?: number;
+    pendingReplies?: Map<string, CommentType[]>;
     focusedCommentId?: string | null;
     onReply?: (commentId: string) => void;
     onVote?: (commentId: string, voteType: 'up' | 'down') => void;
@@ -46,6 +49,7 @@
     onPrev?: () => void;
     onNext?: () => void;
     onCollapse?: (commentId: string) => void;
+    onLoadPendingReplies?: (parentId: string) => void;
     onLogin?: () => void;
     onPost?: (text: string, parentId?: string) => Promise<void>;
     onCommentClick?: (commentId: string) => void;
@@ -67,6 +71,8 @@
     totalSiblings = 1,
     highlightedCommentId,
     collapsedThreads,
+    pendingRepliesCount = 0,
+    pendingReplies,
     focusedCommentId,
     onReply,
     onVote,
@@ -79,6 +85,7 @@
     onPrev,
     onNext,
     onCollapse,
+    onLoadPendingReplies,
     onLogin,
     onPost,
     onCommentClick,
@@ -108,6 +115,8 @@
   const hasDownvoted = $derived(currentUser && comment.userVote === 'down');
   const isModOrAdmin = $derived(currentUser?.isModerator || currentUser?.isAdmin);
   const isOwnComment = $derived(currentUser && comment.userId === currentUser.id);
+  // Deleted comments have a special userId starting with 'd' and all zeros
+  const isDeleted = $derived(comment.status === 'deleted' || comment.userId === 'd0000000-0000-0000-0000-000000000000');
 
   const parsedContent = $derived(renderMarkdown(comment.text, {
     allowLinks: true,
@@ -292,37 +301,11 @@
 
         <!-- Comment body -->
         <div class="threadkit-comment-body">
-          {#if isEditing}
-            <div class="threadkit-edit-form">
-              <textarea
-                class="threadkit-textarea"
-                value={currentEditText}
-                oninput={(e) => handleEditTextChange((e.target as HTMLTextAreaElement).value)}
-                rows={4}
-              ></textarea>
-              <div class="threadkit-edit-actions">
-                <button
-                  class="threadkit-submit-btn"
-                  onclick={handleSaveEdit}
-                  disabled={!currentEditText.trim()}
-                >
-                  {t('save')}
-                </button>
-                <button
-                  class="threadkit-cancel-btn"
-                  onclick={handleCancelEdit}
-                >
-                  {t('cancel')}
-                </button>
-              </div>
-            </div>
-          {:else}
-            {@html parsedContent}
-          {/if}
+          {@html parsedContent}
         </div>
 
         <!-- Action row -->
-        {#if !isEditing}
+        {#if !isEditing && !isDeleted}
           <div class="threadkit-comment-actions">
             <!-- Share button - uses Web Share API when available, falls back to copy link -->
             <button
@@ -568,6 +551,44 @@
           </div>
         {/if}
 
+        <!-- Edit form -->
+        {#if isEditing}
+          <div class="threadkit-reply-form">
+            <div class="threadkit-form">
+              <input
+                type="text"
+                class="threadkit-textarea"
+                value={currentEditText}
+                oninput={(e) => handleEditTextChange((e.target as HTMLInputElement).value)}
+                autofocus
+              />
+              <div class="threadkit-form-actions">
+                <button
+                  class="threadkit-submit-btn"
+                  onclick={handleSaveEdit}
+                  disabled={!currentEditText.trim()}
+                >
+                  {t('save')}
+                </button>
+                <button
+                  class="threadkit-cancel-btn"
+                  onclick={handleCancelEdit}
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- New replies indicator -->
+        {#if pendingRepliesCount > 0 && onLoadPendingReplies}
+          <NewRepliesIndicator
+            count={pendingRepliesCount}
+            onClick={() => onLoadPendingReplies?.(comment.id)}
+          />
+        {/if}
+
         <!-- Child comments -->
         {#if comment.children.length > 0}
           <div class="threadkit-replies">
@@ -586,6 +607,8 @@
                 collapsed={collapsedThreads?.has(child.id)}
                 {highlightedCommentId}
                 {collapsedThreads}
+                pendingRepliesCount={pendingReplies?.get(child.id)?.length ?? 0}
+                {pendingReplies}
                 {focusedCommentId}
                 {onReply}
                 {onVote}
@@ -596,6 +619,7 @@
                 {onReport}
                 {onPermalink}
                 {onCollapse}
+                {onLoadPendingReplies}
                 {onLogin}
                 {onPost}
                 {onCommentClick}

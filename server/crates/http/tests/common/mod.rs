@@ -149,8 +149,14 @@ impl TestContext {
             allow_localhost_origin: true,
         };
 
+        // Create action logger (no JSON logging for tests)
+        let action_logger = std::sync::Arc::new(
+            threadkit_common::ActionLogger::new(None)
+                .expect("Failed to create action logger")
+        );
+
         // Create app state (this also initializes site config in Redis)
-        let state = AppState::new(config)
+        let state = AppState::new(config, action_logger)
             .await
             .expect("Failed to create app state");
 

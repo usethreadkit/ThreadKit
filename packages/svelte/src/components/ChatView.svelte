@@ -23,7 +23,7 @@
     authStore: AuthStore;
     apiUrl: string;
     projectId: string;
-    onSend: (text: string) => Promise<void>;
+    onSend: (text: string, parentId?: string) => Promise<void>;
     onTyping?: () => void;
     onBlock?: (userId: string) => void;
     onReport?: (commentId: string) => void;
@@ -68,7 +68,20 @@
   const authState = $derived($authStore);
   const isLoggedIn = $derived(!!authState.user && !!authState.token);
   const isModOrAdmin = $derived(currentUser?.isModerator || currentUser?.isAdmin || false);
-  const messages = $derived(comments.slice(-showLastN));
+
+  // Flatten comments tree while preserving order and thread structure
+  function flattenWithThreading(nodes: Comment[], depth = 0): Array<{ comment: Comment; depth: number }> {
+    const result: Array<{ comment: Comment; depth: number }> = [];
+    for (const node of nodes) {
+      result.push({ comment: node, depth });
+      if (node.children && node.children.length > 0) {
+        result.push(...flattenWithThreading(node.children, depth + 1));
+      }
+    }
+    return result;
+  }
+
+  const messages = $derived(flattenWithThreading(comments).slice(-showLastN));
 
   // Filter out current user from typing users
   const otherTypingUsers = $derived(
@@ -109,6 +122,12 @@
   function handleInputChange(e: Event) {
     inputValue = (e.target as HTMLInputElement).value;
     onTyping?.();
+  }
+
+  async function handleReply(parentId: string, text: string) {
+    await onSend(text, parentId);
+    // Focus the main input after sending a reply
+    inputEl?.focus();
   }
 
   function handleMethodSelect(method: any) {
@@ -217,9 +236,10 @@
   {/if}
 
   <div class="threadkit-chat-messages" bind:this={messagesEl}>
-    {#each messages as message (message.id)}
+    {#each messages as { comment, depth } (comment.id)}
       <ChatMessage
-        {message}
+        message={comment}
+        {depth}
         {currentUser}
         {isModOrAdmin}
         {onBlock}
@@ -227,6 +247,7 @@
         {onDelete}
         {onEdit}
         {onBan}
+        onReply={handleReply}
         {getUserProfile}
         {plugins}
       />

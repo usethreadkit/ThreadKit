@@ -1638,8 +1638,13 @@ impl RedisClient {
         let user = self.get_user(user_id).await?;
 
         // Anonymize all user's comments (GDPR-compliant: keep content, remove personal data)
-        let comment_ids = self.get_user_comments(user_id).await.unwrap_or_default();
-        for comment_id in &comment_ids {
+        // Use get_user_comment_index which returns ALL comments (no pagination)
+        let comment_refs = self.get_user_comment_index(user_id, 0, usize::MAX).await.unwrap_or_default();
+        let mut affected_pages = std::collections::HashSet::new();
+
+        for (page_id, comment_id) in &comment_refs {
+            affected_pages.insert(*page_id);
+
             // Update author_id to DELETED_USER_ID constant
             // This preserves the comment content and all relationships (votes, replies, etc.)
             self.client
@@ -1650,6 +1655,11 @@ impl RedisClient {
                 .await?;
 
             stats.comments_deleted += 1;
+        }
+
+        // Invalidate page tree caches so they get rebuilt with anonymized data
+        for page_id in affected_pages {
+            self.client.del::<(), _>(format!("page:{}:tree", page_id)).await?;
         }
 
         // Keep user comments set - it maps to anonymized comments now

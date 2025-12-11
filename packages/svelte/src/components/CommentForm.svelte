@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getTranslation } from '../i18n';
+  import NewCommentsBanner from './NewCommentsBanner.svelte';
 
   const t = getTranslation();
 
@@ -7,11 +8,13 @@
     parentId?: string;
     placeholder?: string;
     showCancel?: boolean;
+    pendingCount?: number;
     onSubmit?: (text: string, parentId?: string) => Promise<void>;
     onCancel?: () => void;
+    onLoadPending?: () => void;
   }
 
-  let { parentId, placeholder, showCancel = false, onSubmit, onCancel }: Props = $props();
+  let { parentId, placeholder, showCancel = false, pendingCount = 0, onSubmit, onCancel, onLoadPending }: Props = $props();
   const placeholderText = placeholder ?? t('writeComment');
 
   let text = $state('');
@@ -84,6 +87,9 @@
       </button>
     {/if}
     <div class="threadkit-form-actions-spacer"></div>
+    {#if pendingCount > 0 && onLoadPending}
+      <NewCommentsBanner count={pendingCount} onClick={onLoadPending} />
+    {/if}
     <button
       type="button"
       class="threadkit-formatting-help-toggle"

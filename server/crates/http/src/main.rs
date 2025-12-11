@@ -12,6 +12,7 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use serde::Serialize;
 use std::env;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::{
     compression::CompressionLayer,
@@ -22,7 +23,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-use threadkit_common::Config;
+use threadkit_common::{Config, ActionLogger};
 use threadkit_http::{middleware::{rate_limit, security_headers}, openapi::ApiDoc, routes, state::AppState};
 
 #[derive(Parser)]
@@ -73,6 +74,9 @@ struct Args {
     #[arg(long, value_delimiter = ',')]
     enable_auth: Option<Vec<String>>,
 
+    /// Path to JSON action log file (overrides THREADKIT_ACTION_LOG env var)
+    #[arg(long)]
+    action_log: Option<String>,
 }
 
 #[tokio::main]
@@ -154,8 +158,19 @@ async fn main() -> Result<()> {
     // Initialize Prometheus metrics
     let metrics_handle = setup_metrics();
 
+    // Initialize action logger
+    let action_log_path = args.action_log
+        .or_else(|| std::env::var("THREADKIT_ACTION_LOG").ok())
+        .map(std::path::PathBuf::from);
+
+    if let Some(ref path) = action_log_path {
+        tracing::info!("Action logging enabled: {}", path.display());
+    }
+
+    let action_logger = Arc::new(ActionLogger::new(action_log_path)?);
+
     // Initialize state
-    let state = AppState::new(config.clone()).await?;
+    let state = AppState::new(config.clone(), action_logger).await?;
 
     // Build router
     let app = Router::new()

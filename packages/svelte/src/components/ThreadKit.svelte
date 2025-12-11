@@ -85,6 +85,16 @@
   let highlightedCommentId = $state<string | null>(null);
   let collapsedThreads = $state<Set<string>>(new Set());
 
+  // Pending comments for banner mode (default for comments mode)
+  let pendingRootComments = $state<Comment[]>([]);
+  let pendingReplies = $state<Map<string, Comment[]>>(new Map());
+
+  // Track recently posted comment IDs to avoid duplicate additions from WebSocket
+  let recentlyPostedIds = new Set<string>();
+
+  // Real-time mode: default to 'auto' for chat mode, 'banner' for comments mode
+  const realTimeMode = mode === 'chat' ? 'auto' : 'banner';
+
   // Reactive state from stores
   let comments = $state<Comment[]>([]);
   let loading = $state(true);
@@ -145,8 +155,46 @@
 
         // Subscribe to WebSocket events
         unsubWsAdded = wsStore.onCommentAdded((comment) => {
-          commentsStore.addComment(comment);
+          // Skip comments we just posted (already added via HTTP response)
+          if (recentlyPostedIds.has(comment.id)) {
+            recentlyPostedIds.delete(comment.id);
+            return;
+          }
+
+          // Always call onCommentReceived for sound effects etc.
           onCommentReceived?.(comment);
+
+          // Handle based on realTimeMode
+          if (realTimeMode === 'auto') {
+            // In chat mode with auto mode, replies should appear both in thread AND at top
+            if (mode === 'chat' && comment.parentId) {
+              // First, add the threaded reply (with parent)
+              commentsStore.addComment(comment);
+
+              // Then, add a top-level reference copy (without parent, with replyReferenceId)
+              const topLevelCopy: Comment = {
+                ...comment,
+                id: `${comment.id}-ref`, // Unique ID for the reference
+                parentId: undefined,
+                replyReferenceId: comment.id, // Link to the actual threaded comment
+                children: [],
+              };
+              commentsStore.addComment(topLevelCopy);
+            } else {
+              // Regular behavior for non-replies or comments mode
+              commentsStore.addComment(comment);
+            }
+          } else {
+            // Banner mode: queue comments instead of adding directly
+            if (!comment.parentId) {
+              // Root comment - add to pending root comments
+              pendingRootComments = [...pendingRootComments, comment];
+            } else {
+              // Reply - add to pending replies for parent
+              const existing = pendingReplies.get(comment.parentId) || [];
+              pendingReplies = new Map(pendingReplies).set(comment.parentId, [...existing, comment]);
+            }
+          }
         });
 
         unsubWsDeleted = wsStore.onCommentDeleted((commentId) => {
@@ -237,10 +285,47 @@
     // Potentially save theme preference to local storage or API
   }
 
+  // Handler to load pending root comments (banner click)
+  function handleLoadPendingComments() {
+    // Add all pending comments to the list
+    pendingRootComments.forEach(comment => {
+      commentsStore.addComment(comment);
+
+      // Also load any pending replies for this comment
+      const replies = pendingReplies.get(comment.id);
+      if (replies) {
+        replies.forEach(reply => commentsStore.addComment(reply));
+      }
+    });
+
+    // Clear pending root comments and their replies
+    const loadedCommentIds = pendingRootComments.map(c => c.id);
+    pendingRootComments = [];
+    const nextPending = new Map(pendingReplies);
+    loadedCommentIds.forEach(id => nextPending.delete(id));
+    pendingReplies = nextPending;
+  }
+
+  // Handler to load pending replies for a specific comment
+  function handleLoadPendingReplies(parentId: string) {
+    const pending = pendingReplies.get(parentId);
+    if (pending) {
+      pending.forEach(comment => commentsStore.addComment(comment));
+      const nextPending = new Map(pendingReplies);
+      nextPending.delete(parentId);
+      pendingReplies = nextPending;
+    }
+  }
+
   // Handlers
   async function handlePost(text: string, parentId?: string) {
     try {
       const comment = await commentsStore.post(text, parentId);
+
+      // Track this comment ID to skip the WebSocket echo
+      recentlyPostedIds.add(comment.id);
+      setTimeout(() => recentlyPostedIds.delete(comment.id), 30000);
+
       commentsStore.addComment(comment);
       onCommentPosted?.(comment);
     } catch (e) {
@@ -453,6 +538,10 @@
       sortBy={currentSort}
       {highlightedCommentId}
       {collapsedThreads}
+      pendingRootCount={pendingRootComments.length}
+      {pendingReplies}
+      onLoadPendingComments={handleLoadPendingComments}
+      onLoadPendingReplies={handleLoadPendingReplies}
       onSortChange={handleSortChange}
       onPost={handlePost}
       onVote={handleVote}

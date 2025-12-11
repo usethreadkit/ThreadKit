@@ -6,8 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@threadkit/react?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@threadkit/react)
 [![npm downloads](https://img.shields.io/npm/dm/@threadkit/react?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@threadkit/react)
-[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/react?style=flat-square&color=cb3837)](https://bundlephobia.com/package/@threadkit/react)
-[![tree-shaking](https://badgen.net/bundlephobia/tree-shaking/@threadkit/react)](https://bundlephobia.com/package/@threadkit/react)
+[![minified + gzip](https://badgen.net/bundlephobia/minzip/@threadkit/react)](https://bundlephobia.com/package/@threadkit/react)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=flat-square)](https://www.npmjs.com/package/@threadkit/react)
 [![GitHub license](https://img.shields.io/github/license/usethreadkit/threadkit?style=flat-square)](https://github.com/usethreadkit/threadkit/blob/master/LICENSE.md)
 [![Coverage Status](https://img.shields.io/coverallsCoverage/github/usethreadkit/threadkit?style=flat-square)](https://coveralls.io/github/usethreadkit/threadkit)
@@ -16,7 +15,7 @@
 
 <br />
 
-[Website](https://usethreadkit.com) · [Documentation](https://usethreadkit.com/docs) · [Live Demo](https://usethreadkit.com/demo) · [Examples](./examples)
+[Website](https://usethreadkit.com) · [Documentation](https://usethreadkit.com/docs) ·  [Examples](./examples)
 
 </div>
 
@@ -56,7 +55,6 @@ ThreadKit supports multiple authentication methods out of the box:
 | Method | Provider |
 |--------|----------|
 | Email OTP | [Resend](https://resend.com) |
-| Phone OTP | [Twilio](https://twilio.com) |
 | Google OAuth | Google |
 | GitHub OAuth | GitHub |
 | Ethereum | Web3 wallet (MetaMask, Rainbow, etc.) |
@@ -82,7 +80,7 @@ import '@threadkit/react/styles.css'
 function App() {
   return (
     <ThreadKit
-      apiKey="your-api-key"
+      projectId="your-project-key"
       pageId="unique-page-id"
     />
   )
@@ -101,7 +99,7 @@ ThreadKit works on any website. Load it from our CDN:
 
 <script>
   ThreadKit.render('#comments', {
-    apiKey: 'your-api-key',
+    projectId: 'your-project-key',
     pageId: 'unique-page-id'
   })
 </script>
@@ -109,7 +107,7 @@ ThreadKit works on any website. Load it from our CDN:
 
 ## Svelte
 
-[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/svelte?style=flat-square&color=ff3e00)](https://bundlephobia.com/package/@threadkit/svelte)
+[![minified + gzip](https://badgen.net/bundlephobia/minzip/@threadkit/svelte)](https://bundlephobia.com/package/@threadkit/svelte)
 
 ```bash
 npm install @threadkit/svelte
@@ -122,7 +120,7 @@ npm install @threadkit/svelte
 </script>
 
 <ThreadKit
-  apiKey="your-api-key"
+  projectId="your-project-id"
   pageId="unique-page-id"
 />
 ```
@@ -131,7 +129,7 @@ See the [Svelte example](./examples/svelte) for a complete setup.
 
 ## Vanilla JS
 
-[![minzipped size](https://img.shields.io/bundlephobia/minzip/@threadkit/core?style=flat-square&color=f7df1e)](https://bundlephobia.com/package/@threadkit/core)
+[![minified + gzip](https://badgen.net/bundlephobia/minzip/@threadkit/core)](https://bundlephobia.com/package/@threadkit/core)
 
 For vanilla JavaScript or any other framework, use `@threadkit/core` directly:
 
@@ -181,6 +179,7 @@ ThreadKit is designed to be extensible. Add functionality with official plugins 
 | [`@threadkit/plugin-latex`](./packages/plugin-latex) | Render LaTeX math equations |
 | [`@threadkit/plugin-media-preview`](./packages/plugin-media-preview) | Rich previews for images, videos, and links |
 | [`@threadkit/plugin-syntax-highlight`](./packages/plugin-syntax-highlight) | Syntax highlighting for code blocks |
+| [`@threadkit/turnstile`](./packages/turnstile) | Cloudflare Turnstile CAPTCHA integration |
 
 ### Using Plugins
 
@@ -190,7 +189,7 @@ import { ethereumPlugin } from '@threadkit/plugin-auth-ethereum'
 import { latexPlugin } from '@threadkit/plugin-latex'
 
 <ThreadKit
-  apiKey="your-api-key"
+  projectId="your-api-key"
   pageId="unique-page-id"
   plugins={[ethereumPlugin(), latexPlugin()]}
 />
@@ -270,7 +269,7 @@ function App() {
 
   return (
     <ThreadKit
-      apiKey="your-api-key"
+      projectId="your-project-id"
       pageId="unique-page-id"
       translations={locales[currentLocale]}
     />

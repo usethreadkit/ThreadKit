@@ -2,7 +2,7 @@ use anyhow::Result;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
-use threadkit_common::{redis::RedisClient, Config, ModerationClient, StorageClient};
+use threadkit_common::{redis::RedisClient, Config, ModerationClient, StorageClient, ActionLogger};
 use uuid::Uuid;
 
 /// In-memory cache for page ETags (updated_at timestamps)
@@ -18,6 +18,8 @@ pub struct AppState {
     pub storage: Option<Arc<StorageClient>>,
     /// In-memory cache for page ETags - avoids Redis reads for unchanged pages
     pub etag_cache: ETagCache,
+    /// Action logger for monitoring write operations
+    pub action_logger: Arc<ActionLogger>,
 }
 
 impl AppState {
@@ -37,7 +39,7 @@ impl AppState {
         }
     }
 
-    pub async fn new(config: Config) -> Result<Self> {
+    pub async fn new(config: Config, action_logger: Arc<ActionLogger>) -> Result<Self> {
         let redis = RedisClient::new(&config.redis_url).await?;
         tracing::info!("Connected to Redis");
 
@@ -131,6 +133,7 @@ impl AppState {
             moderation: Arc::new(moderation),
             storage,
             etag_cache,
+            action_logger,
         })
     }
 }

@@ -30,6 +30,8 @@
     sortBy?: SortBy;
     highlightedCommentId?: string | null;
     collapsedThreads?: Set<string>;
+    pendingRootCount?: number;
+    pendingReplies?: Map<string, CommentType[]>;
     currentTheme?: 'light' | 'dark';
     authStore: AuthStore;
     onSortChange?: (sort: SortBy) => void;
@@ -44,6 +46,8 @@
     onPermalink?: (commentId: string) => void;
     onCollapse?: (commentId: string) => void;
     onReplyStart?: (parentId: string) => void;
+    onLoadPendingComments?: () => void;
+    onLoadPendingReplies?: (parentId: string) => void;
     getUserProfile?: (userId: string) => UserProfile | undefined;
     toolbarEnd?: Snippet;
     plugins?: ThreadKitPlugin[];
@@ -64,6 +68,8 @@
     sortBy = 'top',
     highlightedCommentId,
     collapsedThreads,
+    pendingRootCount = 0,
+    pendingReplies,
     currentTheme = 'light',
     authStore,
     onSortChange,
@@ -78,6 +84,8 @@
     onPermalink,
     onCollapse,
     onReplyStart,
+    onLoadPendingComments,
+    onLoadPendingReplies,
     getUserProfile,
     toolbarEnd,
     plugins,
@@ -253,6 +261,8 @@
       <CommentForm
         placeholder={t('writeComment')}
         onSubmit={onPost}
+        pendingCount={pendingRootCount}
+        onLoadPending={onLoadPendingComments}
       />
     {:else}
       <SignInPrompt
@@ -282,6 +292,9 @@
           totalSiblings={comments.length}
           highlighted={highlightedCommentId === comment.id}
           collapsed={collapsedThreads?.has(comment.id)}
+          pendingRepliesCount={pendingReplies?.get(comment.id)?.length ?? 0}
+          {pendingReplies}
+          onLoadPendingReplies={onLoadPendingReplies}
           onReply={handleReply}
           onVote={allowVoting ? onVote : undefined}
           {onDelete}

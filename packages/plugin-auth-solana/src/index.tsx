@@ -530,6 +530,7 @@ export function createSolanaAuthPluginForThreadKit(
     type: 'web3',
     Icon: SolanaIcon,
     render: ({ onSuccess, onError, onCancel, apiUrl, projectId }: AuthPluginRenderProps) => {
+      console.log('[SolanaAuthPlugin] render called with:', { apiUrl, projectId });
       // Render a modal/UI for wallet connection
       return (
         <SolanaAuthModal
@@ -566,9 +567,11 @@ function SolanaAuthModal({
   const [step, setStep] = useState<'connect' | 'sign' | 'loading'>('connect');
   const [error, setError] = useState<string | null>(null);
 
-  const { address, isConnected, connect, wallets } = useWallet();
-  const wallet = useSolanaWallet();
+  const { address, isConnected } = useWallet();
+  const { signMessage, wallets, select } = useSolanaWallet();
   const { connection } = useConnection();
+
+  console.log('[SolanaAuthModal] Render:', { step, isConnected, address, walletCount: wallets.length });
 
   // Auto-advance when connected
   useEffect(() => {
@@ -578,7 +581,7 @@ function SolanaAuthModal({
   }, [isConnected, address]);
 
   const handleSign = useCallback(async () => {
-    if (!address || !wallet.signMessage) return;
+    if (!address || !signMessage) return;
 
     setStep('loading');
     setError(null);
@@ -596,7 +599,7 @@ function SolanaAuthModal({
 
       // 2. Sign
       const messageBytes = new TextEncoder().encode(message);
-      const signature = await wallet.signMessage(messageBytes);
+      const signature = await signMessage(messageBytes);
 
       // 3. Verify
       const verifyRes = await fetch(`${apiUrl}/auth/solana/verify`, {
@@ -630,11 +633,16 @@ function SolanaAuthModal({
       onError(msg);
       setStep('sign');
     }
-  }, [address, wallet, connection, apiUrl, apiKey, onSuccess, onError]);
+  }, [address, signMessage, connection, apiUrl, apiKey, onSuccess, onError]);
 
   const truncatedAddress = address
     ? `${address.slice(0, 4)}...${address.slice(-4)}`
     : '';
+
+  const handleWalletClick = useCallback((walletName: string) => {
+    console.log('[SolanaAuthModal] Wallet clicked:', walletName);
+    select(walletName as any);
+  }, [select]);
 
   return (
     <div className="tk-auth-web3-modal">
@@ -642,13 +650,13 @@ function SolanaAuthModal({
         <div className="tk-auth-web3-connect">
           <h3>Connect your wallet</h3>
           <div className="tk-auth-web3-connectors">
-            {wallets.map((w) => (
+            {wallets.map((w, index) => (
               <button
-                key={w.name}
-                onClick={() => connect()}
+                key={`${w.adapter.name}-${index}`}
+                onClick={() => handleWalletClick(w.adapter.name)}
                 className="tk-auth-method-btn"
               >
-                {w.name}
+                {w.adapter.name}
               </button>
             ))}
           </div>

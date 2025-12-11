@@ -16,6 +16,7 @@ use threadkit_common::types::{
     ANONYMOUS_USER_ID, DELETED_USER_ID,
 };
 use threadkit_common::moderation::ModerationCheckResult;
+use threadkit_common::{ActionLogBuilder, ActionType};
 
 // Re-export shared types for OpenAPI docs and external use
 pub use threadkit_common::types::{
@@ -37,6 +38,26 @@ pub fn router() -> Router<AppState> {
         .route("/comments/{id}/pin", post(pin_comment))
         .route("/comments/{id}/report", post(report_comment))
         .route("/pages/my_votes", get(get_my_votes))
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Extract IP address from headers (prioritizes X-Forwarded-For)
+fn extract_ip(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
+}
+
+/// Extract user agent from headers
+fn extract_user_agent(headers: &axum::http::HeaderMap) -> Option<String> {
+    headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from)
 }
 
 // ============================================================================
@@ -651,6 +672,34 @@ pub async fn create_comment(
         });
     }
 
+    // Log action
+    let user_email = if let Some(user_id) = auth.user_id {
+        state.redis.get_user(user_id).await.ok()
+            .and_then(|u| u)
+            .and_then(|u| u.email)
+    } else {
+        None
+    };
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::CommentCreated, project_id.0.site_id)
+        .user_id(author_id)
+        .page_url(req.page_url.clone())
+        .page_id(page_id)
+        .comment_id(comment_id)
+        .content_preview(req.content.clone());
+
+    if let Some(email) = user_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
+
     Ok(Json(CreateCommentResponse {
         comment: response_comment,
     }))
@@ -677,6 +726,7 @@ pub async fn update_comment(
     project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<UpdateCommentRequest>,
 ) -> Result<Json<TreeComment>, (StatusCode, String)> {
     // Check if username is set
@@ -731,6 +781,30 @@ pub async fn update_comment(
         "content_html": updated_comment.html.clone()
     })).await;
 
+    // Log action
+    let user_email = state.redis.get_user(auth.user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::CommentEdited, project_id.0.site_id)
+        .user_id(auth.user_id)
+        .page_url(req.page_url.clone())
+        .page_id(page_id)
+        .comment_id(comment_id)
+        .content_preview(req.content.clone());
+
+    if let Some(email) = user_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
+
     Ok(Json(updated_comment))
 }
 
@@ -755,6 +829,7 @@ pub async fn delete_comment(
     project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<DeleteRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     // Check if username is set
@@ -801,6 +876,29 @@ pub async fn delete_comment(
         "comment_id": comment_id
     })).await;
 
+    // Log action
+    let user_email = state.redis.get_user(auth.user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::CommentDeleted, project_id.0.site_id)
+        .user_id(auth.user_id)
+        .page_url(req.page_url.clone())
+        .page_id(page_id)
+        .comment_id(comment_id);
+
+    if let Some(email) = user_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -824,6 +922,7 @@ pub async fn vote_comment(
     project_id: ProjectId,
     auth: AuthUserWithRole,
     Path(comment_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<VoteRequest>,
 ) -> Result<Json<VoteResponse>, (StatusCode, String)> {
     // Check if username is set
@@ -910,6 +1009,35 @@ pub async fn vote_comment(
             );
         });
     }
+
+    // Log action
+    let user_email = state.redis.get_user(auth.user_id).await.ok()
+        .and_then(|u| u)
+        .and_then(|u| u.email);
+
+    let mut log_entry = ActionLogBuilder::new(ActionType::CommentVoted, project_id.0.site_id)
+        .user_id(auth.user_id)
+        .page_url(req.page_url.clone())
+        .page_id(page_id)
+        .comment_id(comment_id)
+        .metadata(serde_json::json!({
+            "vote_type": match req.direction {
+                VoteDirection::Up => "up",
+                VoteDirection::Down => "down",
+            }
+        }));
+
+    if let Some(email) = user_email {
+        log_entry = log_entry.user_email(email);
+    }
+    if let Some(ip) = extract_ip(&headers) {
+        log_entry = log_entry.ip(ip);
+    }
+    if let Some(ua) = extract_user_agent(&headers) {
+        log_entry = log_entry.user_agent(ua);
+    }
+
+    state.action_logger.log(log_entry.build());
 
     Ok(Json(VoteResponse {
         upvotes: new_upvotes,
