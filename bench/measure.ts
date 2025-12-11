@@ -33,6 +33,11 @@ function shouldCountResource(url: string, systemName: string): boolean {
   const domains = SYSTEM_DOMAINS[systemName];
   if (!domains) return false;
 
+  // Exclude Comentario demo page's logo
+  if (systemName === 'Comentario' && url.includes('logo-800x200px.png')) {
+    return false;
+  }
+
   return domains.some(domain => url.includes(domain));
 }
 
