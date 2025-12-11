@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadKit Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@threadkit/react@latest/dist/styles.css">
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>ThreadKit Comment Test</h1>
+    <p>This is a minimal test page for measuring ThreadKit bundle size.</p>
+
+    <div id="threadkit-root"></div>
+
+    <!-- Use latest published version from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@threadkit/react@latest/dist/cdn/threadkit.min.js"></script>
+
+    <script>
+        // Initialize ThreadKit
+        ThreadKit.render(document.getElementById('threadkit-root'), {
+            apiUrl: 'https://api.usethreadkit.com',
+            apiKey: 'tk_pub_05f801535b50565cb774c5e2fcbc4e9d',
+            pageUrl: window.location.href,
+            pageId: 'threadkit-test-page',
+            wsUrl: 'wss://api.usethreadkit.com'
+        });
+    </script>
+</body>
+</html>

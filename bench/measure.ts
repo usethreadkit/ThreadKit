@@ -26,7 +26,7 @@ const SYSTEM_DOMAINS = {
   'Remark42': ['remark42.com'],
   'Comentario': ['comentario.com', 'cdn.comentario.com', 'commento.io', 'demo.comentario.app'],
   'Hyvor Talk': ['talk.hyvor.com'], // Includes embed.js and API calls
-  'ThreadKit': ['usethreadkit.com', 'threadkit.com', 'cdn.jsdelivr.net/npm/@threadkit'],
+  'ThreadKit': ['usethreadkit.com', 'api.usethreadkit.com', 'threadkit.com', 'cdn.jsdelivr.net/npm/@threadkit'],
 };
 
 function shouldCountResource(url: string, systemName: string): boolean {
@@ -161,6 +161,11 @@ async function main() {
   console.log('⚖️  FAIR COMPARISON: Only counting resources from comment system domains\n');
 
   const tests = [
+    {
+      name: 'ThreadKit',
+      url: 'http://localhost:8765/threadkit.html',
+      selector: '#threadkit-root',
+    },
     {
       name: 'Disqus',
       url: 'http://localhost:8765/disqus.html',
