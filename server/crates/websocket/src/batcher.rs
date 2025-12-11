@@ -444,8 +444,8 @@ mod tests {
 
     #[test]
     fn test_queue_writes() {
-        let page_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let page_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         // Test presence_add
         let presence_add: DashMap<Uuid, HashSet<Uuid>> = DashMap::new();
@@ -471,9 +471,9 @@ mod tests {
 
     #[test]
     fn test_queue_analytics() {
-        let site_id = Uuid::new_v4();
+        let site_id = Uuid::now_v7();
         let hour_key = "2024120718".to_string();
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::now_v7();
 
         // Test message counts
         let message_counts: DashMap<(Uuid, String), u64> = DashMap::new();
@@ -490,8 +490,8 @@ mod tests {
     #[test]
     fn test_drain_preserves_keys() {
         let map: DashMap<Uuid, HashSet<Uuid>> = DashMap::new();
-        let key = Uuid::new_v4();
-        let value = Uuid::new_v4();
+        let key = Uuid::now_v7();
+        let value = Uuid::now_v7();
 
         map.entry(key).or_default().insert(value);
 

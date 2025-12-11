@@ -37,3 +37,8 @@ image.workspace = true
 webp.workspace = true
 bytes.workspace = true
 mime.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+testcontainers.workspace = true
+testcontainers-modules = { workspace = true, features = ["redis"] }

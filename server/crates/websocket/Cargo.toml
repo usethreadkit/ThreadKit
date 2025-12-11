@@ -27,3 +27,7 @@ libc = "0.2"
 
 [dev-dependencies]
 tokio-test.workspace = true
+tokio-tungstenite = "0.24"
+testcontainers.workspace = true
+testcontainers-modules = { workspace = true, features = ["redis"] }
+axum-test.workspace = true
