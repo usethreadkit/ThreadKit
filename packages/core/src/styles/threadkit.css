@@ -2680,7 +2680,7 @@ button.threadkit-new-comments-banner:hover {
 
 .threadkit-avatar-modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--threadkit-text);
 }
@@ -2688,12 +2688,13 @@ button.threadkit-new-comments-banner:hover {
 .threadkit-avatar-modal-close {
   background: none;
   border: none;
-  font-size: 28px;
+  font-size: 32px;
+  line-height: 1;
   color: var(--threadkit-text-secondary);
   cursor: pointer;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2745,6 +2746,23 @@ button.threadkit-new-comments-banner:hover {
   color: var(--threadkit-text-secondary);
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.threadkit-avatar-preview-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--threadkit-bg-secondary);
+}
+
+.threadkit-avatar-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .threadkit-select-file-btn {

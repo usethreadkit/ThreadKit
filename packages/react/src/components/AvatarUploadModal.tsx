@@ -31,9 +31,10 @@ export function AvatarUploadModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
+    // Validate file type - only safe image formats, no SVG
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setError('Unsupported image format (JPEG, PNG, WebP, GIF allowed - SVG not allowed)');
       return;
     }
 
@@ -99,7 +100,7 @@ export function AvatarUploadModal({
 
   return createPortal(
     <div className="threadkit-root threadkit-user-modal-overlay" onClick={handleCancel}>
-      <div className="threadkit-avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="threadkit-root threadkit-avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
         <div className="threadkit-avatar-modal-header">
           <h3>Upload Avatar</h3>
           <button
@@ -116,11 +117,10 @@ export function AvatarUploadModal({
           <div className="threadkit-avatar-preview-section">
             <div className="threadkit-avatar-preview-current">
               <label>Current</label>
-              <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden' }}>
+              <div className="threadkit-avatar-preview-circle">
                 <Avatar
                   src={currentAvatar}
                   alt="Current avatar"
-                  className="threadkit-avatar-preview"
                 />
               </div>
             </div>
@@ -128,11 +128,11 @@ export function AvatarUploadModal({
             {previewUrl && (
               <div className="threadkit-avatar-preview-new">
                 <label>New</label>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden' }}>
-                  <Avatar
+                <div className="threadkit-avatar-preview-circle">
+                  <img
                     src={previewUrl}
                     alt="New avatar"
-                    className="threadkit-avatar-preview"
+                    className="threadkit-avatar-preview-image"
                   />
                 </div>
               </div>
@@ -149,7 +149,7 @@ export function AvatarUploadModal({
 
           {!selectedFile && (
             <button
-              className="threadkit-btn threadkit-btn-primary threadkit-select-file-btn"
+              className="threadkit-submit-btn threadkit-select-file-btn"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
@@ -164,7 +164,7 @@ export function AvatarUploadModal({
                 {(selectedFile.size / 1024).toFixed(1)} KB
               </p>
               <button
-                className="threadkit-btn threadkit-btn-secondary threadkit-change-file-btn"
+                className="threadkit-cancel-btn threadkit-change-file-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
                 Change Image
@@ -193,14 +193,14 @@ export function AvatarUploadModal({
 
         <div className="threadkit-avatar-modal-footer">
           <button
-            className="threadkit-btn threadkit-btn-secondary"
+            className="threadkit-cancel-btn"
             onClick={handleCancel}
             disabled={uploading}
           >
             Cancel
           </button>
           <button
-            className="threadkit-btn threadkit-btn-primary"
+            className="threadkit-submit-btn"
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
           >
