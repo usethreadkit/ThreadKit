@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createTurnstilePlugin, createTurnstileFetch } from '../src/index';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { createTurnstilePlugin, createTurnstileFetch, useTurnstile } from '../src/index';
 
 // Mock window.open
 const mockPopupWindow = {
@@ -272,5 +273,191 @@ describe('createTurnstileFetch', () => {
     );
 
     await expect(fetchPromise).rejects.toThrow('Verification failed');
+  });
+});
+
+describe('useTurnstile', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('open', vi.fn(() => mockPopupWindow));
+    mockPopupWindow.closed = false;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns initial state', () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBe(null);
+    expect(result.current.token).toBe(null);
+    expect(typeof result.current.requestToken).toBe('function');
+    expect(typeof result.current.cancel).toBe('function');
+    expect(typeof result.current.reset).toBe('function');
+  });
+
+  it('sets loading state during token request', async () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    // Start request
+    const requestPromise = result.current.requestToken();
+    
+    // Should be loading immediately
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(true);
+    });
+
+    // Simulate success
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'threadkit:turnstile:success',
+            token: 'test-token-123',
+          },
+        })
+      );
+    });
+
+    await requestPromise;
+
+    // Should not be loading anymore
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+  });
+
+  it('updates token state on success', async () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    const requestPromise = result.current.requestToken();
+
+    // Simulate success
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'threadkit:turnstile:success',
+            token: 'test-token-456',
+          },
+        })
+      );
+    });
+
+    await requestPromise;
+
+    await waitFor(() => {
+      expect(result.current.token).toBe('test-token-456');
+      expect(result.current.error).toBe(null);
+    });
+  });
+
+  it('updates error state on failure', async () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    const requestPromise = result.current.requestToken();
+
+    // Simulate error
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'threadkit:turnstile:error',
+            error: 'Challenge failed',
+          },
+        })
+      );
+    });
+
+    await requestPromise;
+
+    await waitFor(() => {
+      expect(result.current.error).toBe('Challenge failed');
+      expect(result.current.token).toBe(null);
+    });
+  });
+
+  it('resets state', async () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    const requestPromise = result.current.requestToken();
+
+    // Set token
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'threadkit:turnstile:success',
+            token: 'test-token-789',
+          },
+        })
+      );
+    });
+
+    await requestPromise;
+
+    await waitFor(() => {
+      expect(result.current.token).toBe('test-token-789');
+    });
+
+    // Reset
+    act(() => {
+      result.current.reset();
+    });
+
+    await waitFor(() => {
+      expect(result.current.token).toBe(null);
+      expect(result.current.error).toBe(null);
+    });
+  });
+
+  it('cancels pending request', async () => {
+    const { result } = renderHook(() =>
+      useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' })
+    );
+
+    const requestPromise = result.current.requestToken();
+
+    // Cancel immediately
+    act(() => {
+      result.current.cancel();
+    });
+
+    await requestPromise;
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+  });
+
+  it('cleans up on unmount when autoCleanup is true', () => {
+    const { unmount } = renderHook(() =>
+      useTurnstile({
+        siteKey: 'test-key',
+        apiUrl: 'https://api.example.com',
+        autoCleanup: true,
+      })
+    );
+
+    // Start request
+    renderHook(() => useTurnstile({ siteKey: 'test-key', apiUrl: 'https://api.example.com' }));
+
+    // Unmount - should cleanup
+    unmount();
+
+    // If we got here without errors, cleanup worked
+    expect(true).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 use axum::{http::HeaderName, http::HeaderValue, middleware, Router};
 use axum_test::TestServer;
+use redis::AsyncCommands;
 use serde_json::json;
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
 use testcontainers_modules::{minio::MinIO, redis::Redis};
@@ -95,13 +96,18 @@ impl TestContext {
             .expect("Failed to create Redis client");
 
         // Create SiteConfig and save it to Redis
+        let mut settings = threadkit_common::types::SiteSettings::default();
+        // Enable email auth by default for tests
+        settings.auth.email = true;
+        settings.auth.anonymous = true;
+
         let site_config = threadkit_common::types::SiteConfig {
             id: site_id,
             name: "Test Site".to_string(), // Matches site_name in Config
             domain: "localhost".to_string(), // Matches site_domain in Config
             project_id_public: project_id.clone(),
             project_id_secret: secret_key.clone(),
-            settings: Default::default(),
+            settings,
         };
         redis_client
             .set_site_config(&site_config)
@@ -247,7 +253,7 @@ impl TestContext {
     }
 
     /// Set moderation mode for the site
-    pub async fn set_moderation_mode(&self, mode: &str) {
+    pub async fn set_moderation_mode(&self, _mode: &str) {
         // This would update the site config in Redis
         // For now, this is a placeholder - actual implementation would update Redis
         // TODO: Implement site config update in Redis
@@ -286,5 +292,63 @@ impl TestContext {
                 "reason": reason
             }))
             .await;
+    }
+
+    /// Update site settings directly in Redis (for testing)
+    pub async fn update_site_settings(&self, partial_settings: serde_json::Value) {
+        use threadkit_common::redis::RedisClient;
+        use threadkit_common::types::TurnstileSettings;
+
+        // Get Redis URL from the test server's state
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        let redis_url = format!("redis://{}:{}", host, port);
+
+        // Create a temporary Redis client
+        let redis = RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to connect to Redis");
+
+        // Get current site config
+        let mut config = redis
+            .get_site_config(self.site_id)
+            .await
+            .expect("Failed to get site config")
+            .expect("Site config not found");
+
+        // Update only the fields provided in partial_settings
+        if let Some(turnstile_obj) = partial_settings.get("turnstile") {
+            config.settings.turnstile = serde_json::from_value::<TurnstileSettings>(turnstile_obj.clone())
+                .expect("Failed to parse turnstile settings");
+        }
+
+        // Save updated config
+        redis
+            .set_site_config(&config)
+            .await
+            .expect("Failed to update site config");
+
+        // Invalidate the API key cache so the server picks up the new settings
+        self.invalidate_project_id_cache().await;
+    }
+
+    /// Invalidate the project ID cache (forces server to reload config from Redis)
+    #[allow(dead_code)]
+    async fn invalidate_project_id_cache(&self) {
+        use threadkit_common::redis::RedisClient;
+
+        let host = self.redis_container.get_host().await.expect("Failed to get redis host");
+        let port = self.redis_container.get_host_port_ipv4(6379).await.expect("Failed to get redis port");
+        let redis_url = format!("redis://{}:{}", host, port);
+
+        let redis_client = RedisClient::new(&redis_url)
+            .await
+            .expect("Failed to create Redis client");
+
+        // Delete the cache key for this project ID
+        redis_client
+            .invalidate_project_id_cache(&self.project_id)
+            .await
+            .expect("Failed to invalidate cache");
     }
 }

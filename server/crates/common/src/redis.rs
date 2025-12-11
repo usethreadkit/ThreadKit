@@ -811,7 +811,7 @@ impl RedisClient {
         direction: VoteDirection,
     ) -> Result<(Option<VoteDirection>, i64, i64, i64, i64)> {
         let vote_key = format!("votes:{}:{}", user_id, page_id);
-        let tree_key = format!("page:{}", page_id);
+        let tree_key = format!("page:{}:tree", page_id);
         let direction_str = match direction {
             VoteDirection::Up => "1",
             VoteDirection::Down => "-1",
@@ -844,7 +844,16 @@ impl RedisClient {
                     .collect::<std::result::Result<Vec<Value>, _>>()
                     .map_err(|e: fred::error::Error| Error::Redis(e))?
             }
-            _ => return Err(Error::Internal("Unexpected response type from EVALSHA".to_string())),
+            Resp3Frame::SimpleError { data, .. } => {
+                return Err(Error::Internal(format!("Lua script error: {}", data)));
+            }
+            Resp3Frame::BlobError { data, .. } => {
+                let err_msg = String::from_utf8_lossy(&data);
+                return Err(Error::Internal(format!("Lua script error: {}", err_msg)));
+            }
+            other => {
+                return Err(Error::Internal(format!("Unexpected response type from EVALSHA: {:?}", other)));
+            }
         };
 
         // Parse results
@@ -1454,6 +1463,12 @@ impl RedisClient {
     pub async fn get_cached_project_id(&self, project_id: &str) -> Result<Option<ProjectIdInfo>> {
         let value: Option<String> = self.client.get(format!("apikey:{}", project_id)).await?;
         Ok(value.and_then(|v| serde_json::from_str(&v).ok()))
+    }
+
+    /// Invalidate the cached project ID (for testing/development)
+    pub async fn invalidate_project_id_cache(&self, project_id: &str) -> Result<()> {
+        self.client.del::<(), _>(format!("apikey:{}", project_id)).await?;
+        Ok(())
     }
 
     // ========================================================================
