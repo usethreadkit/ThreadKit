@@ -13,6 +13,7 @@ import { writeFileSync } from 'fs';
 import { spawn, ChildProcess } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { gzipSync } from 'zlib';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,8 +47,11 @@ async function measureCommentSystem(url, name, commentSelector) {
   const page = await browser.newPage();
 
   let totalBytes = 0;
+  let totalGzippedBytes = 0;
   let jsBytes = 0;
+  let jsGzippedBytes = 0;
   let cssBytes = 0;
+  let cssGzippedBytes = 0;
   let requestCount = 0;
   const resources = [];
 
@@ -65,16 +69,25 @@ async function measureCommentSystem(url, name, commentSelector) {
       }
 
       const size = body.length;
+      const gzippedSize = gzipSync(body).length;
+
       totalBytes += size;
+      totalGzippedBytes += gzippedSize;
       requestCount++;
 
       const isJS = contentType.includes('javascript') || url.endsWith('.js');
       const isCSS = contentType.includes('css') || url.endsWith('.css');
 
-      if (isJS) jsBytes += size;
-      if (isCSS) cssBytes += size;
+      if (isJS) {
+        jsBytes += size;
+        jsGzippedBytes += gzippedSize;
+      }
+      if (isCSS) {
+        cssBytes += size;
+        cssGzippedBytes += gzippedSize;
+      }
 
-      resources.push({ url, size, type: isJS ? 'js' : isCSS ? 'css' : 'other' });
+      resources.push({ url, size, gzippedSize, type: isJS ? 'js' : isCSS ? 'css' : 'other' });
     } catch (e) {
       // Ignore
     }
@@ -102,8 +115,11 @@ async function measureCommentSystem(url, name, commentSelector) {
     name,
     url,
     totalBytes,
+    totalGzippedBytes,
     jsBytes,
+    jsGzippedBytes,
     cssBytes,
+    cssGzippedBytes,
     requestCount,
   };
 }
@@ -199,7 +215,7 @@ async function main() {
     try {
       const result = await measureCommentSystem(test.url, test.name, test.selector);
       results.push(result);
-      console.log(`   ✅ Total: ${formatBytes(result.totalBytes)} | JS: ${formatBytes(result.jsBytes)} | CSS: ${formatBytes(result.cssBytes)} | Requests: ${result.requestCount}`);
+      console.log(`   ✅ Total: ${formatBytes(result.totalGzippedBytes)} gzipped (${formatBytes(result.totalBytes)} raw) | JS: ${formatBytes(result.jsGzippedBytes)} | CSS: ${formatBytes(result.cssGzippedBytes)} | Requests: ${result.requestCount}`);
     } catch (e) {
       console.log(`   ❌ Failed: ${e.message}`);
       results.push({ name: test.name, error: e.message });
@@ -207,18 +223,18 @@ async function main() {
   }
 
   console.log('\n=========================================');
-  console.log('📊 Results');
+  console.log('📊 Results (Gzipped)');
   console.log('=========================================\n');
 
-  console.log('| System | Total Size | JS | CSS | Requests |');
-  console.log('|--------|------------|-----|-----|----------|');
+  console.log('| System | Total (gzipped) | JS | CSS | Requests |');
+  console.log('|--------|-----------------|-----|-----|----------|');
 
   for (const r of results) {
     if (r.error) {
       console.log(`| ${r.name} | ERROR | - | - | - |`);
     } else {
       console.log(
-        `| ${r.name} | ${formatBytes(r.totalBytes)} | ${formatBytes(r.jsBytes)} | ${formatBytes(r.cssBytes)} | ${r.requestCount} |`
+        `| ${r.name} | ${formatBytes(r.totalGzippedBytes)} | ${formatBytes(r.jsGzippedBytes)} | ${formatBytes(r.cssGzippedBytes)} | ${r.requestCount} |`
       );
     }
   }
