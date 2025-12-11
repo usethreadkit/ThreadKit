@@ -1011,11 +1011,9 @@ async fn oauth_callback_inner(
     let token_data: serde_json::Value = token_response.json().await
         .map_err(|e| e.to_string())?;
 
-    eprintln!("OAuth token response from {}: {:?}", provider, token_data);
-
     let access_token = token_data["access_token"]
         .as_str()
-        .ok_or_else(|| format!("No access token in response. Full response: {:?}", token_data))?;
+        .ok_or("No access token in response")?;
 
     let user_response = client
         .get(user_url)
