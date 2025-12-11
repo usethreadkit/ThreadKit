@@ -243,7 +243,7 @@ impl TreeComment {
         self.author_id == DELETED_USER_ID
     }
 
-    /// Mark this comment as deleted (preserves replies)
+    /// Mark this comment as deleted (user-requested deletion - removes content)
     pub fn mark_deleted(&mut self) {
         self.author_id = DELETED_USER_ID;
         self.name = "[deleted]".to_string();
@@ -252,6 +252,16 @@ impl TreeComment {
         self.text = "[deleted]".to_string();
         self.html = "[deleted]".to_string();
         self.status = Some(CommentStatus::Deleted);
+    }
+
+    /// Anonymize this comment for GDPR account deletion (keeps content, removes personal data)
+    pub fn anonymize_for_gdpr(&mut self) {
+        self.author_id = DELETED_USER_ID;
+        self.name = "[deleted]".to_string();
+        self.avatar = None;
+        self.karma = 0;
+        // NOTE: Keep text and html content - this is anonymized data, not personal data
+        // Votes, timestamps, and reply structure are also preserved
     }
 
     /// Find a comment in this tree by path of IDs

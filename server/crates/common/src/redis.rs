@@ -837,7 +837,6 @@ impl RedisClient {
             .await?;
 
         // Extract array result from Resp3Frame
-        tracing::debug!("atomic_vote response frame: {:?}", frame);
         let result: Vec<Value> = match frame {
             Resp3Frame::Array { data, .. } => {
                 data.into_iter()
@@ -1631,80 +1630,36 @@ impl RedisClient {
     // ========================================================================
 
     /// Delete all user data for GDPR compliance
+    /// Anonymizes comments (keeps content but removes personal data) to preserve conversation threading
     pub async fn delete_user_account(&self, user_id: Uuid) -> Result<DeletedAccountStats> {
         let mut stats = DeletedAccountStats::default();
 
         // Get user data first for index cleanup
         let user = self.get_user(user_id).await?;
 
-        // Delete all user's comments
+        // Anonymize all user's comments (GDPR-compliant: keep content, remove personal data)
         let comment_ids = self.get_user_comments(user_id).await.unwrap_or_default();
         for comment_id in &comment_ids {
-            // Remove from page indices
-            if let Ok(Some(comment)) = self.get_comment(*comment_id).await {
-                // Remove from page comment indices
-                self.client
-                    .zrem::<(), _, _>(
-                        format!("page:{}:comments:new", comment.page_id),
-                        comment_id.to_string(),
-                    )
-                    .await?;
-                self.client
-                    .zrem::<(), _, _>(
-                        format!("page:{}:comments:top", comment.page_id),
-                        comment_id.to_string(),
-                    )
-                    .await?;
-                self.client
-                    .zrem::<(), _, _>(
-                        format!("page:{}:comments:hot", comment.page_id),
-                        comment_id.to_string(),
-                    )
-                    .await?;
+            // Update author_id to DELETED_USER_ID constant
+            // This preserves the comment content and all relationships (votes, replies, etc.)
+            self.client
+                .hset::<(), _, _>(
+                    format!("comment:{}", comment_id),
+                    [("author_id", crate::types::DELETED_USER_ID.to_string())],
+                )
+                .await?;
 
-                // Remove from parent's replies if it was a reply
-                if let Some(parent_id) = comment.parent_id {
-                    self.client
-                        .zrem::<(), _, _>(format!("comment:{}:replies", parent_id), comment_id.to_string())
-                        .await?;
-                    // Decrement parent reply count
-                    self.client
-                        .hincrby::<(), _, _>(format!("comment:{}", parent_id), "reply_count", -1)
-                        .await?;
-                }
-
-                // Remove from moderation queue if present
-                self.client
-                    .zrem::<(), _, _>(format!("site:{}:modqueue", comment.site_id), comment_id.to_string())
-                    .await?;
-            }
-
-            // Delete comment hash
-            self.client.del::<(), _>(format!("comment:{}", comment_id)).await?;
-            // Delete comment replies list
-            self.client.del::<(), _>(format!("comment:{}:replies", comment_id)).await?;
             stats.comments_deleted += 1;
         }
 
-        // Delete user comments set
-        self.client.del::<(), _>(format!("user:{}:comments", user_id)).await?;
+        // Keep user comments set - it maps to anonymized comments now
+        // (Deleting it would break the "get user comments" functionality for the deleted user ID)
 
-        // Delete user's votes
+        // Delete user's votes (personal data)
+        // NOTE: We keep the vote COUNTS on comments but remove the user's specific votes
         let vote_ids = self.get_user_votes(user_id).await.unwrap_or_default();
         for comment_id in &vote_ids {
-            // Get the vote direction to reverse it
-            if let Ok(Some(direction)) = self.get_vote(user_id, *comment_id).await {
-                // Update comment vote counts
-                if let Ok(Some(comment)) = self.get_comment(*comment_id).await {
-                    let (upvote_delta, downvote_delta) = match direction {
-                        VoteDirection::Up => (-1, 0),
-                        VoteDirection::Down => (0, -1),
-                    };
-                    let new_upvotes = (comment.upvotes + upvote_delta).max(0);
-                    let new_downvotes = (comment.downvotes + downvote_delta).max(0);
-                    let _ = self.update_comment_votes(*comment_id, new_upvotes, new_downvotes).await;
-                }
-            }
+            // Delete the vote record (don't reverse vote counts - preserves comment karma)
             self.client.del::<(), _>(format!("vote:{}:{}", user_id, comment_id)).await?;
             stats.votes_deleted += 1;
         }
