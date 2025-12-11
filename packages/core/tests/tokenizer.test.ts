@@ -166,6 +166,140 @@ describe('tokenizeLine', () => {
     });
   });
 
+  describe('images', () => {
+    it('does not parse images without allowLinks option', () => {
+      const tokens = tokenizeLine('![alt](https://example.com/img.jpg)');
+      expect(tokens.some(t => t.type === 'image')).toBe(false);
+    });
+
+    it('parses images with allowLinks option', () => {
+      const tokens = tokenizeLine('![alt text](https://example.com/image.jpg)', { allowLinks: true });
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0]).toEqual({
+        type: 'image',
+        content: 'alt text',
+        url: 'https://example.com/image.jpg',
+      });
+    });
+
+    it('parses images with empty alt text', () => {
+      const tokens = tokenizeLine('![](https://example.com/image.jpg)', { allowLinks: true });
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0]).toEqual({
+        type: 'image',
+        content: '',
+        url: 'https://example.com/image.jpg',
+      });
+    });
+
+    it('parses images with surrounding text', () => {
+      const tokens = tokenizeLine('Look at this ![image](https://example.com/img.jpg) cool!', { allowLinks: true });
+      expect(tokens).toHaveLength(3);
+      expect(tokens[0]).toEqual({ type: 'text', content: 'Look at this ' });
+      expect(tokens[1]).toEqual({ type: 'image', content: 'image', url: 'https://example.com/img.jpg' });
+      expect(tokens[2]).toEqual({ type: 'text', content: ' cool!' });
+    });
+
+    it('parses multiple images', () => {
+      const tokens = tokenizeLine('![img1](http://localhost/1.webp) ![img2](http://localhost/2.webp)', { allowLinks: true });
+      expect(tokens).toHaveLength(3);
+      expect(tokens[0]).toEqual({ type: 'image', content: 'img1', url: 'http://localhost/1.webp' });
+      expect(tokens[1]).toEqual({ type: 'text', content: ' ' });
+      expect(tokens[2]).toEqual({ type: 'image', content: 'img2', url: 'http://localhost/2.webp' });
+    });
+
+    it('parses images with text before, between, and after', () => {
+      const tokens = tokenizeLine('text ![img1](http://localhost/1.webp) middle ![img2](http://localhost/2.webp) end', { allowLinks: true });
+      const images = tokens.filter(t => t.type === 'image');
+      expect(images).toHaveLength(2);
+      expect(images[0].url).toBe('http://localhost/1.webp');
+      expect(images[1].url).toBe('http://localhost/2.webp');
+
+      const textParts = tokens.filter(t => t.type === 'text');
+      expect(textParts.some(t => t.content.includes('text'))).toBe(true);
+      expect(textParts.some(t => t.content.includes('middle'))).toBe(true);
+      expect(textParts.some(t => t.content.includes('end'))).toBe(true);
+    });
+
+    describe('security - XSS prevention', () => {
+      it('parses javascript: URL as image token (security check happens in renderer)', () => {
+        const tokens = tokenizeLine('![xss](javascript:alert(1))', { allowLinks: true });
+        // The ) in alert(1) terminates the URL match early, resulting in 2 tokens
+        expect(tokens.length).toBeGreaterThanOrEqual(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toContain('javascript:alert');
+        // Note: The tokenizer passes through the URL; security filtering happens in isSafeUrl()
+      });
+
+      it('parses javascript: URL without parentheses as image token', () => {
+        const tokens = tokenizeLine('![xss](javascript:alert)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('javascript:alert');
+      });
+
+      it('parses data: URL as image token', () => {
+        const tokens = tokenizeLine('![xss](data:text/html,test)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('data:text/html,test');
+      });
+
+      it('parses vbscript: URL as image token', () => {
+        const tokens = tokenizeLine('![xss](vbscript:msgbox)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('vbscript:msgbox');
+      });
+
+      it('parses javascript: with whitespace as image token', () => {
+        const tokens = tokenizeLine('![xss](  javascript:alert)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('  javascript:alert');
+      });
+
+      it('parses JAVASCRIPT: (uppercase) as image token', () => {
+        const tokens = tokenizeLine('![xss](JAVASCRIPT:alert)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('JAVASCRIPT:alert');
+      });
+
+      it('parses data URL with base64 encoded script as image token', () => {
+        const tokens = tokenizeLine('![xss](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].url).toBe('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==');
+      });
+
+      it('handles multiple images with mixed safe and unsafe URLs', () => {
+        const tokens = tokenizeLine('![safe](https://example.com/img.jpg) ![xss](javascript:alert) ![safe2](http://test.com/img.png)', { allowLinks: true });
+        const images = tokens.filter(t => t.type === 'image');
+        expect(images).toHaveLength(3);
+        expect(images[0].url).toBe('https://example.com/img.jpg');
+        expect(images[1].url).toBe('javascript:alert');
+        expect(images[2].url).toBe('http://test.com/img.png');
+      });
+
+      it('parses image with potentially malicious alt text', () => {
+        const tokens = tokenizeLine('![<img src=x onerror=alert(1)>](https://example.com/img.jpg)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        // The regex stops at > which terminates the alt text early
+        expect(tokens[0].content).toContain('<img src=x onerror=alert');
+        // Alt text should be escaped by the renderer
+      });
+
+      it('parses image with quotes in alt text', () => {
+        const tokens = tokenizeLine('![test alt](https://example.com/img.jpg)', { allowLinks: true });
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0].type).toBe('image');
+        expect(tokens[0].content).toBe('test alt');
+      });
+    });
+  });
+
   describe('mentions', () => {
     it('does not parse mentions without enableMentions option', () => {
       const tokens = tokenizeLine('Hello @john');

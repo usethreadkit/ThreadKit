@@ -135,6 +135,7 @@ function ThreadKitInner({
   onSignOut: _onSignOut, // Handled at outer component level
   onError,
   onSignIn: _onSignIn,
+  debug,
   innerRef,
 }: ThreadKitInnerProps) {
   const { state: authState, login, logout, registerPlugin, updateUsername, updateAvatar } = useAuth();
@@ -332,9 +333,22 @@ function ThreadKitInner({
   // WebSocket handlers
   const handleWsCommentAdded = useCallback(
     (_pageId: string, comment: Comment) => {
+      if (debug) {
+        console.log('[ThreadKit] WS comment received:', {
+          commentId: comment.id,
+          text: comment.text?.substring(0, 50),
+          parentId: comment.parentId,
+          realTimeMode,
+          mode,
+        });
+      }
+
       // Skip comments we just posted (already added via HTTP response)
       if (recentlyPostedIds.current.has(comment.id)) {
         recentlyPostedIds.current.delete(comment.id);
+        if (debug) {
+          console.log('[ThreadKit] Skipping echo of own comment');
+        }
         return;
       }
 
@@ -377,7 +391,7 @@ function ThreadKitInner({
         }
       }
     },
-    [addComment, onCommentReceived, currentUser, realTimeMode, mode]
+    [addComment, onCommentReceived, realTimeMode, mode, setPendingRootComments, setPendingReplies, debug]
   );
 
   const handleWsCommentDeleted = useCallback(
@@ -411,11 +425,27 @@ function ThreadKitInner({
   );
 
   // WebSocket connection (enabled when wsUrl provided and pageId available from API)
+  const wsEnabled = Boolean(wsUrl && effectivePageId);
+
+  // Log WebSocket config once when it changes (using useEffect to avoid logging on every render)
+  useEffect(() => {
+    if (debug) {
+      console.log('[ThreadKit] WebSocket config:', {
+        wsUrl,
+        projectId,
+        pageId: effectivePageId,
+        enabled: wsEnabled,
+        mode,
+        realTimeMode,
+      });
+    }
+  }, [wsEnabled, effectivePageId, mode, realTimeMode, debug, wsUrl, projectId]);
+
   const { connected: _wsConnected, presenceCount: _presenceCount, typingUsers: _typingUsers, typingByComment, sendTyping: _sendTyping } = useWebSocket({
     wsUrl: wsUrl || '',
     projectId,
     pageId: effectivePageId,
-    enabled: Boolean(wsUrl && effectivePageId),
+    enabled: wsEnabled,
     onCommentAdded: handleWsCommentAdded,
     onCommentDeleted: handleWsCommentDeleted,
     onCommentEdited: handleWsCommentEdited,
@@ -426,9 +456,25 @@ function ThreadKitInner({
   // Handler to load pending root comments (banner click)
   const handleLoadPendingComments = useCallback(() => {
     // Add all pending comments to the list (prepend)
-    pendingRootComments.forEach(comment => addComment(comment));
+    pendingRootComments.forEach(comment => {
+      addComment(comment);
+
+      // Also load any pending replies for this comment
+      const replies = pendingReplies.get(comment.id);
+      if (replies) {
+        replies.forEach(reply => addComment(reply));
+      }
+    });
+
+    // Clear pending root comments and their replies
+    const loadedCommentIds = pendingRootComments.map(c => c.id);
     setPendingRootComments([]);
-  }, [pendingRootComments, addComment]);
+    setPendingReplies(prev => {
+      const next = new Map(prev);
+      loadedCommentIds.forEach(id => next.delete(id));
+      return next;
+    });
+  }, [pendingRootComments, pendingReplies, addComment]);
 
   // Handler to load pending replies for a specific comment
   const handleLoadPendingReplies = useCallback((parentId: string) => {

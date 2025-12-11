@@ -1,6 +1,6 @@
 mod common;
 
-use axum::http::{header, StatusCode};
+use axum::http::StatusCode;
 use common::TestContext;
 
 #[tokio::test]

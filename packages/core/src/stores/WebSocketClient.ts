@@ -325,6 +325,12 @@ export class WebSocketClient extends EventEmitter<WebSocketClientEvents> {
   private handleMessage(event: MessageEvent): void {
     try {
       const message: ServerRpcMessage = JSON.parse(event.data);
+
+      // Debug logging
+      if (typeof console !== 'undefined' && message.method !== 'pong' && message.method !== 'presence' && message.method !== 'typing') {
+        console.log('[WebSocketClient] Received message:', message.method, message.params);
+      }
+
       if (message.jsonrpc !== '2.0') return;
 
       const params = message.params;

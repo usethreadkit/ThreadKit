@@ -83,8 +83,9 @@ impl PubSubSubscriber {
             self.handle_message(&message);
         }
 
-        tracing::warn!("PubSub message receiver closed");
-        Ok(())
+        // If we reach here, the message receiver closed - this means Redis connection was lost
+        tracing::warn!("PubSub message receiver closed, triggering reconnection");
+        Err(anyhow::anyhow!("Message receiver closed, Redis connection lost"))
     }
 
     /// Handle a received pub/sub message

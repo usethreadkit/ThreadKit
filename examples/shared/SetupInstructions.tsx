@@ -25,10 +25,12 @@ export function SetupInstructions() {
             overflow: 'auto',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
+            userSelect: 'all',
+            cursor: 'text',
           }}>
 cargo run --release --bin threadkit-http -- \
   --create-site "My Site" example.com \
-  --enable-auth email,google,github,anonymous
+  --enable-auth email,google,github,anonymous,ethereum,solana
           </pre>
         </li>
         <li>

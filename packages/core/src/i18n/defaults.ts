@@ -224,4 +224,18 @@ export const defaultTranslations: TranslationStrings = {
   loadNewComments: 'Load {n} new {n, plural, one {comment} other {comments}}',
   loadNewReplies: '{n} new {n, plural, one {reply} other {replies}}',
   isTyping: '{name} is replying...',
+
+  // File upload errors
+  fileFormatNotAllowed: 'File format not allowed',
+  fileTooLarge: 'File is too large',
+  uploadFailed: 'Upload failed',
+
+  // Avatar upload
+  uploadAvatar: 'Upload Avatar',
+  selectImage: 'Select Image',
+  changeImage: 'Change Image',
+  uploading: 'Uploading...',
+  upload: 'Upload',
+  current: 'Current',
+  new: 'New',
 };

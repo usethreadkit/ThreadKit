@@ -54,7 +54,7 @@ function App() {
       `}</style>
       <div className="demo-container">
       <header style={{ marginBottom: 32 }}>
-        <h1 style={{ marginBottom: 8 }}>ThreadKit - React Example (Two Instances)</h1>
+        <h1 style={{ marginBottom: 8 }}>ThreadKit - React Package</h1>
         <p style={{ color: '#666', marginBottom: 16 }}>
           Testing chat and thread modes side-by-side at <code>localhost:8080</code>
         </p>
@@ -75,12 +75,12 @@ function App() {
             </li>
             <li>
               Create site (first time only):
-              <pre style={{ margin: '4px 0', padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, overflow: 'auto' }}>
+              <pre style={{ margin: '4px 0', padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: 12, overflow: 'auto', userSelect: 'all', cursor: 'text' }}>
                 cargo run --release --bin threadkit-http -- \
                 <br />
                 --create-site "My Site" example.com \
                 <br />
-                --enable-auth email,google,github,anonymous
+                --enable-auth email,google,github,anonymous,ethereum,solana
               </pre>
             </li>
             <li>

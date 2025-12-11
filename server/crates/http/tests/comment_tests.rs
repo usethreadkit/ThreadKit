@@ -249,6 +249,8 @@ async fn test_delete_comment() {
 
 #[tokio::test]
 async fn test_vote_comment() {
+    use threadkit_common::redis::RedisClient;
+
     let ctx = TestContext::new().await;
 
     // Register two users
@@ -269,6 +271,17 @@ async fn test_vote_comment() {
     let comment: serde_json::Value = response.json();
     // TreeComment uses compact keys: i=id
     let comment_id = comment["comment"]["i"].as_str().unwrap();
+
+    // Debug: Verify tree exists before voting
+    let redis = ctx.get_redis_client().await;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/page7");
+    println!("Site ID: {}", ctx.site_id);
+    println!("Page ID: {}", page_id);
+    println!("Comment ID: {}", comment_id);
+
+    let tree = redis.get_page_tree(page_id).await.expect("get tree");
+    assert!(tree.is_some(), "Tree should exist before voting");
+    println!("Tree has {} comments", tree.unwrap().comments.len());
 
     // Upvote as second user
     let (key_name, key_value) = project_id_header(&ctx.project_id);
@@ -559,7 +572,7 @@ async fn test_user_endpoint_returns_total_comments() {
     assert!(user["id"].is_string());
     assert!(user["name"].is_string());
     assert!(user["karma"].is_number());
-    assert!(user["created_at"].is_number());
+    assert!(user["created_at"].is_string()); // DateTime serializes as ISO string, not Unix timestamp
     assert_eq!(user["total_comments"], 0);
 }
 
@@ -978,6 +991,7 @@ async fn test_vote_complex_sequence() {
             "path": [comment_id]
         }))
         .await;
+
     let body = response.json::<serde_json::Value>();
     assert_eq!(body["upvotes"], 0);
     assert_eq!(body["downvotes"], 0);
@@ -1200,4 +1214,96 @@ async fn test_multiple_votes_karma_accumulation() {
         .await;
     let final_karma = response.json::<serde_json::Value>()["karma"].as_i64().unwrap();
     assert_eq!(final_karma, initial_karma + 1);
+}
+
+#[tokio::test]
+async fn test_tree_exists_after_create() {
+    use threadkit_common::redis::RedisClient;
+
+    let ctx = TestContext::new().await;
+
+    // Register user
+    let auth = ctx.register_user("tester", "test@example.com", "password123").await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx.create_comment(token, "https://example.com/test-tree", "Test", None).await;
+    response.assert_status(StatusCode::OK);
+
+    // Verify tree exists in Redis
+    let redis = ctx.get_redis_client().await;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/test-tree");
+    let tree = redis.get_page_tree(page_id).await.expect("get tree");
+
+    assert!(tree.is_some(), "Tree should exist after creating comment");
+    let tree = tree.unwrap();
+    assert_eq!(tree.comments.len(), 1, "Tree should have 1 comment");
+}
+
+#[tokio::test]
+async fn test_tree_raw_after_vote() {
+    use redis::AsyncCommands;
+    use threadkit_common::redis::RedisClient;
+
+    let ctx = TestContext::new().await;
+    let auth = ctx.register_user("voter_raw", "voter_raw@example.com", "password123").await;
+    let token = auth["token"].as_str().unwrap();
+
+    // Create comment
+    let response = ctx.create_comment(token, "https://example.com/vote-raw", "Test", None).await;
+    response.assert_status(StatusCode::OK);
+    let comment: serde_json::Value = response.json();
+    let comment_id = comment["comment"]["i"].as_str().unwrap();
+
+    println!("Comment ID: {}", comment_id);
+
+    // Get Redis client
+    let redis = ctx.get_redis_client().await;
+    let page_id = RedisClient::generate_page_id(ctx.site_id, "https://example.com/vote-raw");
+
+    // Verify tree exists before vote
+    let tree_before = redis.get_page_tree(page_id).await.expect("get tree");
+    assert!(tree_before.is_some(), "Tree should exist before vote");
+    println!("Tree exists before vote with {} comments", tree_before.as_ref().unwrap().comments.len());
+
+    // Attempt vote
+    let (key_name, key_value) = ctx.project_id_header();
+    let (auth_name, auth_value) = TestContext::auth_header(token);
+
+    let vote_response = ctx
+        .server
+        .post(&format!("/v1/comments/{}/vote", comment_id))
+        .add_header(key_name, key_value)
+        .add_header(auth_name, auth_value)
+        .json(&serde_json::json!({
+            "page_url": "https://example.com/vote-raw",
+            "direction": "up",
+            "path": [comment_id]
+        }))
+        .await;
+
+    println!("Vote response status: {}", vote_response.status_code());
+    println!("Vote response body: {}", vote_response.text());
+
+    // Check if tree still exists (using raw Redis command)
+    let redis_url = ctx.get_redis_url().await;
+    let client = redis::Client::open(redis_url).expect("redis client");
+    let mut conn = client.get_multiplexed_async_connection().await.expect("connection");
+
+    let tree_key = format!("page:{}:tree", page_id);
+    println!("Checking key: {}", tree_key);
+
+    let exists: bool = conn.exists(&tree_key).await.expect("exists check");
+    println!("Tree key exists: {}", exists);
+
+    if exists {
+        let raw_tree: String = conn.get(&tree_key).await.expect("get raw");
+        println!("Raw tree JSON (first 500 chars): {}", &raw_tree[..std::cmp::min(500, raw_tree.len())]);
+
+        // Try to deserialize
+        match serde_json::from_str::<threadkit_common::types::PageTree>(&raw_tree) {
+            Ok(tree) => println!("Tree deserialized OK, has {} comments", tree.comments.len()),
+            Err(e) => println!("Tree deserialization FAILED: {}", e),
+        }
+    }
 }

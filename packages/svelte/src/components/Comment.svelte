@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { Comment as CommentType, User, UserProfile, ThreadKitPlugin } from '@threadkit/core';
+  import type { AuthStore } from '../stores/auth';
   import { renderMarkdown, formatTimestamp } from '../utils/markdown';
   import { getTranslation } from '../i18n';
   import CommentForm from './CommentForm.svelte';
+  import SignInPrompt from './SignInPrompt.svelte';
   import UserHoverCard from './UserHoverCard.svelte';
   // Self-import for recursive rendering
   import Comment from './Comment.svelte';
@@ -21,6 +23,9 @@
   interface Props {
     comment: CommentType;
     currentUser?: User;
+    authStore?: AuthStore;
+    apiUrl?: string;
+    projectId?: string;
     depth?: number;
     maxDepth?: number;
     collapsed?: boolean;
@@ -29,6 +34,7 @@
     totalSiblings?: number;
     highlightedCommentId?: string | null;
     collapsedThreads?: Set<string>;
+    focusedCommentId?: string | null;
     onReply?: (commentId: string) => void;
     onVote?: (commentId: string, voteType: 'up' | 'down') => void;
     onDelete?: (commentId: string) => void;
@@ -40,6 +46,9 @@
     onPrev?: () => void;
     onNext?: () => void;
     onCollapse?: (commentId: string) => void;
+    onLogin?: () => void;
+    onPost?: (text: string, parentId?: string) => Promise<void>;
+    onCommentClick?: (commentId: string) => void;
     getUserProfile?: (userId: string) => UserProfile | undefined;
     plugins?: ThreadKitPlugin[];
   }
@@ -47,6 +56,9 @@
   let {
     comment,
     currentUser,
+    authStore,
+    apiUrl,
+    projectId,
     depth = 0,
     maxDepth = 5,
     collapsed: initialCollapsed = false,
@@ -55,6 +67,7 @@
     totalSiblings = 1,
     highlightedCommentId,
     collapsedThreads,
+    focusedCommentId,
     onReply,
     onVote,
     onDelete,
@@ -66,6 +79,9 @@
     onPrev,
     onNext,
     onCollapse,
+    onLogin,
+    onPost,
+    onCommentClick,
     getUserProfile,
     plugins,
   }: Props = $props();
@@ -100,6 +116,8 @@
     getUserProfile,
     plugins,
   }));
+
+  const isFocused = $derived(focusedCommentId === comment.id);
 
   function handleReply() {
     onReply?.(comment.id);
@@ -137,7 +155,15 @@
   <div
     class="threadkit-comment threadkit-comment-collapsed"
     class:threadkit-highlighted={highlighted}
+    class:threadkit-focused={isFocused}
     data-comment-id={comment.id}
+    onclick={(e) => {
+      const target = e.target as HTMLElement;
+      if (onCommentClick && !target.closest('button')) {
+        e.stopPropagation();
+        onCommentClick(comment.id);
+      }
+    }}
   >
     <button
       class="threadkit-expand-btn"
@@ -166,6 +192,7 @@
   <div
     class="threadkit-comment"
     class:threadkit-highlighted={highlighted}
+    class:threadkit-focused={isFocused}
     data-comment-id={comment.id}
     id="threadkit-{comment.id}"
   >
@@ -178,6 +205,8 @@
             class:active={hasUpvoted}
             onclick={() => onVote?.(comment.id, 'up')}
             aria-label={t('upvote')}
+            title={!currentUser ? t('signInToVote') : undefined}
+            disabled={!currentUser}
           >
             &#9650;
           </button>
@@ -186,6 +215,8 @@
             class:active={hasDownvoted}
             onclick={() => onVote?.(comment.id, 'down')}
             aria-label={t('downvote')}
+            title={!currentUser ? t('signInToVote') : undefined}
+            disabled={!currentUser}
           >
             &#9660;
           </button>
@@ -194,6 +225,17 @@
 
       <!-- Content column -->
       <div class="threadkit-comment-content">
+        <!-- Main content (excluding replies) -->
+        <div
+          class="threadkit-comment-main"
+          onclick={(e) => {
+            const target = e.target as HTMLElement;
+            if (onCommentClick && !target.closest('button, a, textarea, input')) {
+              e.stopPropagation();
+              onCommentClick(comment.id);
+            }
+          }}
+        >
         <!-- Header line -->
         <div class="threadkit-comment-header">
           <UserHoverCard
@@ -498,19 +540,31 @@
             {/if}
           </div>
         {/if}
+        </div>
+        <!-- End of comment main content -->
 
         <!-- Reply form -->
         {#if showReplyForm}
           <div class="threadkit-reply-form">
-            <CommentForm
-              parentId={comment.id}
-              placeholder={t('writeReply')}
-              showCancel={true}
-              onSubmit={async (text, parentId) => {
-                handleReply();
-              }}
-              onCancel={handleFormCancel}
-            />
+            {#if currentUser && onPost}
+              <CommentForm
+                parentId={comment.id}
+                placeholder={t('writeReply')}
+                showCancel={true}
+                onSubmit={async (text, parentId) => {
+                  await onPost(text, parentId);
+                  handleReply();
+                }}
+                onCancel={handleFormCancel}
+              />
+            {:else if authStore}
+              <SignInPrompt
+                {authStore}
+                {apiUrl}
+                {projectId}
+                placeholder={t('writeReply')}
+              />
+            {/if}
           </div>
         {/if}
 
@@ -521,6 +575,9 @@
               <Comment
                 comment={child}
                 {currentUser}
+                {authStore}
+                {apiUrl}
+                {projectId}
                 depth={depth + 1}
                 {maxDepth}
                 index={childIndex}
@@ -529,6 +586,7 @@
                 collapsed={collapsedThreads?.has(child.id)}
                 {highlightedCommentId}
                 {collapsedThreads}
+                {focusedCommentId}
                 {onReply}
                 {onVote}
                 {onDelete}
@@ -538,6 +596,9 @@
                 {onReport}
                 {onPermalink}
                 {onCollapse}
+                {onLogin}
+                {onPost}
+                {onCommentClick}
                 {getUserProfile}
                 {plugins}
               />

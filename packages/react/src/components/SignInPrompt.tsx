@@ -270,7 +270,7 @@ export function SignInPrompt({ apiUrl, projectId, placeholder }: SignInPromptPro
     return <span className="threadkit-signin-method-icon">{method.name[0]}</span>;
   };
 
-  // OTP input (email/phone) - show textarea with inline email/phone input
+  // OTP input (email) - show textarea with inline email input
   if (state.step === 'otp-input') {
     const isEmail = state.selectedMethod?.id === 'email';
     return (

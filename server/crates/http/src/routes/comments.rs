@@ -357,6 +357,14 @@ pub async fn create_comment(
     // Generate page_id
     let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
+    // Debug logging for tests
+    tracing::debug!(
+        "Create comment: page_url={}, site_id={}, page_id={}",
+        req.page_url,
+        project_id.0.site_id,
+        page_id
+    );
+
     // Check if page-level posting is disabled
     let page_locked = state
         .redis
@@ -826,12 +834,25 @@ pub async fn vote_comment(
 
     let page_id = RedisClient::generate_page_id(project_id.0.site_id, &req.page_url);
 
+    // Debug logging for tests
+    tracing::debug!(
+        "Vote request: page_url={}, site_id={}, page_id={}, comment_id={}, path={:?}",
+        req.page_url,
+        project_id.0.site_id,
+        page_id,
+        comment_id,
+        req.path
+    );
+
     // Use atomic vote operation to prevent race conditions
     let (new_vote, new_upvotes, new_downvotes, upvote_delta, downvote_delta) = state
         .redis
         .atomic_vote(auth.user_id, page_id, comment_id, &req.path, req.direction)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!("Vote error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
 
     // Get author_id for karma update (we still need to fetch the tree for this)
     let tree = state

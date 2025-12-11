@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@threadkit/react": "workspace:*",
+    "@threadkit/plugin-auth-ethereum": "workspace:*",
+    "@threadkit/plugin-auth-solana": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -34,7 +34,7 @@ describe('commentTree', () => {
         createComment({ id: '3', upvotes: 2, downvotes: 1 }),
       ];
 
-      const sorted = sortComments(comments, 'votes');
+      const sorted = sortComments(comments, 'top');
 
       expect(sorted[0].id).toBe('2'); // 3 points
       expect(sorted[1].id).toBe('1'); // 1 point
@@ -48,7 +48,7 @@ describe('commentTree', () => {
         createComment({ id: '3', timestamp: 2000 }),
       ];
 
-      const sorted = sortComments(comments, 'newest');
+      const sorted = sortComments(comments, 'new');
 
       expect(sorted[0].id).toBe('2');
       expect(sorted[1].id).toBe('3');
@@ -62,7 +62,7 @@ describe('commentTree', () => {
         createComment({ id: '3', timestamp: 2000 }),
       ];
 
-      const sorted = sortComments(comments, 'oldest');
+      const sorted = sortComments(comments, 'old');
 
       expect(sorted[0].id).toBe('2');
       expect(sorted[1].id).toBe('3');

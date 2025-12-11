@@ -8,6 +8,7 @@
   import CommentsView from './CommentsView.svelte';
   import ChatView from './ChatView.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
+  import NotificationsPanel from './NotificationsPanel.svelte';
 
   interface Props {
     url: string;
@@ -191,8 +192,9 @@
       }
     });
 
-    // Initialize auth
+    // Initialize auth and set up OAuth listener
     authStore.initialize();
+    authStore.setupOAuthListener();
   });
 
   // Cleanup on destroy
@@ -205,6 +207,7 @@
     unsubWsEdited?.();
     commentsStore?.destroy();
     wsStore?.destroy();
+    authStore?.destroyOAuthListener();
     authStore?.destroy();
   });
 
@@ -212,7 +215,6 @@
   const isModerator = $derived(currentUser?.isModerator || currentUser?.isAdmin || false);
 
   async function handleUpdateSocialLinks(socialLinks: SocialLinks) {
-    console.log('Updating social links:', socialLinks);
     // TODO: Implement actual API call to update user social links
     // For now, update the current user's social links locally
     if (currentUser) {
@@ -223,7 +225,6 @@
   }
 
   async function handleUpdateName(name: string) {
-    console.log('Updating name:', name);
     // TODO: Implement actual API call to update user name
     if (currentUser) {
       currentUser = { ...currentUser, name };
@@ -381,6 +382,27 @@
   }
 </script>
 
+{#snippet toolbarIcons()}
+  {#if currentUser}
+    <div class="threadkit-toolbar-icons">
+      <NotificationsPanel
+        notifications={[]}
+        onMarkRead={() => {}}
+        onMarkAllRead={() => {}}
+      />
+      <SettingsPanel
+        currentUser={currentUser}
+        onLogin={() => authStore.startLogin()}
+        onLogout={() => authStore.logout()}
+        onUpdateSocialLinks={handleUpdateSocialLinks}
+        onUpdateName={handleUpdateName}
+        onThemeChange={handleThemeChange}
+        theme={currentTheme}
+      />
+    </div>
+  {/if}
+{/snippet}
+
 <div
   class="threadkit-root"
   data-theme={currentTheme}
@@ -397,15 +419,6 @@
       {/if}
     </div>
   {:else}
-    <SettingsPanel
-      currentUser={currentUser ?? undefined}
-      onLogin={() => authStore.startLogin()}
-      onLogout={() => authStore.logout()}
-      onUpdateSocialLinks={handleUpdateSocialLinks}
-      onUpdateName={handleUpdateName}
-      onThemeChange={handleThemeChange}
-      theme={currentTheme}
-    />
     {#if mode === 'chat'}
     <ChatView
       {comments}
@@ -413,8 +426,12 @@
       {showLastN}
       {autoScroll}
       {showPresence}
+      wsConnected={connected}
       {presenceCount}
       typingUsers={showTyping ? typingUsers : []}
+      {authStore}
+      {apiUrl}
+      {projectId}
       onSend={handlePost}
       onTyping={handleTyping}
       onBlock={handleBlock}
@@ -423,11 +440,14 @@
       onEdit={handleEdit}
       onBan={isModerator ? handleBan : undefined}
       {plugins}
+      toolbarEnd={toolbarIcons}
     />
   {:else}
     <CommentsView
       {comments}
       currentUser={currentUser ?? undefined}
+      {apiUrl}
+      {projectId}
       {maxDepth}
       {allowVoting}
       sortBy={currentSort}
@@ -443,6 +463,13 @@
       onReport={handleReport}
       onCollapse={handleCollapse}
       {plugins}
+      {currentTheme}
+      {authStore}
+      onLogin={() => authStore.startLogin()}
+      onLogout={() => authStore.logout()}
+      onUpdateSocialLinks={handleUpdateSocialLinks}
+      onUpdateName={handleUpdateName}
+      onThemeChange={handleThemeChange}
     />
     {/if}
   {/if}

@@ -218,6 +218,20 @@ export interface TranslationStrings {
   loadNewComments: string;
   loadNewReplies: string;
   isTyping: string;
+
+  // File upload errors
+  fileFormatNotAllowed: string;
+  fileTooLarge: string;
+  uploadFailed: string;
+
+  // Avatar upload
+  uploadAvatar: string;
+  selectImage: string;
+  changeImage: string;
+  uploading: string;
+  upload: string;
+  current: string;
+  new: string;
 }
 
 /**

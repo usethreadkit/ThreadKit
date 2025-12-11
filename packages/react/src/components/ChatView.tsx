@@ -183,55 +183,18 @@ function ChatMessage({
     );
   }
 
-  if (isReplying) {
-    const replyToName = formatUsername(message.userName, t);
-
-    return (
-      <div className="threadkit-chat-message replying">
-        <div className="threadkit-chat-reply-form">
-          <input
-            type="text"
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder={`${t('reply')} to ${replyToName}...`}
-            autoFocus
-            maxLength={MAX_CHAT_LENGTH}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && replyText.trim()) {
-                handleSendReply();
-              }
-              if (e.key === 'Escape') {
-                setIsReplying(false);
-                setReplyText('');
-              }
-            }}
-          />
-          <button
-            className="threadkit-submit-btn"
-            onClick={handleSendReply}
-            disabled={!replyText.trim()}
-          >
-            {t('send')}
-          </button>
-          <button
-            className="threadkit-cancel-btn"
-            onClick={() => {
-              setIsReplying(false);
-              setReplyText('');
-            }}
-          >
-            {t('cancel')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const replyToName = formatUsername(message.userName, t);
 
   return (
     <div
       className={`threadkit-chat-message ${isExpanded ? 'expanded' : ''} ${highlighted ? 'highlighted' : ''} ${message.replyReferenceId ? 'reply-message' : ''}`}
       style={{ paddingLeft: depth > 0 ? `${depth * 20}px` : undefined }}
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={() => {
+        // Don't expand reference replies - they should only have the arrow action
+        if (!message.replyReferenceId) {
+          setIsExpanded(!isExpanded);
+        }
+      }}
       data-comment-id={message.id}
     >
       <div className="threadkit-chat-message-line">
@@ -272,7 +235,7 @@ function ChatMessage({
           )}
         </span>
       </div>
-      {isExpanded && currentUser && (
+      {isExpanded && currentUser && !message.replyReferenceId && (
         <div className="threadkit-chat-actions">
           {/* Own message actions: edit, delete */}
           {isOwnMessage ? (
@@ -511,6 +474,45 @@ function ChatMessage({
         </div>
       )}
 
+      {/* Reply form - shown when replying */}
+      {isReplying && (
+        <div className="threadkit-chat-reply-form">
+          <input
+            type="text"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder={`${t('reply')} to ${replyToName}...`}
+            autoFocus
+            maxLength={MAX_CHAT_LENGTH}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && replyText.trim()) {
+                handleSendReply();
+              }
+              if (e.key === 'Escape') {
+                setIsReplying(false);
+                setReplyText('');
+              }
+            }}
+          />
+          <button
+            className="threadkit-submit-btn"
+            onClick={handleSendReply}
+            disabled={!replyText.trim()}
+          >
+            {t('send')}
+          </button>
+          <button
+            className="threadkit-cancel-btn"
+            onClick={() => {
+              setIsReplying(false);
+              setReplyText('');
+            }}
+          >
+            {t('cancel')}
+          </button>
+        </div>
+      )}
+
       {/* Lightbox modal for full-size image viewing */}
       {lightboxImage && (
         <div className="threadkit-lightbox" onClick={() => setLightboxImage(null)}>
@@ -563,7 +565,7 @@ export function ChatView({
   plugins,
 }: ChatViewProps) {
   const t = useTranslation();
-  const { state: authState, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, plugins: authPlugins } = useAuth();
+  const { state: authState, login, selectMethod, setOtpTarget, verifyOtp, updateUsername, loginAnonymous, plugins: authPlugins } = useAuth();
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const authInputRef = useRef<HTMLInputElement>(null);
@@ -800,7 +802,7 @@ export function ChatView({
 
   // Focus auth input when step changes
   useEffect(() => {
-    if (authState.step === 'otp-input' || authState.step === 'otp-verify' || authState.step === 'username-required' || authState.step === 'otp-name') {
+    if (authState.step === 'otp-input' || authState.step === 'otp-verify' || authState.step === 'username-required' || authState.step === 'otp-name' || authState.step === 'anonymous-input') {
       authInputRef.current?.focus();
     }
   }, [authState.step]);
@@ -812,7 +814,7 @@ export function ChatView({
     login();
   }, [login]);
 
-  // Handle OTP email/phone submit
+  // Handle OTP email submit
   const handleOtpSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -907,7 +909,38 @@ export function ChatView({
       );
     }
 
-    // OTP input (email/phone entry)
+    // Anonymous login - show name input
+    if (authState.step === 'anonymous-input') {
+      const handleAnonSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        loginAnonymous(username.trim() || undefined);
+      };
+
+      return (
+        <div className="threadkit-chat-signin">
+          <form onSubmit={handleAnonSubmit} className="threadkit-otp-inline-form">
+            <button type="button" className="threadkit-signin-back-inline" onClick={handleBack}>
+              ←
+            </button>
+            <input
+              ref={authInputRef}
+              type="text"
+              className="threadkit-otp-inline-input"
+              placeholder={t('guestNamePlaceholder')}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="off"
+            />
+            <button type="submit" className="threadkit-submit-btn">
+              {t('continueAsGuest')}
+            </button>
+          </form>
+          {authState.error && <span className="threadkit-signin-error" role="alert" aria-live="assertive">{authState.error}</span>}
+        </div>
+      );
+    }
+
+    // OTP input (email entry)
     if (authState.step === 'otp-input') {
       const isEmail = authState.selectedMethod?.id === 'email';
       return (
@@ -1161,10 +1194,12 @@ export function ChatView({
           />
         ))}
       </div>
+      {/* this is disabled until we can ensure it never overlaps anything important
       <div
         className="threadkit-chat-tap-area"
         onClick={() => inputRef.current?.focus()}
       />
+      */}
     </div>
   );
 }

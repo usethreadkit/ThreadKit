@@ -503,7 +503,7 @@
 /* Nested replies */
 .threadkit-replies {
   margin-left: 0;
-  padding-left: 16px;
+  padding-left: 4px;
   border-left: 2px solid var(--threadkit-border-light);
   margin-top: 4px;
 }
@@ -1023,6 +1023,7 @@
   gap: 4px;
   font-size: 12px;
   margin-bottom: 12px;
+  justify-content: space-between;
 }
 
 .threadkit-sort {
@@ -1182,6 +1183,7 @@
   background: transparent;
   outline: none;
   color: var(--threadkit-text);
+  max-width: 100%;
 }
 
 .threadkit-chat-input input:focus {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { uploadAvatar, type MediaUpload } from '@threadkit/core';
 import { Avatar } from './Avatar';
+import { useTranslation } from '../i18n';
 
 interface AvatarUploadModalProps {
   apiUrl: string;
@@ -28,6 +29,7 @@ export function AvatarUploadModal({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslation();
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,13 +38,13 @@ export function AvatarUploadModal({
     // Validate file type - only safe image formats, no SVG
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      setError('Unsupported image format (JPEG, PNG, WebP, GIF allowed - SVG not allowed)');
+      setError(t('fileFormatNotAllowed'));
       return;
     }
 
     // Validate file size (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setError('Image must be smaller than 10MB');
+      setError(t('fileTooLarge'));
       return;
     }
 
@@ -55,7 +57,7 @@ export function AvatarUploadModal({
       setPreviewUrl(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [t]);
 
   const handleUpload = useCallback(async () => {
     if (!selectedFile) return;
@@ -79,12 +81,26 @@ export function AvatarUploadModal({
       onUploadComplete(result.url);
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
+      const serverError = err instanceof Error ? err.message : String(err);
+
+      // Log the server error for debugging
+      console.error('[AvatarUploadModal] Upload error:', serverError);
+
+      // Show user-friendly translated error message
+      let userError = t('uploadFailed');
+
+      // Check if server returned a specific error we can translate
+      if (serverError.toLowerCase().includes('format') || serverError.toLowerCase().includes('svg')) {
+        userError = t('fileFormatNotAllowed');
+      } else if (serverError.toLowerCase().includes('size') || serverError.toLowerCase().includes('10mb')) {
+        userError = t('fileTooLarge');
+      }
+
+      setError(userError);
       setUploading(false);
       setProgress(0);
     }
-  }, [selectedFile, apiUrl, projectId, token, onUploadComplete, onClose]);
+  }, [selectedFile, apiUrl, projectId, token, onUploadComplete, onClose, t]);
 
   const handleCancel = useCallback(() => {
     if (!uploading) {
@@ -109,12 +125,12 @@ export function AvatarUploadModal({
     <div className="threadkit-root threadkit-user-modal-overlay" data-theme={resolvedTheme} onClick={handleCancel}>
       <div className="threadkit-root threadkit-avatar-upload-modal" data-theme={resolvedTheme} onClick={(e) => e.stopPropagation()}>
         <div className="threadkit-avatar-modal-header">
-          <h3>Upload Avatar</h3>
+          <h3>{t('uploadAvatar')}</h3>
           <button
             className="threadkit-avatar-modal-close"
             onClick={handleCancel}
             disabled={uploading}
-            aria-label="Close"
+            aria-label={t('close')}
           >
             ×
           </button>
@@ -123,7 +139,7 @@ export function AvatarUploadModal({
         <div className="threadkit-avatar-modal-body">
           <div className="threadkit-avatar-preview-section">
             <div className="threadkit-avatar-preview-current">
-              <label>Current</label>
+              <label>{t('current')}</label>
               <div className="threadkit-avatar-preview-circle">
                 <Avatar
                   src={currentAvatar}
@@ -134,7 +150,7 @@ export function AvatarUploadModal({
 
             {previewUrl && (
               <div className="threadkit-avatar-preview-new">
-                <label>New</label>
+                <label>{t('new')}</label>
                 <div className="threadkit-avatar-preview-circle">
                   <img
                     src={previewUrl}
@@ -160,7 +176,7 @@ export function AvatarUploadModal({
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              Select Image
+              {t('selectImage')}
             </button>
           )}
 
@@ -174,7 +190,7 @@ export function AvatarUploadModal({
                 className="threadkit-cancel-btn threadkit-change-file-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Change Image
+                {t('changeImage')}
               </button>
             </div>
           )}
@@ -187,7 +203,7 @@ export function AvatarUploadModal({
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="threadkit-progress-text">Uploading... {Math.round(progress)}%</p>
+              <p className="threadkit-progress-text">{t('uploading')} {Math.round(progress)}%</p>
             </div>
           )}
 
@@ -204,14 +220,14 @@ export function AvatarUploadModal({
             onClick={handleCancel}
             disabled={uploading}
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             className="threadkit-submit-btn"
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? t('uploading') : t('upload')}
           </button>
         </div>
       </div>

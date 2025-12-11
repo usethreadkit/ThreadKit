@@ -15,7 +15,7 @@
 
 <div class="demo-container">
   <header style="margin-bottom: 32px;">
-    <h1 style="margin-bottom: 8px;">ThreadKit - Local Server (Two Instances)</h1>
+    <h1 style="margin-bottom: 8px;">ThreadKit - Svelte Package</h1>
     <p style="color: #666; margin-bottom: 16px;">
       Testing chat and thread modes side-by-side at <code>localhost:8080</code>
     </p>
@@ -36,10 +36,10 @@
         </li>
         <li>
           Create site (first time only):
-          <pre style="margin: 4px 0; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; overflow: auto;">
+          <pre style="margin: 4px 0; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; overflow: auto; user-select: all; cursor: text;">
 cargo run --release --bin threadkit-http -- \
 --create-site "My Site" example.com \
---enable-auth email,google,github,anonymous
+--enable-auth email,google,github,anonymous,ethereum,solana
           </pre>
         </li>
         <li>

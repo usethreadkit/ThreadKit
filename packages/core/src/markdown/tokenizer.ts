@@ -125,9 +125,17 @@ export function tokenizeLine(text: string, options: TokenizerOptions = {}): Toke
 
     // Plain text: consume until next special char, URL start, or end
     // The pattern stops before 'h' followed by 'ttp' to allow URL detection
-    const plainPattern = options.enableAutoLinks
-      ? /^(?:(?!https?:\/\/)[^*`~[\]@])+/
-      : /^[^*`~[\]@]+/;
+    // When allowLinks is enabled, stop before '![' (image syntax)
+    let plainPattern: RegExp;
+    if (options.enableAutoLinks && options.allowLinks) {
+      plainPattern = /^(?:(?!https?:\/\/)(?!!\[)[^*`~[\]@])+/;
+    } else if (options.enableAutoLinks) {
+      plainPattern = /^(?:(?!https?:\/\/)[^*`~[\]@])+/;
+    } else if (options.allowLinks) {
+      plainPattern = /^(?:(?!!\[)[^*`~[\]@])+/;
+    } else {
+      plainPattern = /^[^*`~[\]@]+/;
+    }
     const plainMatch = remaining.match(plainPattern);
     if (plainMatch) {
       tokens.push({ type: 'text', content: plainMatch[0] });
