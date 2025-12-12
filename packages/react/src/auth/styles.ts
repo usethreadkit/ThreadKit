@@ -12,11 +12,11 @@ export const AUTH_STYLES = `
 }
 
 .tk-auth-modal {
-  background: var(--tk-bg, #fff);
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: var(--threadkit-bg, #fff);
+  border-radius: var(--threadkit-radius, 4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   width: 100%;
-  max-width: 400px;
+  max-width: 320px;
   max-height: 90vh;
   overflow: auto;
 }
@@ -29,44 +29,58 @@ export const AUTH_STYLES = `
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--tk-border, #e5e5e5);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--threadkit-border, #e5e5e5);
+}
+
+.tk-auth-header-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--threadkit-text, #111);
+}
+
+[data-theme="dark"] .tk-auth-header-title {
+  color: var(--threadkit-text, #fff);
 }
 
 [data-theme="dark"] .tk-auth-header {
-  border-color: var(--tk-border, #333);
+  border-color: var(--threadkit-border, #333);
 }
 
 .tk-auth-back-btn,
 .tk-auth-close-btn {
   background: none;
   border: none;
-  padding: 8px;
+  padding: 4px;
   cursor: pointer;
-  border-radius: 8px;
-  color: var(--tk-text-secondary, #666);
+  border-radius: var(--threadkit-radius, 4px);
+  color: var(--threadkit-text-secondary, #666);
   transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tk-auth-back-btn:hover,
 .tk-auth-close-btn:hover {
-  background: var(--tk-hover, #f5f5f5);
-  color: var(--tk-text, #111);
+  background: var(--threadkit-bg-hover, #f5f5f5);
+  color: var(--threadkit-text, #111);
 }
 
 [data-theme="dark"] .tk-auth-back-btn:hover,
 [data-theme="dark"] .tk-auth-close-btn:hover {
-  background: var(--tk-hover, #333);
-  color: var(--tk-text, #fff);
+  background: var(--threadkit-bg-hover, #333);
+  color: var(--threadkit-text, #fff);
 }
 
 .tk-auth-icon-sm {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .tk-auth-content {
-  padding: 24px;
+  padding: 16px;
 }
 
 .tk-auth-title {
@@ -89,43 +103,39 @@ export const AUTH_STYLES = `
 .tk-auth-method-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
 }
 
 .tk-auth-method-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 14px 16px;
-  background: var(--tk-bg-secondary, #f5f5f5);
-  border: 1px solid var(--tk-border, #e5e5e5);
-  border-radius: 8px;
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: var(--threadkit-radius, 4px);
   cursor: pointer;
-  font-size: 15px;
-  color: var(--tk-text, #111);
-  transition: background 0.15s, border-color 0.15s;
+  font-size: 13px;
+  color: var(--threadkit-text, #111);
+  transition: background 0.15s;
 }
 
 .tk-auth-method-btn:hover {
-  background: var(--tk-hover, #eee);
-  border-color: var(--tk-border-hover, #ccc);
+  background: var(--threadkit-bg-hover, #f5f5f5);
 }
 
 [data-theme="dark"] .tk-auth-method-btn {
-  background: var(--tk-bg-secondary, #2a2a2a);
-  border-color: var(--tk-border, #444);
-  color: var(--tk-text, #fff);
+  color: var(--threadkit-text, #fff);
 }
 
 [data-theme="dark"] .tk-auth-method-btn:hover {
-  background: var(--tk-hover, #333);
-  border-color: var(--tk-border-hover, #555);
+  background: var(--threadkit-bg-hover, #333);
 }
 
 .tk-auth-method-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 
@@ -136,31 +146,29 @@ export const AUTH_STYLES = `
 
 .tk-auth-input {
   width: 100%;
-  padding: 14px 16px;
-  font-size: 16px;
-  border: 1px solid var(--tk-border, #e5e5e5);
-  border-radius: 8px;
-  background: var(--tk-bg, #fff);
-  color: var(--tk-text, #111);
-  margin-bottom: 16px;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--threadkit-border, #e5e5e5);
+  border-radius: var(--threadkit-radius, 4px);
+  background: var(--threadkit-bg, #fff);
+  color: var(--threadkit-text, #111);
+  margin-bottom: 12px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
 }
 
 .tk-auth-input:focus {
-  border-color: var(--tk-primary, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--threadkit-primary, #ff4500);
 }
 
 [data-theme="dark"] .tk-auth-input {
-  background: var(--tk-bg-secondary, #2a2a2a);
-  border-color: var(--tk-border, #444);
-  color: var(--tk-text, #fff);
+  background: var(--threadkit-bg-secondary, #2a2a2a);
+  border-color: var(--threadkit-border, #444);
+  color: var(--threadkit-text, #fff);
 }
 
 [data-theme="dark"] .tk-auth-input:focus {
-  border-color: var(--tk-primary, #3b82f6);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: var(--threadkit-primary, #ff4500);
 }
 
 .tk-auth-otp-input {
@@ -171,56 +179,109 @@ export const AUTH_STYLES = `
 }
 
 .tk-auth-submit-btn {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #fff;
-  background: var(--tk-primary, #2563eb);
-  border: none;
-  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff !important;
+  background: #ff4500 !important;
+  border: 1px solid #ff4500 !important;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+  line-height: 1.5;
 }
 
 .tk-auth-submit-btn:hover:not(:disabled) {
-  background: var(--tk-primary-hover, #1d4ed8);
+  background: #cc3700 !important;
+  border-color: #cc3700 !important;
 }
 
 .tk-auth-submit-btn:disabled {
-  opacity: 0.5;
+  background: transparent !important;
+  border-color: #e5e5e5 !important;
+  color: #999 !important;
   cursor: not-allowed;
 }
 
 .tk-auth-error {
-  color: var(--tk-error, #dc2626);
-  font-size: 14px;
-  margin: 0 0 16px 0;
+  color: var(--threadkit-error, #dc2626);
+  font-size: 12px;
+  margin: 0 0 12px 0;
 }
 
 .tk-auth-loading {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px;
-  text-align: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--threadkit-text-secondary, #666);
 }
 
 .tk-auth-spinner {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 16px;
-  color: var(--tk-primary, #2563eb);
+  width: 14px;
+  height: 14px;
+  color: var(--threadkit-primary, #ff4500);
+  animation: tk-auth-spin 1s linear infinite;
 }
 
-.tk-auth-loading p {
-  margin: 0;
-  color: var(--tk-text, #111);
+@keyframes tk-auth-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-[data-theme="dark"] .tk-auth-loading p {
-  color: var(--tk-text, #fff);
+[data-theme="dark"] .tk-auth-loading {
+  color: var(--threadkit-text-secondary, #888);
+}
+
+/* Wallet-specific styles */
+.tk-auth-wallet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tk-auth-wallet-address {
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--threadkit-text-secondary, #666);
+}
+
+.tk-auth-disconnect-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999 !important;
+  background: transparent !important;
+  border: 1px solid #e5e5e5 !important;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.tk-auth-disconnect-btn:hover {
+  color: #fff !important;
+  background: #ff4500 !important;
+  border-color: #ff4500 !important;
+}
+
+[data-theme="dark"] .tk-auth-disconnect-btn {
+  border-color: #444 !important;
+  color: #888 !important;
+}
+
+[data-theme="dark"] .tk-auth-disconnect-btn:hover {
+  color: #fff !important;
+  background: #ff4500 !important;
+  border-color: #ff4500 !important;
 }
 
 /* Login button styles */
